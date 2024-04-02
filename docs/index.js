@@ -8,6 +8,14 @@ const resetButton = document.getElementById('resetButton');
 runButton.addEventListener('click', async () => {
     const input = inputTextarea.value;
     run_code(input);
+    outputTextarea.focus();
+});
+
+resetButton.addEventListener('click', () => {
+    inputTextarea.value = '';
+    outputTextarea.value = '';
+    inputTextarea.focus();
+    console.clear();
 });
 
 await init();
