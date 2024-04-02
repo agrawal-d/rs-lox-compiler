@@ -10,5 +10,5 @@ Rust implementation of [craftinginterpreters.com](https://craftinginterpreters.c
 ## Build & Run from source
 
 1. Run `cargo install cargo-watch `
-1. Run `x.sh`
+1. Run `x.sh` (requires `bash`)
 1. Open docs/index.html using a web server ( like `python3 -m http.server` )
