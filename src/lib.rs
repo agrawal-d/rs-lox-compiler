@@ -1,3 +1,7 @@
+pub mod chunk;
+pub mod value;
+
+use chunk::{Chunk, Opcode};
 use log::*;
 use std::panic;
 use wasm_bindgen::prelude::*;
@@ -15,7 +19,17 @@ fn main() -> Result<(), JsValue> {
     Ok(())
 }
 
+#[wasm_bindgen(module = "/src/snippet.js")]
+extern "C" {
+    pub fn appendOutput(output: String);
+    pub fn resetOutput();
+}
+
 #[wasm_bindgen]
 pub fn run_code(code: &str) {
     info!("run_code called in rust with code '{code}'");
+    resetOutput();
+    appendOutput(String::from(code));
+    let mut chunk = Chunk::new();
+    chunk.write(Opcode::Return);
 }

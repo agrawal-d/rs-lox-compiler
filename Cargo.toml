@@ -19,7 +19,8 @@ features = [
   'Document',
   'Element',
   'HtmlElement',
+  'HtmlTextAreaElement',
   'Node',
   'Window',
-  'console'
+  'console',
 ]
