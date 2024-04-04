@@ -8,6 +8,8 @@ use log::*;
 use std::panic;
 use wasm_bindgen::prelude::*;
 
+use crate::{chunk::Chunk, vm::Vm};
+
 #[macro_export]
 macro_rules! jsprint {
     ($($arg:tt)*) => {
@@ -27,7 +29,7 @@ macro_rules! jsprintln {
 fn main() -> Result<(), JsValue> {
     panic::set_hook(Box::new(|p| {
         let s = p.to_string();
-        error!("{}", s);
+        jsprintln!("{}", s);
     }));
 
     console_log::init_with_level(Level::Debug).unwrap();
@@ -44,7 +46,16 @@ extern "C" {
 
 #[wasm_bindgen]
 pub fn run_code(code: &str) {
-    info!("run_code called in rust with code '{code}'");
     resetOutput();
-    print(String::from(code));
+    jsprintln!("run_code called in rust with code '{code}'");
+    let mut chunk = Chunk {
+        code: Vec::new(),
+        lines: std::collections::HashMap::new(),
+        constants: value::ValueArray::new(),
+    };
+
+    let index = chunk.add_constant(1.2);
+    chunk.write_constant(index, 0);
+    chunk.write_opcode(common::Opcode::Return, 1);
+    Vm::interpret(chunk).unwrap();
 }

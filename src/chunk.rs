@@ -1,4 +1,3 @@
-use log::*;
 use std::collections::HashMap;
 
 use crate::{
@@ -67,13 +66,13 @@ impl Chunk {
             }
         };
 
-        jsprintln!();
+        jsprintln!("");
 
         ret
     }
 
     #[cfg(not(feature = "tracing"))]
-    pub fn disassemble_instruction(&self, offset: usize) -> usize {
+    pub fn disassemble_instruction(&self, _offset: usize) -> usize {
         self.code.len()
     }
 
@@ -110,7 +109,7 @@ impl Chunk {
 
     #[cfg(feature = "tracing")]
     pub fn line() {
-        jsprintln!();
+        jsprintln!("");
     }
 
     #[cfg(not(feature = "tracing"))]

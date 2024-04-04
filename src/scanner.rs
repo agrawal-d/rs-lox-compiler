@@ -1,4 +1,3 @@
-use anyhow::*;
 use std::{collections::HashMap, rc::Rc, sync::OnceLock};
 
 pub struct Scanner {
