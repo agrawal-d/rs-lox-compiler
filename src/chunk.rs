@@ -15,10 +15,10 @@ pub struct Chunk {
 
 impl Chunk {
     pub fn write_opcode(&mut self, opcode: Opcode, line: usize) {
-        self.write(opcode as u8, line);
+        self.write_byte(opcode as u8, line);
     }
 
-    pub fn write(&mut self, data: u8, line: usize) {
+    pub fn write_byte(&mut self, data: u8, line: usize) {
         self.lines.insert(self.code.len(), line);
         self.code.push(data);
     }

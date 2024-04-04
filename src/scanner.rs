@@ -14,6 +14,16 @@ pub struct Token {
     pub line: usize,
 }
 
+impl Token {
+    pub fn new() -> Token {
+        Token {
+            typ: TokenType::Error,
+            source: Rc::from(""),
+            line: 0,
+        }
+    }
+}
+
 impl Scanner {
     pub fn new(source: Rc<str>) -> Scanner {
         Scanner {
