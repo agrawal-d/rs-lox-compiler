@@ -1,5 +1,6 @@
 pub mod chunk;
 pub mod value;
+pub mod vm;
 
 use chunk::{Chunk, Opcode};
 use log::*;
@@ -31,5 +32,5 @@ pub fn run_code(code: &str) {
     resetOutput();
     appendOutput(String::from(code));
     let mut chunk = Chunk::new();
-    chunk.write(Opcode::Return);
+    chunk.write(Opcode::Return, 0);
 }
