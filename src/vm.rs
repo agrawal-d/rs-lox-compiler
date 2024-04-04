@@ -1,7 +1,4 @@
-use crate::{
-    appendOutput,
-    chunk::{Chunk, Opcode},
-};
+use crate::{chunk::Chunk, common::Opcode, print};
 
 pub struct Vm {
     chunk: Chunk,
@@ -15,19 +12,6 @@ impl Vm {
     }
 
     pub fn run(&mut self) {
-        loop {
-            let instruction = &self.chunk.code[self.ip];
-            self.ip += 1;
-
-            match instruction {
-                Opcode::Return => {
-                    return;
-                }
-                Opcode::Constant(index) => {
-                    let constant = self.chunk.constants[*index];
-                    appendOutput(format!("{:?}", constant));
-                }
-            }
-        }
+        loop {}
     }
 }

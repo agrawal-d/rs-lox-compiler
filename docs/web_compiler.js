@@ -1,4 +1,4 @@
-import { appendOutput } from './snippets/web-compiler-2371e8b10bdc1214/src/snippet.js';
+import { print } from './snippets/web-compiler-2371e8b10bdc1214/src/snippet.js';
 import * as __wbg_star0 from './snippets/web-compiler-2371e8b10bdc1214/src/snippet.js';
 
 let wasm;
@@ -173,13 +173,13 @@ async function __wbg_load(module, imports) {
 function __wbg_get_imports() {
     const imports = {};
     imports.wbg = {};
-    imports.wbg.__wbg_appendOutput_a9d0b1bd0a6afa1c = function() { return logError(function (arg0, arg1) {
+    imports.wbg.__wbg_print_4886dc65be190bf9 = function() { return logError(function (arg0, arg1) {
         let deferred0_0;
         let deferred0_1;
         try {
             deferred0_0 = arg0;
             deferred0_1 = arg1;
-            appendOutput(getStringFromWasm0(arg0, arg1));
+            print(getStringFromWasm0(arg0, arg1));
         } finally {
             wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
         }

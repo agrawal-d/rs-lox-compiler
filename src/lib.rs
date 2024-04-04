@@ -1,11 +1,26 @@
 pub mod chunk;
+pub mod common;
+pub mod scanner;
 pub mod value;
 pub mod vm;
 
-use chunk::{Chunk, Opcode};
 use log::*;
 use std::panic;
 use wasm_bindgen::prelude::*;
+
+#[macro_export]
+macro_rules! jsprint {
+    ($($arg:tt)*) => {
+        crate::print(format!($($arg)*));
+    };
+}
+
+#[macro_export]
+macro_rules! jsprintln {
+    ($($arg:tt)*) => {
+        crate::println(format!($($arg)*));
+    };
+}
 
 // Called when the wasm module is instantiated
 #[wasm_bindgen(start)]
@@ -22,7 +37,8 @@ fn main() -> Result<(), JsValue> {
 
 #[wasm_bindgen(module = "/src/snippet.js")]
 extern "C" {
-    pub fn appendOutput(output: String);
+    pub fn print(output: String);
+    pub fn println(output: String);
     pub fn resetOutput();
 }
 
@@ -30,7 +46,5 @@ extern "C" {
 pub fn run_code(code: &str) {
     info!("run_code called in rust with code '{code}'");
     resetOutput();
-    appendOutput(String::from(code));
-    let mut chunk = Chunk::new();
-    chunk.write(Opcode::Return, 0);
+    print(String::from(code));
 }
