@@ -6,21 +6,103 @@ use crate::{
     value::Value,
 };
 use anyhow::*;
-use log::error;
-use std::rc::Rc;
+use num_enum::{IntoPrimitive, TryFromPrimitive};
+use std::{collections::HashMap, rc::Rc, sync::OnceLock};
 
+#[repr(u8)]
+#[derive(Eq, Clone, Copy, TryFromPrimitive, PartialEq, PartialOrd, IntoPrimitive, strum_macros::Display)]
 enum Precedence {
     None,
-    Assignment,
-    Or,
-    And,
-    Equality,
-    Comparison,
-    Term,
-    Factor,
-    Unary,
-    Call,
+    Assignment, // =
+    Or,         // or
+    And,        // and
+    Equality,   // == !=
+    Comparison, // < > <= >=
+    Term,       // + -
+    Factor,     // * /
+    Unary,      // ! -
+    Call,       // . ()
     Primary,
+}
+
+type Parsefn = fn(&mut Compiler);
+
+struct ParseRule {
+    prefix: Option<Parsefn>,
+    infix: Option<Parsefn>,
+    precedence: Precedence,
+}
+
+fn get_rules() -> &'static HashMap<TokenType, ParseRule> {
+    static HASHMAP: OnceLock<HashMap<TokenType, ParseRule>> = OnceLock::new();
+    HASHMAP.get_or_init(|| {
+        let mut map = HashMap::new();
+        use TokenType::*;
+
+        macro_rules! add_rule {
+            ($map: expr, $tokentype: expr, $prefix: expr, $infix: expr, $precedence: expr) => {
+                $map.insert(
+                    $tokentype,
+                    ParseRule {
+                        prefix: $prefix,
+                        infix: $infix,
+                        precedence: $precedence,
+                    },
+                );
+            };
+        }
+
+        add_rule!(map, LeftParen, Some(Compiler::grouping), None, Precedence::None);
+        add_rule!(map, RightParen, None, None, Precedence::None);
+        add_rule!(map, LeftBrace, None, None, Precedence::None);
+        add_rule!(map, RightBrace, None, None, Precedence::None);
+        add_rule!(map, Comma, None, None, Precedence::None);
+        add_rule!(map, Dot, None, None, Precedence::None);
+        add_rule!(map, Minus, Some(Compiler::unary), Some(Compiler::binary), Precedence::Term);
+        add_rule!(map, Plus, None, Some(Compiler::binary), Precedence::Term);
+        add_rule!(map, Semicolon, None, None, Precedence::None);
+        add_rule!(map, Slash, None, Some(Compiler::binary), Precedence::Factor);
+        add_rule!(map, Star, None, Some(Compiler::binary), Precedence::Factor);
+        add_rule!(map, Bang, None, None, Precedence::None);
+        add_rule!(map, BangEqual, None, None, Precedence::None);
+        add_rule!(map, Equal, None, None, Precedence::None);
+        add_rule!(map, EqualEqual, None, None, Precedence::None);
+        add_rule!(map, Greater, None, None, Precedence::None);
+        add_rule!(map, GreaterEqual, None, None, Precedence::None);
+        add_rule!(map, Less, None, None, Precedence::None);
+        add_rule!(map, LessEqual, None, None, Precedence::None);
+        add_rule!(map, Identifier, None, None, Precedence::None);
+        add_rule!(map, String, None, None, Precedence::None);
+        add_rule!(map, Number, Some(Compiler::number), None, Precedence::None);
+        add_rule!(map, And, None, None, Precedence::None);
+        add_rule!(map, Class, None, None, Precedence::None);
+        add_rule!(map, Else, None, None, Precedence::None);
+        add_rule!(map, False, None, None, Precedence::None);
+        add_rule!(map, For, None, None, Precedence::None);
+        add_rule!(map, Fun, None, None, Precedence::None);
+        add_rule!(map, If, None, None, Precedence::None);
+        add_rule!(map, Nil, None, None, Precedence::None);
+        add_rule!(map, Or, None, None, Precedence::None);
+        add_rule!(map, Print, None, None, Precedence::None);
+        add_rule!(map, Return, None, None, Precedence::None);
+        add_rule!(map, Super, None, None, Precedence::None);
+        add_rule!(map, This, None, None, Precedence::None);
+        add_rule!(map, True, None, None, Precedence::None);
+        add_rule!(map, Var, None, None, Precedence::None);
+        add_rule!(map, While, None, None, Precedence::None);
+        add_rule!(map, Error, None, None, Precedence::None);
+        add_rule!(map, EOF, None, None, Precedence::None);
+
+        return map;
+    })
+}
+
+fn get_rule(token_type: TokenType) -> &'static ParseRule {
+    get_rules().get(&token_type).unwrap()
+}
+
+fn increment_prec(prec: Precedence) -> Precedence {
+    (prec as u8 + 1).try_into().unwrap()
 }
 
 struct Parser {
@@ -51,11 +133,7 @@ impl Parser {
     }
 
     fn error_at(&mut self, current: bool, message: &str) {
-        let current = if current {
-            &self.current
-        } else {
-            &self.previous
-        };
+        let current = if current { &self.current } else { &self.previous };
 
         if self.panic_mode {
             return;
@@ -119,9 +197,7 @@ impl Compiler {
 
         compiler.parser.advance();
         compiler.expression();
-        compiler
-            .parser
-            .consume(TokenType::EOF, "Expect end of expression.");
+        compiler.parser.consume(TokenType::EOF, "Expect end of expression.");
         compiler.end();
         panic!("Done")
     }
@@ -130,14 +206,27 @@ impl Compiler {
         self.emit_return();
     }
 
+    fn binary(&mut self) {
+        let operator_type = self.parser.previous.typ;
+        let rule = get_rule(operator_type);
+        self.parse_precedence(increment_prec(rule.precedence));
+
+        match operator_type {
+            TokenType::Plus => self.emit_byte(Opcode::Add as u8),
+            TokenType::Minus => self.emit_byte(Opcode::Subtract as u8),
+            TokenType::Star => self.emit_byte(Opcode::Multiply as u8),
+            TokenType::Slash => self.emit_byte(Opcode::Divide as u8),
+            _ => return,
+        }
+    }
+
     fn expression(&mut self) {
         self.parse_precedence(Precedence::Assignment);
     }
 
     fn grouping(&mut self) {
         self.expression();
-        self.parser
-            .consume(TokenType::RightParen, "Expect ')' after expression.");
+        self.parser.consume(TokenType::RightParen, "Expect ')' after expression.");
     }
 
     fn number(&mut self) {

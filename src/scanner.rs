@@ -118,10 +118,7 @@ impl Scanner {
                 } else if c.is_alphabetic() {
                     self.identifier()
                 } else {
-                    self.error_token(format!(
-                        "Unexpected character '{}' at position {}",
-                        c, self.start
-                    ))
+                    self.error_token(format!("Unexpected character '{}' at position {}", c, self.start))
                 }
             }
         }
@@ -241,9 +238,7 @@ impl Scanner {
 
     fn identifier_type(&self) -> TokenType {
         let text: &str = &self.source[self.start..self.current];
-        *Scanner::get_ident_tokentype_map()
-            .get(text)
-            .unwrap_or(&TokenType::Identifier)
+        *Scanner::get_ident_tokentype_map().get(text).unwrap_or(&TokenType::Identifier)
     }
 }
 

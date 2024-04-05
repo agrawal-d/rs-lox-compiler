@@ -61,27 +61,19 @@ impl Vm {
 
     pub fn interpret(chunk: Chunk) -> Result<()> {
         let mut vm: Vm = Vm::new(chunk);
-        jsprintln!(
-            "Interpreting chunk of {} bytes of code",
-            vm.chunk.code.len()
-        );
+        jsprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
         loop {
             vm.chunk.disassemble_instruction(vm.ip);
             vm.stack_trace();
             let instruction = Opcode::try_from(vm.read_byte()).context("Byte to opcode failed")?;
             match instruction {
                 Opcode::Return => {
-                    let value = vm
-                        .stack
-                        .pop()
-                        .context("Nothing in VM stack when returning")?;
+                    let value = vm.stack.pop().context("Nothing in VM stack when returning")?;
                     jsprintln!("Returned value: {}", value);
                     return Ok(());
                 }
                 Opcode::Constant => {
-                    let constant = *vm
-                        .read_constant()
-                        .context("Could not interpret constant opcode")?;
+                    let constant = *vm.read_constant().context("Could not interpret constant opcode")?;
                     vm.stack.push(constant);
                 }
                 Opcode::Negate => {
