@@ -1,5 +1,5 @@
-import { print, println } from './snippets/web-compiler-2371e8b10bdc1214/src/snippet.js';
-import * as __wbg_star0 from './snippets/web-compiler-2371e8b10bdc1214/src/snippet.js';
+import { print, println } from './snippets/web_compiler-da5ed55d899d6bf8/src/snippet.js';
+import * as __wbg_star0 from './snippets/web_compiler-da5ed55d899d6bf8/src/snippet.js';
 
 let wasm;
 
@@ -173,7 +173,7 @@ async function __wbg_load(module, imports) {
 function __wbg_get_imports() {
     const imports = {};
     imports.wbg = {};
-    imports.wbg.__wbg_print_4886dc65be190bf9 = function() { return logError(function (arg0, arg1) {
+    imports.wbg.__wbg_print_9ef882727216fd41 = function() { return logError(function (arg0, arg1) {
         let deferred0_0;
         let deferred0_1;
         try {
@@ -184,7 +184,7 @@ function __wbg_get_imports() {
             wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
         }
     }, arguments) };
-    imports.wbg.__wbg_println_684711fed8e46d1f = function() { return logError(function (arg0, arg1) {
+    imports.wbg.__wbg_println_6774c928e6fca784 = function() { return logError(function (arg0, arg1) {
         let deferred0_0;
         let deferred0_1;
         try {
@@ -223,7 +223,7 @@ function __wbg_get_imports() {
     imports.wbg.__wbindgen_rethrow = function(arg0) {
         throw takeObject(arg0);
     };
-    imports['./snippets/web-compiler-2371e8b10bdc1214/src/snippet.js'] = __wbg_star0;
+    imports['./snippets/web_compiler-da5ed55d899d6bf8/src/snippet.js'] = __wbg_star0;
 
     return imports;
 }

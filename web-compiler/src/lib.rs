@@ -9,8 +9,9 @@ use log::*;
 use std::{panic, rc::Rc};
 use wasm_bindgen::prelude::*;
 
-use crate::{chunk::Chunk, vm::Vm};
+use crate::vm::Vm;
 
+#[cfg(crate_type = "cdylib")]
 #[macro_export]
 macro_rules! jsprint {
     ($($arg:tt)*) => {
@@ -18,6 +19,7 @@ macro_rules! jsprint {
     };
 }
 
+#[cfg(crate_type = "cdylib")]
 #[macro_export]
 macro_rules! jsprintln {
     ($($arg:tt)*) => {
@@ -26,6 +28,7 @@ macro_rules! jsprintln {
 }
 
 // Called when the wasm module is instantiated
+#[cfg(crate_type = "cdylib")]
 #[wasm_bindgen(start)]
 fn main() -> Result<(), JsValue> {
     panic::set_hook(Box::new(|p| {
@@ -38,6 +41,8 @@ fn main() -> Result<(), JsValue> {
     Ok(())
 }
 
+#[no_mangle]
+#[cfg(crate_type = "cdylib")]
 #[wasm_bindgen(module = "/src/snippet.js")]
 extern "C" {
     pub fn print(output: String);
@@ -45,6 +50,9 @@ extern "C" {
     pub fn resetOutput();
 }
 
+fn run_code_internal(code: &str) {}
+
+#[cfg(crate_type = "cdylib")]
 #[wasm_bindgen]
 pub fn run_code(code: &str) {
     resetOutput();
