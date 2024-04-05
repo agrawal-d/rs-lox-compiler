@@ -6,7 +6,7 @@ pub mod value;
 pub mod vm;
 
 use log::*;
-use std::panic;
+use std::{panic, rc::Rc};
 use wasm_bindgen::prelude::*;
 
 use crate::{chunk::Chunk, vm::Vm};
@@ -48,15 +48,7 @@ extern "C" {
 #[wasm_bindgen]
 pub fn run_code(code: &str) {
     resetOutput();
-    jsprintln!("run_code called in rust with code '{code}'");
-    let mut chunk = Chunk {
-        code: Vec::new(),
-        lines: std::collections::HashMap::new(),
-        constants: value::ValueArray::new(),
-    };
-
-    let index = chunk.add_constant(1.2);
-    chunk.write_constant(index, 0);
-    chunk.write_opcode(common::Opcode::Return, 1);
+    let source: Rc<str> = Rc::from(code);
+    let chunk = compiler::Compiler::compile(source).unwrap();
     Vm::interpret(chunk).unwrap();
 }

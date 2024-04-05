@@ -37,7 +37,7 @@ impl Chunk {
 // Disassemble related methods
 impl Chunk {
     pub fn disassemble(&self, name: &str) {
-        jsprint!("== {name} ==");
+        jsprintln!("== {name} ==");
 
         let mut offset = 0;
         while offset < self.code.len() {

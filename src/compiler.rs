@@ -33,8 +33,13 @@ struct ParseRule {
     precedence: Precedence,
 }
 
+/// This is a table that, given a token type, lets us find
+/// 1. the function to compile a prefix expression starting with a token of that type,
+/// 2. the function to compile an infix expression whose left operand is followed by a token of that type, and
+/// 3. the precedence of an infix expression that uses that token as an operator.
 fn get_rules() -> &'static HashMap<TokenType, ParseRule> {
     static HASHMAP: OnceLock<HashMap<TokenType, ParseRule>> = OnceLock::new();
+
     HASHMAP.get_or_init(|| {
         let mut map = HashMap::new();
         use TokenType::*;
@@ -199,11 +204,20 @@ impl Compiler {
         compiler.expression();
         compiler.parser.consume(TokenType::EOF, "Expect end of expression.");
         compiler.end();
-        panic!("Done")
+        return Ok(compiler.compiling_chunk);
     }
 
+    #[cfg(not(feature = "print_code"))]
     fn end(&mut self) {
         self.emit_return();
+    }
+
+    #[cfg(feature = "print_code")]
+    fn end(&mut self) {
+        self.emit_return();
+        if !self.parser.had_error {
+            self.compiling_chunk.disassemble("code");
+        }
     }
 
     fn binary(&mut self) {
@@ -245,7 +259,31 @@ impl Compiler {
     }
 
     // Parse expressions with equal or higher precedence
-    fn parse_precedence(&mut self, precedence: Precedence) {}
+    fn parse_precedence(&mut self, precedence: Precedence) {
+        self.parser.advance();
+        let prefix_rule = get_rule(self.parser.previous.typ).prefix;
+
+        match prefix_rule {
+            Some(rule) => rule(self),
+            None => {
+                self.parser.error_at_previous("Expect expression");
+                return;
+            }
+        }
+
+        while precedence <= get_rule(self.parser.current.typ).precedence {
+            self.parser.advance();
+            let infix_rule = get_rule(self.parser.previous.typ).infix;
+
+            match infix_rule {
+                Some(rule) => rule(self),
+                None => {
+                    self.parser.error_at_previous("Expect expression");
+                    return;
+                }
+            }
+        }
+    }
 
     fn make_constant(&mut self, value: Value) -> usize {
         self.compiling_chunk.add_constant(value)
