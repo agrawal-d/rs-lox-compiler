@@ -1,4 +1,4 @@
-import init, { run_code } from './web_compiler.js';
+import init, { run } from './wasm.js';
 
 const inputTextarea = document.getElementById('inputTextarea');
 const outputTextarea = document.getElementById('outputTextarea');
@@ -7,7 +7,7 @@ const resetButton = document.getElementById('resetButton');
 
 runButton.addEventListener('click', async () => {
     const input = inputTextarea.value;
-    run_code(input);
+    run(input);
     outputTextarea.focus();
 });
 

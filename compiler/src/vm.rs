@@ -1,4 +1,4 @@
-use crate::{chunk::Chunk, common::Opcode, jsprintln, value::Value};
+use crate::{chunk::Chunk, common::Opcode, value::Value, xprintln};
 use anyhow::*;
 
 pub struct Vm {
@@ -40,19 +40,19 @@ impl Vm {
 
     #[cfg(feature = "tracing")]
     fn stack_trace(&self) {
-        use crate::jsprint;
+        use crate::xprint;
 
         if !self.stack.is_empty() {
-            jsprint!("Stack values: ");
+            xprint!("Stack values: ");
         }
         for value in &self.stack {
-            jsprint!("[ ");
+            xprint!("[ ");
             self.chunk.print_value(*value);
-            jsprint!("  ]");
+            xprint!("  ]");
         }
 
         if !self.stack.is_empty() {
-            jsprintln!("");
+            xprintln!("");
         }
     }
 
@@ -61,7 +61,7 @@ impl Vm {
 
     pub fn interpret(chunk: Chunk) -> Result<()> {
         let mut vm: Vm = Vm::new(chunk);
-        jsprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
+        xprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
         loop {
             vm.chunk.disassemble_instruction(vm.ip);
             vm.stack_trace();
@@ -69,7 +69,7 @@ impl Vm {
             match instruction {
                 Opcode::Return => {
                     let value = vm.stack.pop().context("Nothing in VM stack when returning")?;
-                    jsprintln!("Returned value: {}", value);
+                    xprintln!("Returned value: {}", value);
                     return Ok(());
                 }
                 Opcode::Constant => {

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     common::*,
-    jsprint, jsprintln,
     value::{Value, ValueArray},
+    xprint, xprintln,
 };
 
 #[derive(Default)]
@@ -37,24 +37,24 @@ impl Chunk {
 // Disassemble related methods
 impl Chunk {
     pub fn disassemble(&self, name: &str) {
-        jsprintln!("== {name} ==");
+        xprintln!("== {name} ==");
 
         let mut offset = 0;
         while offset < self.code.len() {
             offset = self.disassemble_instruction(offset);
         }
 
-        jsprintln!("====");
+        xprintln!("====");
     }
 
     #[cfg(feature = "tracing")]
     pub fn disassemble_instruction(&self, offset: usize) -> usize {
-        jsprint!("{offset:04} ");
-        jsprint!("{:4} ", self.lines[&offset]);
+        xprint!("{offset:04} ");
+        xprint!("{:4} ", self.lines[&offset]);
 
         let instruction = Opcode::try_from(self.code[offset]);
         let Ok(instruction) = instruction else {
-            jsprint!("Invalid opcode {:04}", self.code[offset],);
+            xprint!("Invalid opcode {:04}", self.code[offset],);
             return offset + 1;
         };
 
@@ -64,7 +64,7 @@ impl Chunk {
             Opcode::Add | Opcode::Subtract | Opcode::Multiply | Opcode::Divide => self.simple_instruction(instruction, offset),
         };
 
-        jsprintln!("");
+        xprintln!("");
 
         ret
     }
@@ -75,21 +75,21 @@ impl Chunk {
     }
 
     fn simple_instruction(&self, instruction: Opcode, offset: usize) -> usize {
-        jsprint!("{instruction}");
+        xprint!("{instruction}");
 
         offset + 1
     }
 
     fn constant_instruction(&self, instruction: Opcode, offset: usize) -> usize {
         let Ok(constant_idx): Result<usize, _> = self.code[offset + 1].try_into() else {
-            jsprint!(
+            xprint!(
                 "Failed to convert data {} at offset {} into constant index",
                 self.code[offset + 1],
                 offset + 1
             );
             return offset + 2;
         };
-        jsprint!("{instruction} Idx {constant_idx} ");
+        xprint!("{instruction} Idx {constant_idx} ");
         self.print_value(self.constants[constant_idx]);
 
         offset + 2
@@ -97,17 +97,17 @@ impl Chunk {
 
     #[cfg(feature = "tracing")]
     pub fn print_value(&self, value: Value) {
-        jsprint!("Value {value}");
+        xprint!("Value {value}");
     }
 
     #[cfg(not(feature = "tracing"))]
     pub fn print_value(&self, value: Value) {
-        jsprint!("Value {value}");
+        xprint!("Value {value}");
     }
 
     #[cfg(feature = "tracing")]
     pub fn line() {
-        jsprintln!("");
+        xprintln!("");
     }
 
     #[cfg(not(feature = "tracing"))]

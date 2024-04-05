@@ -1,8 +1,8 @@
 [workspace]
 
 members = [
-  "web-compiler",
-  "native-compiler"
-]
+  "compiler",
+  "native"
+, "wasm"]
 
 resolver = "2"

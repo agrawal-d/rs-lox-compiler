@@ -1,9 +1,9 @@
 use crate::{
     chunk::Chunk,
     common::Opcode,
-    jsprint, jsprintln,
     scanner::{Scanner, Token, TokenType},
     value::Value,
+    xprint, xprintln,
 };
 use anyhow::*;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
@@ -145,10 +145,10 @@ impl Parser {
         }
 
         self.panic_mode = true;
-        jsprint!("[line {}] Error", current.line);
+        xprint!("[line {}] Error", current.line);
 
         if current.typ == TokenType::EOF {
-            jsprint!(" at end");
+            xprint!(" at end");
         } else if current.typ == TokenType::Error {
             // Nothing.
         } else {

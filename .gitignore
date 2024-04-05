@@ -1,3 +1,6 @@
 /target
 /.vscode
 /pkg
+/docs/wasm_bg.wasm
+/docs/wasm.js
+/docs/snippets
