@@ -10,4 +10,7 @@ pub enum Opcode {
     Subtract,
     Multiply,
     Divide,
+    Nil,
+    True,
+    False,
 }

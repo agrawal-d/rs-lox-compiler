@@ -82,17 +82,17 @@ fn get_rules() -> &'static HashMap<TokenType, ParseRule> {
         add_rule!(map, And, None, None, Precedence::None);
         add_rule!(map, Class, None, None, Precedence::None);
         add_rule!(map, Else, None, None, Precedence::None);
-        add_rule!(map, False, None, None, Precedence::None);
+        add_rule!(map, False, Some(Compiler::literal), None, Precedence::None);
         add_rule!(map, For, None, None, Precedence::None);
         add_rule!(map, Fun, None, None, Precedence::None);
         add_rule!(map, If, None, None, Precedence::None);
-        add_rule!(map, Nil, None, None, Precedence::None);
+        add_rule!(map, Nil, Some(Compiler::literal), None, Precedence::None);
         add_rule!(map, Or, None, None, Precedence::None);
         add_rule!(map, Print, None, None, Precedence::None);
         add_rule!(map, Return, None, None, Precedence::None);
         add_rule!(map, Super, None, None, Precedence::None);
         add_rule!(map, This, None, None, Precedence::None);
-        add_rule!(map, True, None, None, Precedence::None);
+        add_rule!(map, True, Some(Compiler::literal), None, Precedence::None);
         add_rule!(map, Var, None, None, Precedence::None);
         add_rule!(map, While, None, None, Precedence::None);
         add_rule!(map, Error, None, None, Precedence::None);
@@ -145,7 +145,7 @@ impl Parser {
         }
 
         self.panic_mode = true;
-        xprint!("[line {}] Error", current.line);
+        xprint!(" [line {}] Error", current.line);
 
         if current.typ == TokenType::EOF {
             xprint!(" at end");
@@ -155,7 +155,7 @@ impl Parser {
             eprint!(" at '{}'", current.source);
         }
 
-        eprintln!(": {}", message);
+        xprintln!(": {}", message);
         self.had_error = true;
     }
 
@@ -234,6 +234,15 @@ impl Compiler {
         }
     }
 
+    fn literal(&mut self) {
+        match self.parser.previous.typ {
+            TokenType::False => self.emit_byte(Opcode::False as u8),
+            TokenType::Nil => self.emit_byte(Opcode::Nil as u8),
+            TokenType::True => self.emit_byte(Opcode::True as u8),
+            _ => return,
+        }
+    }
+
     fn expression(&mut self) {
         self.parse_precedence(Precedence::Assignment);
     }
@@ -244,8 +253,8 @@ impl Compiler {
     }
 
     fn number(&mut self) {
-        let value = self.parser.previous.source.parse::<f64>().unwrap();
-        self.emit_constant(value);
+        let num = self.parser.previous.source.parse::<f64>().unwrap();
+        self.emit_constant(Value::Number(num));
     }
 
     fn unary(&mut self) {

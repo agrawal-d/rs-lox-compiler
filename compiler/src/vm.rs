@@ -1,4 +1,4 @@
-use crate::{chunk::Chunk, common::Opcode, value::Value, xprintln};
+use crate::{chunk::Chunk, common::Opcode, value::Value, value::Value::*, xprintln};
 use anyhow::*;
 
 pub struct Vm {
@@ -8,12 +8,18 @@ pub struct Vm {
 }
 
 macro_rules! binop {
-    ($vm: ident, $op: tt) => {
+    ($vm: ident, $typ: tt, $op: tt) => {
         {
             let b = $vm.stack.pop().context("Stack underflow")?;
             let a = $vm.stack.pop().context("Stack underflow")?;
-            let result = a $op b;
-            $vm.stack.push(result);
+            match (a, b) {
+                (Number(a), Number(b)) => {
+                    let result = a $op b;
+                    $vm.stack.push($typ(result));
+                },
+                _ => { $vm.runtime_error("Operands must be numbers"); }
+            }
+
         }
     };
 }
@@ -33,7 +39,7 @@ impl Vm {
         value
     }
 
-    fn read_constant(&mut self) -> Option<&f64> {
+    fn read_constant(&mut self) -> Option<&Value> {
         let index: usize = self.read_byte() as usize;
         return self.chunk.constants.get(index);
     }
@@ -45,11 +51,12 @@ impl Vm {
         if !self.stack.is_empty() {
             xprint!("Stack values: ");
         }
+        xprint!("[ ");
         for value in &self.stack {
-            xprint!("[ ");
             self.chunk.print_value(*value);
-            xprint!("  ]");
+            xprint!(" ");
         }
+        xprint!("]");
 
         if !self.stack.is_empty() {
             xprintln!("");
@@ -58,6 +65,12 @@ impl Vm {
 
     #[cfg(not(feature = "tracing"))]
     fn stack_trace(&self) {}
+
+    fn runtime_error(&mut self, msg: &str) {
+        xprintln!("Runtime error: {msg}");
+        let line = self.chunk.lines[&self.ip];
+        xprintln!("[line {line}] in script");
+    }
 
     pub fn interpret(chunk: Chunk) -> Result<()> {
         let mut vm: Vm = Vm::new(chunk);
@@ -78,12 +91,20 @@ impl Vm {
                 }
                 Opcode::Negate => {
                     let value = vm.stack.pop().context("Nothing in stack to negate")?;
-                    vm.stack.push(-value);
+                    match value {
+                        Number(num) => vm.stack.push(Value::Number(-num)),
+                        _ => {
+                            vm.runtime_error("Operand must be a number");
+                        }
+                    }
                 }
-                Opcode::Add => binop!(vm, +),
-                Opcode::Subtract => binop!(vm, -),
-                Opcode::Multiply => binop!(vm, *),
-                Opcode::Divide => binop!(vm, /),
+                Opcode::False => vm.stack.push(Bool(false)),
+                Opcode::True => vm.stack.push(Bool(true)),
+                Opcode::Nil => vm.stack.push(Nil),
+                Opcode::Add => binop!(vm, Number, +),
+                Opcode::Subtract => binop!(vm, Number, -),
+                Opcode::Multiply => binop!(vm, Number, *),
+                Opcode::Divide => binop!(vm, Number, /),
             }
         }
     }

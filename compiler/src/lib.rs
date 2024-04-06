@@ -19,15 +19,15 @@ static LOGGER: OnceLock<Logger> = OnceLock::new();
 #[macro_export]
 macro_rules! xprint {
     ($($arg:tt)*) => {
-        (crate::LOGGER.get().expect("Compiler not initialized").print_fn)(format!($($arg)*));
-    };
+        (crate::LOGGER.get().expect("Compiler not initialized").print_fn)(format!($($arg)*))
+    }
 }
 
 #[macro_export]
 macro_rules! xprintln {
     ($($arg:tt)*) => {
-        (crate::LOGGER.get().expect("Compiler not initialized").println_fn)(format!($($arg)*));
-    };
+        (crate::LOGGER.get().expect("Compiler not initialized").println_fn)(format!($($arg)*))
+    }
 }
 
 pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> ()) {

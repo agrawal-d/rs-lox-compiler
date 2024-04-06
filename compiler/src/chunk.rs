@@ -61,7 +61,9 @@ impl Chunk {
         let ret: usize = match instruction {
             Opcode::Return | Opcode::Negate => self.simple_instruction(instruction, offset),
             Opcode::Constant => self.constant_instruction(instruction, offset),
-            Opcode::Add | Opcode::Subtract | Opcode::Multiply | Opcode::Divide => self.simple_instruction(instruction, offset),
+            Opcode::Add | Opcode::Subtract | Opcode::Multiply | Opcode::Divide | Opcode::False | Opcode::True | Opcode::Nil => {
+                self.simple_instruction(instruction, offset)
+            }
         };
 
         xprintln!("");
@@ -97,7 +99,11 @@ impl Chunk {
 
     #[cfg(feature = "tracing")]
     pub fn print_value(&self, value: Value) {
-        xprint!("Value {value}");
+        match value {
+            Value::Number(num) => xprint!("{num}"),
+            Value::Bool(b) => xprint!("{b}"),
+            Value::Nil => xprint!("Nil"),
+        }
     }
 
     #[cfg(not(feature = "tracing"))]
