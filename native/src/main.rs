@@ -1,4 +1,5 @@
-use compiler::{run_code, init};
+use compiler::{init, run_code};
+use std::io::Write;
 
 fn print(output: String) {
     print!("{}", output);
@@ -10,5 +11,13 @@ fn println(output: String) {
 
 fn main() {
     init(print, println);
-    run_code("1+2");
+    println!("Write a line of code below:");
+    loop {
+        print!("> ");
+        std::io::stdout().flush().unwrap();
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        run_code(&input);
+        println!("========================================")
+    }
 }

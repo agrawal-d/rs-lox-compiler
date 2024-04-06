@@ -54,13 +54,12 @@ impl Scanner {
     }
 
     pub fn scan_token(&mut self) -> Token {
+        self.skip_whitespace();
         self.start = self.current;
 
         if self.is_at_end() {
             return self.make_token(TokenType::EOF);
         }
-
-        self.skip_whitespace();
 
         match self.advance() {
             '(' => self.make_token(TokenType::LeftParen),
@@ -169,11 +168,11 @@ impl Scanner {
     }
 
     fn is_at_end(&self) -> bool {
-        self.current == self.source.len()
+        self.current >= self.source.len()
     }
 
     fn skip_whitespace(&mut self) {
-        while let ' ' | '\r' | '\t' = self.peek() {
+        while let ' ' | '\r' | '\t' | '\n' = self.peek() {
             self.advance();
         }
     }

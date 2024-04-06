@@ -5,7 +5,7 @@
 A programming language interpreter that runs in the browser.
 Rust implementation of [craftinginterpreters.com](https://craftinginterpreters.com/).
 
-[Try it online](https://agrawal-d.github.io/compiler)
+[Try it online](https://agrawal-d.github.io/web-compiler)
 
 ## Build & Run from source
 
