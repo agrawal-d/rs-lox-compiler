@@ -68,7 +68,7 @@ fn get_rules() -> &'static HashMap<TokenType, ParseRule> {
         add_rule!(map, Semicolon, None, None, Precedence::None);
         add_rule!(map, Slash, None, Some(Compiler::binary), Precedence::Factor);
         add_rule!(map, Star, None, Some(Compiler::binary), Precedence::Factor);
-        add_rule!(map, Bang, None, None, Precedence::None);
+        add_rule!(map, Bang, Some(Compiler::unary), None, Precedence::None);
         add_rule!(map, BangEqual, None, None, Precedence::None);
         add_rule!(map, Equal, None, None, Precedence::None);
         add_rule!(map, EqualEqual, None, None, Precedence::None);
@@ -263,6 +263,7 @@ impl Compiler {
 
         match operator_type {
             TokenType::Minus => self.emit_byte(Opcode::Negate as u8),
+            TokenType::Bang => self.emit_byte(Opcode::Not as u8),
             _ => return,
         }
     }

@@ -61,9 +61,14 @@ impl Chunk {
         let ret: usize = match instruction {
             Opcode::Return | Opcode::Negate => self.simple_instruction(instruction, offset),
             Opcode::Constant => self.constant_instruction(instruction, offset),
-            Opcode::Add | Opcode::Subtract | Opcode::Multiply | Opcode::Divide | Opcode::False | Opcode::True | Opcode::Nil => {
-                self.simple_instruction(instruction, offset)
-            }
+            Opcode::Add
+            | Opcode::Subtract
+            | Opcode::Multiply
+            | Opcode::Divide
+            | Opcode::False
+            | Opcode::True
+            | Opcode::Nil
+            | Opcode::Not => self.simple_instruction(instruction, offset),
         };
 
         xprintln!("");

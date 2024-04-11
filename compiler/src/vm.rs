@@ -63,6 +63,14 @@ impl Vm {
         }
     }
 
+    fn is_falsey(value: Value) -> bool {
+        match value {
+            Nil => true,
+            Bool(b) => !b,
+            Number(n) => n == 0.0,
+        }
+    }
+
     #[cfg(not(feature = "tracing"))]
     fn stack_trace(&self) {}
 
@@ -70,6 +78,10 @@ impl Vm {
         xprintln!("Runtime error: {msg}");
         let line = self.chunk.lines[&self.ip];
         xprintln!("[line {line}] in script");
+    }
+
+    fn pop(&mut self) -> Result<Value> {
+        self.stack.pop().context("Nothing in stack to pop")
     }
 
     pub fn interpret(chunk: Chunk) -> Result<()> {
@@ -81,7 +93,7 @@ impl Vm {
             let instruction = Opcode::try_from(vm.read_byte()).context("Byte to opcode failed")?;
             match instruction {
                 Opcode::Return => {
-                    let value = vm.stack.pop().context("Nothing in VM stack when returning")?;
+                    let value = vm.pop()?;
                     xprintln!("Returned value: {}", value);
                     return Ok(());
                 }
@@ -90,7 +102,7 @@ impl Vm {
                     vm.stack.push(constant);
                 }
                 Opcode::Negate => {
-                    let value = vm.stack.pop().context("Nothing in stack to negate")?;
+                    let value = vm.pop()?;
                     match value {
                         Number(num) => vm.stack.push(Value::Number(-num)),
                         _ => {
@@ -105,6 +117,10 @@ impl Vm {
                 Opcode::Subtract => binop!(vm, Number, -),
                 Opcode::Multiply => binop!(vm, Number, *),
                 Opcode::Divide => binop!(vm, Number, /),
+                Opcode::Not => {
+                    let val = vm.pop()?;
+                    vm.stack.push(Bool(Vm::is_falsey(val)))
+                }
             }
         }
     }
