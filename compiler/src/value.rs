@@ -31,12 +31,14 @@ pub fn print_value(&self, value: Value) {
 
 use Value::*;
 
-pub fn values_equal(a: Value, b: Value) -> bool {
-    match (a, b) {
-        (Number(a), Number(b)) => a == b,
-        (Bool(a), Bool(b)) => a == b,
-        (XString(a), XString(b)) => a.as_ref() == b.as_ref(),
-        (Nil, Nil) => true,
-        _ => false,
+impl PartialEq<Value> for Value {
+    fn eq(&self, other: &Value) -> bool {
+        match (self, other) {
+            (Number(a), Number(b)) => a == b,
+            (Bool(a), Bool(b)) => a == b,
+            (XString(a), XString(b)) => a.as_ref() == b.as_ref(),
+            (Nil, Nil) => true,
+            _ => false,
+        }
     }
 }

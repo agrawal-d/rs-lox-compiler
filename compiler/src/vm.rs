@@ -1,10 +1,7 @@
 use crate::{
     chunk::Chunk,
     common::Opcode,
-    value::{
-        values_equal,
-        Value::{self, *},
-    },
+    value::Value::{self, *},
     xprintln,
 };
 use anyhow::*;
@@ -147,7 +144,7 @@ impl Vm {
                 Opcode::Equal => {
                     let a = vm.pop()?;
                     let b = vm.pop()?;
-                    vm.stack.push(Bool(values_equal(a, b)))
+                    vm.stack.push(Bool(a == b))
                 }
                 Opcode::Greater => binop!(vm, Bool, >),
                 Opcode::Less => binop!(vm, Bool, <),

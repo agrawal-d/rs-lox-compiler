@@ -14,6 +14,12 @@ pub struct Token {
     pub line: usize,
 }
 
+impl Default for Token {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Token {
     pub fn new() -> Token {
         Token {

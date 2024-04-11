@@ -98,7 +98,7 @@ fn get_rules() -> &'static HashMap<TokenType, ParseRule> {
         add_rule!(map, Error, None, None, Precedence::None);
         add_rule!(map, EOF, None, None, Precedence::None);
 
-        return map;
+        map
     })
 }
 
@@ -204,7 +204,7 @@ impl Compiler {
         compiler.expression();
         compiler.parser.consume(TokenType::EOF, "Expect end of expression.");
         compiler.end();
-        return Ok(compiler.compiling_chunk);
+        Ok(compiler.compiling_chunk)
     }
 
     #[cfg(not(feature = "print_code"))]
@@ -236,7 +236,7 @@ impl Compiler {
             TokenType::GreaterEqual => self.emit_bytes(Opcode::Less as u8, Opcode::Not as u8),
             TokenType::Less => self.emit_byte(Opcode::Less as u8),
             TokenType::LessEqual => self.emit_bytes(Opcode::Greater as u8, Opcode::Not as u8),
-            _ => return,
+            _ => (),
         }
     }
 
@@ -245,7 +245,7 @@ impl Compiler {
             TokenType::False => self.emit_byte(Opcode::False as u8),
             TokenType::Nil => self.emit_byte(Opcode::Nil as u8),
             TokenType::True => self.emit_byte(Opcode::True as u8),
-            _ => return,
+            _ => (),
         }
     }
 
@@ -276,7 +276,7 @@ impl Compiler {
         match operator_type {
             TokenType::Minus => self.emit_byte(Opcode::Negate as u8),
             TokenType::Bang => self.emit_byte(Opcode::Not as u8),
-            _ => return,
+            _ => (),
         }
     }
 
