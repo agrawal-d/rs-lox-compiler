@@ -53,7 +53,7 @@ impl Vm {
         }
         xprint!("[ ");
         for value in &self.stack {
-            self.chunk.print_value(*value);
+            self.chunk.print_value(value);
             xprint!(" ");
         }
         xprint!("]");
@@ -107,7 +107,7 @@ impl Vm {
                     return Ok(());
                 }
                 Opcode::Constant => {
-                    let constant = *vm.read_constant().context("Could not interpret constant opcode")?;
+                    let constant = vm.read_constant().context("Could not interpret constant opcode")?.clone();
                     vm.stack.push(constant);
                 }
                 Opcode::Negate => {

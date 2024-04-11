@@ -101,13 +101,13 @@ impl Chunk {
             return offset + 2;
         };
         xprint!("{instruction} Idx {constant_idx} ");
-        self.print_value(self.constants[constant_idx]);
+        self.print_value(&self.constants[constant_idx]);
 
         offset + 2
     }
 
     #[cfg(feature = "tracing")]
-    pub fn print_value(&self, value: Value) {
+    pub fn print_value(&self, value: &Value) {
         match value {
             Value::Number(num) => xprint!("{num}"),
             Value::Bool(b) => xprint!("{b}"),
