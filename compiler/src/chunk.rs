@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     common::*,
-    value::{Value, ValueArray},
+    value::{print_value, Value, ValueArray},
     xprint, xprintln,
 };
 
@@ -101,23 +101,9 @@ impl Chunk {
             return offset + 2;
         };
         xprint!("{instruction} Idx {constant_idx} ");
-        self.print_value(&self.constants[constant_idx]);
+        print_value(&self.constants[constant_idx]);
 
         offset + 2
-    }
-
-    #[cfg(feature = "tracing")]
-    pub fn print_value(&self, value: &Value) {
-        match value {
-            Value::Number(num) => xprint!("{num}"),
-            Value::Bool(b) => xprint!("{b}"),
-            Value::Nil => xprint!("Nil"),
-        }
-    }
-
-    #[cfg(not(feature = "tracing"))]
-    pub fn print_value(&self, value: Value) {
-        xprint!("Value {value}");
     }
 
     #[cfg(feature = "tracing")]

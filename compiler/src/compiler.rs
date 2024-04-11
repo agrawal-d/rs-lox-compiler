@@ -77,7 +77,7 @@ fn get_rules() -> &'static HashMap<TokenType, ParseRule> {
         add_rule!(map, Less, None, Some(Compiler::binary), Precedence::Comparison);
         add_rule!(map, LessEqual, None, None, Precedence::Comparison);
         add_rule!(map, Identifier, None, None, Precedence::None);
-        add_rule!(map, String, None, None, Precedence::None);
+        add_rule!(map, String, Some(Compiler::string), None, Precedence::None);
         add_rule!(map, Number, Some(Compiler::number), None, Precedence::None);
         add_rule!(map, And, None, None, Precedence::None);
         add_rule!(map, Class, None, None, Precedence::None);
@@ -261,6 +261,12 @@ impl Compiler {
     fn number(&mut self) {
         let num = self.parser.previous.source.parse::<f64>().unwrap();
         self.emit_constant(Value::Number(num));
+    }
+
+    fn string(&mut self) {
+        let data = self.parser.previous.source.clone();
+        let data = Rc::from(&data[1..data.len() - 1]);
+        self.emit_constant(Value::XString(data));
     }
 
     fn unary(&mut self) {

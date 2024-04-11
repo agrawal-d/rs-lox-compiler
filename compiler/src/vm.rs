@@ -1,4 +1,12 @@
-use crate::{chunk::Chunk, common::variant_eq, common::Opcode, value::Value, value::Value::*, xprintln};
+use crate::{
+    chunk::Chunk,
+    common::Opcode,
+    value::{
+        values_equal,
+        Value::{self, *},
+    },
+    xprintln,
+};
 use anyhow::*;
 
 pub struct Vm {
@@ -46,21 +54,17 @@ impl Vm {
 
     #[cfg(feature = "tracing")]
     fn stack_trace(&self) {
-        use crate::xprint;
+        use crate::{value::print_value, xprint};
 
-        if !self.stack.is_empty() {
-            xprint!("Stack values: ");
-        }
+        xprint!("Stack values: ");
         xprint!("[ ");
         for value in &self.stack {
-            self.chunk.print_value(value);
-            xprint!(" ");
+            print_value(value);
+            xprint!(", ");
         }
         xprint!("]");
 
-        if !self.stack.is_empty() {
-            xprintln!("");
-        }
+        xprintln!("");
     }
 
     fn is_falsey(value: Value) -> bool {
@@ -68,6 +72,7 @@ impl Vm {
             Nil => true,
             Bool(b) => !b,
             Number(n) => n == 0.0,
+            XString(s) => s.is_empty(),
         }
     }
 
@@ -82,15 +87,6 @@ impl Vm {
 
     fn pop(&mut self) -> Result<Value> {
         self.stack.pop().context("Nothing in stack to pop")
-    }
-
-    fn values_equal(a: Value, b: Value) -> bool {
-        match (a, b) {
-            (Number(a), Number(b)) => a == b,
-            (Bool(a), Bool(b)) => a == b,
-            (Nil, Nil) => true,
-            _ => false,
-        }
     }
 
     pub fn interpret(chunk: Chunk) -> Result<()> {
@@ -122,7 +118,25 @@ impl Vm {
                 Opcode::False => vm.stack.push(Bool(false)),
                 Opcode::True => vm.stack.push(Bool(true)),
                 Opcode::Nil => vm.stack.push(Nil),
-                Opcode::Add => binop!(vm, Number, +),
+                Opcode::Add => {
+                    let b = vm.pop()?;
+                    let a = vm.pop()?;
+                    match (b, a) {
+                        (Number(a), Number(b)) => {
+                            vm.stack.push(Number(a + b));
+                        }
+                        (XString(a), XString(b)) => {
+                            let mut new_string = String::new();
+                            new_string.push_str(b.as_ref());
+                            new_string.push_str(a.as_ref());
+                            vm.stack.push(XString(new_string.into()));
+                        }
+                        _ => {
+                            vm.runtime_error("Operands must be numbers");
+                            vm.stack.push(Nil);
+                        }
+                    }
+                }
                 Opcode::Subtract => binop!(vm, Number, -),
                 Opcode::Multiply => binop!(vm, Number, *),
                 Opcode::Divide => binop!(vm, Number, /),
@@ -133,7 +147,7 @@ impl Vm {
                 Opcode::Equal => {
                     let a = vm.pop()?;
                     let b = vm.pop()?;
-                    vm.stack.push(Bool(Vm::values_equal(a, b)))
+                    vm.stack.push(Bool(values_equal(a, b)))
                 }
                 Opcode::Greater => binop!(vm, Bool, >),
                 Opcode::Less => binop!(vm, Bool, <),
