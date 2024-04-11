@@ -69,13 +69,13 @@ fn get_rules() -> &'static HashMap<TokenType, ParseRule> {
         add_rule!(map, Slash, None, Some(Compiler::binary), Precedence::Factor);
         add_rule!(map, Star, None, Some(Compiler::binary), Precedence::Factor);
         add_rule!(map, Bang, Some(Compiler::unary), None, Precedence::None);
-        add_rule!(map, BangEqual, None, None, Precedence::None);
+        add_rule!(map, BangEqual, None, Some(Compiler::binary), Precedence::Equality);
         add_rule!(map, Equal, None, None, Precedence::None);
-        add_rule!(map, EqualEqual, None, None, Precedence::None);
-        add_rule!(map, Greater, None, None, Precedence::None);
-        add_rule!(map, GreaterEqual, None, None, Precedence::None);
-        add_rule!(map, Less, None, None, Precedence::None);
-        add_rule!(map, LessEqual, None, None, Precedence::None);
+        add_rule!(map, EqualEqual, None, Some(Compiler::binary), Precedence::Equality);
+        add_rule!(map, Greater, None, Some(Compiler::binary), Precedence::Comparison);
+        add_rule!(map, GreaterEqual, None, Some(Compiler::binary), Precedence::Comparison);
+        add_rule!(map, Less, None, Some(Compiler::binary), Precedence::Comparison);
+        add_rule!(map, LessEqual, None, None, Precedence::Comparison);
         add_rule!(map, Identifier, None, None, Precedence::None);
         add_rule!(map, String, None, None, Precedence::None);
         add_rule!(map, Number, Some(Compiler::number), None, Precedence::None);
@@ -230,6 +230,12 @@ impl Compiler {
             TokenType::Minus => self.emit_byte(Opcode::Subtract as u8),
             TokenType::Star => self.emit_byte(Opcode::Multiply as u8),
             TokenType::Slash => self.emit_byte(Opcode::Divide as u8),
+            TokenType::BangEqual => self.emit_bytes(Opcode::Equal as u8, Opcode::Not as u8),
+            TokenType::EqualEqual => self.emit_byte(Opcode::Equal as u8),
+            TokenType::Greater => self.emit_byte(Opcode::Greater as u8),
+            TokenType::GreaterEqual => self.emit_bytes(Opcode::Less as u8, Opcode::Not as u8),
+            TokenType::Less => self.emit_byte(Opcode::Less as u8),
+            TokenType::LessEqual => self.emit_bytes(Opcode::Greater as u8, Opcode::Not as u8),
             _ => return,
         }
     }

@@ -1,4 +1,4 @@
-use crate::{chunk::Chunk, common::Opcode, value::Value, value::Value::*, xprintln};
+use crate::{chunk::Chunk, common::variant_eq, common::Opcode, value::Value, value::Value::*, xprintln};
 use anyhow::*;
 
 pub struct Vm {
@@ -84,6 +84,15 @@ impl Vm {
         self.stack.pop().context("Nothing in stack to pop")
     }
 
+    fn values_equal(a: Value, b: Value) -> bool {
+        match (a, b) {
+            (Number(a), Number(b)) => a == b,
+            (Bool(a), Bool(b)) => a == b,
+            (Nil, Nil) => true,
+            _ => false,
+        }
+    }
+
     pub fn interpret(chunk: Chunk) -> Result<()> {
         let mut vm: Vm = Vm::new(chunk);
         xprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
@@ -121,6 +130,13 @@ impl Vm {
                     let val = vm.pop()?;
                     vm.stack.push(Bool(Vm::is_falsey(val)))
                 }
+                Opcode::Equal => {
+                    let a = vm.pop()?;
+                    let b = vm.pop()?;
+                    vm.stack.push(Bool(Vm::values_equal(a, b)))
+                }
+                Opcode::Greater => binop!(vm, Bool, >),
+                Opcode::Less => binop!(vm, Bool, <),
             }
         }
     }
