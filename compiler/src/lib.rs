@@ -1,6 +1,7 @@
 pub mod chunk;
 pub mod common;
 pub mod compiler;
+pub mod debug;
 pub mod interner;
 pub mod scanner;
 pub mod value;
@@ -9,6 +10,8 @@ use std::sync::OnceLock;
 
 use crate::vm::Vm;
 use std::rc::Rc;
+
+const INTERNER_DEFAULT_CAP: usize = 1024;
 
 struct Logger {
     print_fn: fn(String) -> (),
@@ -41,6 +44,7 @@ pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> ()) {
 
 pub fn run_code(code: &str) {
     let source: Rc<str> = Rc::from(code);
-    let chunk = compiler::Compiler::compile(source).unwrap();
-    Vm::interpret(chunk).unwrap();
+    let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
+    let chunk = compiler::Compiler::compile(source, &mut interner).unwrap();
+    Vm::interpret(chunk, &mut interner).unwrap();
 }

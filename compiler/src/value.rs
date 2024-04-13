@@ -1,25 +1,24 @@
-use crate::xprint;
-use std::rc::Rc;
+use crate::interner::Interner;
+use crate::{interner::StrId, xprint};
 use strum_macros::Display;
 
 #[derive(Debug, Display, Clone)]
 pub enum Value {
     Bool(bool),
     Number(f64),
-    XString(Rc<str>),
+    Str(StrId),
     Nil,
 }
 pub type ValueArray = Vec<Value>;
 
 #[cfg(feature = "tracing")]
-pub fn print_value(value: &Value) {
+pub fn print_value(value: &Value, interner: &Interner) {
     match value {
         Value::Number(num) => xprint!("{num}"),
         Value::Bool(b) => xprint!("{b}"),
         Value::Nil => xprint!("Nil"),
-        Value::XString(s) => {
-            let data = s.as_ref();
-            xprint!("{data}");
+        Value::Str(s) => {
+            xprint!("{}", interner.lookup(s));
         }
     }
 }
@@ -36,7 +35,7 @@ impl PartialEq<Value> for Value {
         match (self, other) {
             (Number(a), Number(b)) => a == b,
             (Bool(a), Bool(b)) => a == b,
-            (XString(a), XString(b)) => a.as_ref() == b.as_ref(),
+            (Str(a), Str(b)) => a == b,
             (Nil, Nil) => true,
             _ => false,
         }

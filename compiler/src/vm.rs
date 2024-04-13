@@ -1,15 +1,18 @@
 use crate::{
     chunk::Chunk,
     common::Opcode,
+    debug::disassemble_instruction,
+    interner::Interner,
     value::Value::{self, *},
     xprintln,
 };
 use anyhow::*;
 
-pub struct Vm {
+pub struct Vm<'src> {
     chunk: Chunk,
     ip: usize,
     stack: Vec<Value>,
+    interner: &'src mut Interner,
 }
 
 macro_rules! binop {
@@ -29,12 +32,13 @@ macro_rules! binop {
     };
 }
 
-impl Vm {
-    pub fn new(chunk: Chunk) -> Vm {
+impl<'src> Vm<'src> {
+    pub fn new(chunk: Chunk, interner: &'src mut Interner) -> Vm {
         Vm {
             chunk,
             ip: 0,
             stack: Default::default(),
+            interner,
         }
     }
 
@@ -56,7 +60,7 @@ impl Vm {
         xprint!("Stack values: ");
         xprint!("[ ");
         for value in &self.stack {
-            print_value(value);
+            print_value(value, self.interner);
             xprint!(", ");
         }
         xprint!("]");
@@ -64,12 +68,12 @@ impl Vm {
         xprintln!("");
     }
 
-    fn is_falsey(value: Value) -> bool {
+    fn is_falsey(&self, value: Value) -> bool {
         match value {
             Nil => true,
             Bool(b) => !b,
             Number(n) => n == 0.0,
-            XString(s) => s.is_empty(),
+            Str(s) => self.interner.lookup(&s).is_empty(),
         }
     }
 
@@ -86,11 +90,11 @@ impl Vm {
         self.stack.pop().context("Nothing in stack to pop")
     }
 
-    pub fn interpret(chunk: Chunk) -> Result<()> {
-        let mut vm: Vm = Vm::new(chunk);
+    pub fn interpret(chunk: Chunk, interner: &'src mut Interner) -> Result<()> {
+        let mut vm: Vm = Vm::new(chunk, interner);
         xprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
         loop {
-            vm.chunk.disassemble_instruction(vm.ip);
+            disassemble_instruction(&vm.chunk, vm.ip, &vm.interner);
             vm.stack_trace();
             let instruction = Opcode::try_from(vm.read_byte()).context("Byte to opcode failed")?;
             match instruction {
@@ -122,11 +126,11 @@ impl Vm {
                         (Number(a), Number(b)) => {
                             vm.stack.push(Number(a + b));
                         }
-                        (XString(a), XString(b)) => {
-                            let mut new_string = String::new();
-                            new_string.push_str(b.as_ref());
-                            new_string.push_str(a.as_ref());
-                            vm.stack.push(XString(new_string.into()));
+                        (Str(a), Str(b)) => {
+                            let mut new_string = String::from(vm.interner.lookup(&a));
+                            new_string.push_str(vm.interner.lookup(&b));
+                            let id = vm.interner.intern(&new_string);
+                            vm.stack.push(Str(id));
                         }
                         _ => {
                             vm.runtime_error("Operands must be numbers");
@@ -139,7 +143,7 @@ impl Vm {
                 Opcode::Divide => binop!(vm, Number, /),
                 Opcode::Not => {
                     let val = vm.pop()?;
-                    vm.stack.push(Bool(Vm::is_falsey(val)))
+                    vm.stack.push(Bool(vm.is_falsey(val)))
                 }
                 Opcode::Equal => {
                     let a = vm.pop()?;

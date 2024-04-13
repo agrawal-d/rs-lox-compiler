@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use crate::{
     common::*,
-    value::{print_value, Value, ValueArray},
-    xprint, xprintln,
+    debug::disassemble_instruction,
+    interner::Interner,
+    value::{Value, ValueArray},
+    xprintln,
 };
 
 #[derive(Default)]
@@ -36,81 +38,14 @@ impl Chunk {
 
 // Disassemble related methods
 impl Chunk {
-    pub fn disassemble(&self, name: &str) {
+    pub fn disassemble(&self, name: &str, interner: &Interner) {
         xprintln!("== {name} ==");
 
         let mut offset = 0;
         while offset < self.code.len() {
-            offset = self.disassemble_instruction(offset);
+            offset = disassemble_instruction(&self, offset, interner);
         }
 
         xprintln!("====");
     }
-
-    #[cfg(feature = "tracing")]
-    pub fn disassemble_instruction(&self, offset: usize) -> usize {
-        xprint!("{offset:04} ");
-        xprint!("{:4} ", self.lines[&offset]);
-
-        let instruction = Opcode::try_from(self.code[offset]);
-        let Ok(instruction) = instruction else {
-            xprint!("Invalid opcode {:04}", self.code[offset],);
-            return offset + 1;
-        };
-
-        let ret: usize = match instruction {
-            Opcode::Constant => self.constant_instruction(instruction, offset),
-            Opcode::Add
-            | Opcode::Return
-            | Opcode::Negate
-            | Opcode::Subtract
-            | Opcode::Multiply
-            | Opcode::Divide
-            | Opcode::False
-            | Opcode::True
-            | Opcode::Nil
-            | Opcode::Equal
-            | Opcode::Greater
-            | Opcode::Less
-            | Opcode::Not => self.simple_instruction(instruction, offset),
-        };
-
-        xprintln!("");
-
-        ret
-    }
-
-    #[cfg(not(feature = "tracing"))]
-    pub fn disassemble_instruction(&self, _offset: usize) -> usize {
-        self.code.len()
-    }
-
-    fn simple_instruction(&self, instruction: Opcode, offset: usize) -> usize {
-        xprint!("{instruction}");
-
-        offset + 1
-    }
-
-    fn constant_instruction(&self, instruction: Opcode, offset: usize) -> usize {
-        let Ok(constant_idx): Result<usize, _> = self.code[offset + 1].try_into() else {
-            xprint!(
-                "Failed to convert data {} at offset {} into constant index",
-                self.code[offset + 1],
-                offset + 1
-            );
-            return offset + 2;
-        };
-        xprint!("{instruction} Idx {constant_idx} ");
-        print_value(&self.constants[constant_idx]);
-
-        offset + 2
-    }
-
-    #[cfg(feature = "tracing")]
-    pub fn line() {
-        xprintln!("");
-    }
-
-    #[cfg(not(feature = "tracing"))]
-    pub fn line() {}
 }

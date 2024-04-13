@@ -2,7 +2,7 @@ use rustc_hash::FxHashMap as HashMap;
 use std::mem;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
-struct StrId(u32);
+pub struct StrId(u32);
 
 pub struct Interner {
     map: HashMap<&'static str, StrId>,
@@ -33,14 +33,14 @@ impl Interner {
         self.map.insert(name, id);
         self.vec.push(name);
 
-        debug_assert!(self.lookup(id) == name);
+        debug_assert!(self.lookup(&id) == name);
         debug_assert!(self.intern(name) == id);
 
         id
     }
 
     /// Get a string, given it's ID
-    pub fn lookup(&self, id: StrId) -> &str {
+    pub fn lookup(&self, id: &StrId) -> &str {
         self.vec[id.0 as usize]
     }
 
