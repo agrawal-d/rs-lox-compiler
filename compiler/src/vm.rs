@@ -94,7 +94,7 @@ impl<'src> Vm<'src> {
         let mut vm: Vm = Vm::new(chunk, interner);
         xprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
         loop {
-            disassemble_instruction(&vm.chunk, vm.ip, &vm.interner);
+            disassemble_instruction(&vm.chunk, vm.ip, vm.interner);
             vm.stack_trace();
             let instruction = Opcode::try_from(vm.read_byte()).context("Byte to opcode failed")?;
             match instruction {

@@ -43,7 +43,7 @@ impl Chunk {
 
         let mut offset = 0;
         while offset < self.code.len() {
-            offset = disassemble_instruction(&self, offset, interner);
+            offset = disassemble_instruction(self, offset, interner);
         }
 
         xprintln!("====");

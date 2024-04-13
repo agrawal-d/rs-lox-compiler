@@ -8,7 +8,7 @@ use crate::{
 };
 use anyhow::*;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
-use std::{collections::HashMap, rc::Rc, sync::OnceLock};
+use std::{collections::HashMap, rc::Rc};
 
 #[repr(u8)]
 #[derive(Eq, Clone, Copy, TryFromPrimitive, PartialEq, PartialOrd, IntoPrimitive, strum_macros::Display)]
@@ -214,7 +214,7 @@ impl<'src> Compiler<'src> {
     fn end(&mut self) {
         self.emit_return();
         if !self.parser.had_error {
-            self.compiling_chunk.disassemble("code", &self.interner);
+            self.compiling_chunk.disassemble("code", self.interner);
         }
     }
 

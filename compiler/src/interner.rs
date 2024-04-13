@@ -29,7 +29,7 @@ impl Interner {
             return id;
         }
         let name = unsafe { self.alloc(name) };
-        let id = StrId { 0: self.map.len() as u32 };
+        let id = StrId(self.map.len() as u32);
         self.map.insert(name, id);
         self.vec.push(name);
 

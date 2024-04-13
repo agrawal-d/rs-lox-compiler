@@ -38,21 +38,14 @@ pub fn disassemble_instruction(chunk: &Chunk, _offset: usize) -> usize {
     chunk.code.len()
 }
 
-fn simple_instruction(chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
+fn simple_instruction(_chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
     xprint!("{instruction}");
 
     offset + 1
 }
 
 fn constant_instruction(chunk: &Chunk, instruction: Opcode, offset: usize, interner: &Interner) -> usize {
-    let Ok(constant_idx): Result<usize, _> = chunk.code[offset + 1].try_into() else {
-        xprint!(
-            "Failed to convert data {} at offset {} into constant index",
-            chunk.code[offset + 1],
-            offset + 1
-        );
-        return offset + 2;
-    };
+    let constant_idx: usize = chunk.code[offset + 1].into();
     xprint!("{instruction} Idx {constant_idx} ");
     print_value(&chunk.constants[constant_idx], interner);
 
