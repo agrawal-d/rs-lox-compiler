@@ -25,7 +25,7 @@ pub fn print_value(value: &Value) {
 }
 
 #[cfg(not(feature = "tracing"))]
-pub fn print_value(&self, value: Value) {
+pub fn print_value(value: Value) {
     xprint!("Value {value}");
 }
 

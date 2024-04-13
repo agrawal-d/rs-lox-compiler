@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 compiler = {path = "../compiler", features = ["tracing", "print_code"]}
+rustc-hash = "1.1.0"
