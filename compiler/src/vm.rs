@@ -121,8 +121,16 @@ impl<'src> Vm<'src> {
                         }
                     }
                 }
-                Opcode::False => vm.stack.push(Bool(false)),
                 Opcode::True => vm.stack.push(Bool(true)),
+                Opcode::False => vm.stack.push(Bool(false)),
+                Opcode::Pop => {
+                    vm.pop()?;
+                }
+                Opcode::Equal => {
+                    let a = vm.pop()?;
+                    let b = vm.pop()?;
+                    vm.stack.push(Bool(a == b))
+                }
                 Opcode::Nil => vm.stack.push(Nil),
                 Opcode::Add => {
                     let b = vm.pop()?;
@@ -149,11 +157,6 @@ impl<'src> Vm<'src> {
                 Opcode::Not => {
                     let val = vm.pop()?;
                     vm.stack.push(Bool(vm.is_falsey(val)))
-                }
-                Opcode::Equal => {
-                    let a = vm.pop()?;
-                    let b = vm.pop()?;
-                    vm.stack.push(Bool(a == b))
                 }
                 Opcode::Greater => binop!(vm, Bool, >),
                 Opcode::Less => binop!(vm, Bool, <),

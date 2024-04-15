@@ -188,6 +188,32 @@ impl Parser {
             self.error_at_current(current_source.as_ref());
         }
     }
+
+    fn synchronize(&mut self) {
+        self.panic_mode = false;
+
+        while self.current.typ != TokenType::EOF {
+            if self.previous.typ == TokenType::Semicolon {
+                return;
+            }
+
+            match self.current.typ {
+                TokenType::Class
+                | TokenType::Fun
+                | TokenType::Var
+                | TokenType::For
+                | TokenType::If
+                | TokenType::While
+                | TokenType::Print
+                | TokenType::Return => {
+                    return;
+                }
+                _ => {}
+            }
+
+            self.advance()
+        }
+    }
 }
 
 pub struct Compiler<'src> {
@@ -271,6 +297,12 @@ impl<'src> Compiler<'src> {
         self.parse_precedence(Precedence::Assignment);
     }
 
+    fn expression_statement(&mut self) {
+        self.expression();
+        self.parser.consume(TokenType::Semicolon, "Expect ';' after expression");
+        self.emit_byte(Opcode::Pop as u8);
+    }
+
     fn print_statement(&mut self) {
         self.expression();
         self.parser.consume(TokenType::Semicolon, "Expect ';' after expression");
@@ -279,11 +311,17 @@ impl<'src> Compiler<'src> {
 
     fn declaration(&mut self) {
         self.statement();
+
+        if self.parser.panic_mode {
+            self.parser.synchronize();
+        }
     }
 
     fn statement(&mut self) {
         if self.parser.match_tt(TokenType::Print) {
             self.print_statement();
+        } else {
+            self.expression_statement();
         }
     }
 
