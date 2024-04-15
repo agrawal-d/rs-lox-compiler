@@ -6,6 +6,7 @@ pub enum Opcode {
     Return,
     Constant,
     Not,
+    Print,
     Negate,
     Add,
     Subtract,

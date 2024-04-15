@@ -161,6 +161,20 @@ impl Parser {
         self.error_at_current(message);
     }
 
+    fn check_tt(&mut self, typ: TokenType) -> bool {
+        return self.current.typ == typ;
+    }
+
+    fn match_tt(&mut self, typ: TokenType) -> bool {
+        if !self.check_tt(typ) {
+            return false;
+        }
+
+        self.advance();
+
+        return true;
+    }
+
     fn advance(&mut self) {
         self.previous = self.current.clone();
 
@@ -199,8 +213,10 @@ impl<'src> Compiler<'src> {
         };
 
         compiler.parser.advance();
-        compiler.expression();
-        compiler.parser.consume(TokenType::EOF, "Expect end of expression.");
+        while !compiler.parser.match_tt(TokenType::EOF) {
+            compiler.declaration();
+        }
+
         compiler.end();
         Ok(compiler.compiling_chunk)
     }
@@ -253,6 +269,22 @@ impl<'src> Compiler<'src> {
 
     fn expression(&mut self) {
         self.parse_precedence(Precedence::Assignment);
+    }
+
+    fn print_statement(&mut self) {
+        self.expression();
+        self.parser.consume(TokenType::Semicolon, "Expect ';' after expression");
+        self.emit_byte(Opcode::Print as u8);
+    }
+
+    fn declaration(&mut self) {
+        self.statement();
+    }
+
+    fn statement(&mut self) {
+        if self.parser.match_tt(TokenType::Print) {
+            self.print_statement();
+        }
     }
 
     fn grouping(&mut self) {

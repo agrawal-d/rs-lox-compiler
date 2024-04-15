@@ -3,7 +3,10 @@ use crate::{
     common::Opcode,
     debug::disassemble_instruction,
     interner::Interner,
-    value::Value::{self, *},
+    value::{
+        print_value,
+        Value::{self, *},
+    },
     xprintln,
 };
 use anyhow::*;
@@ -98,9 +101,11 @@ impl<'src> Vm<'src> {
             vm.stack_trace();
             let instruction = Opcode::try_from(vm.read_byte()).context("Byte to opcode failed")?;
             match instruction {
+                Opcode::Print => {
+                    print_value(&vm.pop()?, &vm.interner);
+                    xprintln!("");
+                }
                 Opcode::Return => {
-                    let value = vm.pop()?;
-                    xprintln!("Returned value: {}", value);
                     return Ok(());
                 }
                 Opcode::Constant => {
@@ -126,7 +131,7 @@ impl<'src> Vm<'src> {
                         (Number(a), Number(b)) => {
                             vm.stack.push(Number(a + b));
                         }
-                        (Str(a), Str(b)) => {
+                        (Str(b), Str(a)) => {
                             let mut new_string = String::from(vm.interner.lookup(&a));
                             new_string.push_str(vm.interner.lookup(&b));
                             let id = vm.interner.intern(&new_string);

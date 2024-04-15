@@ -25,6 +25,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         | Opcode::Equal
         | Opcode::Greater
         | Opcode::Less
+        | Opcode::Print
         | Opcode::Not => simple_instruction(chunk, instruction, offset),
     };
 
