@@ -19,6 +19,8 @@ pub enum Opcode {
     Pop,
     Equal,
     Less,
+    DefineGlobal,
+    GetGlobal,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {

@@ -2,11 +2,12 @@ use crate::interner::Interner;
 use crate::{interner::StrId, xprint};
 use strum_macros::Display;
 
-#[derive(Debug, Display, Clone)]
+#[derive(Debug, Display, Clone, Copy)]
 pub enum Value {
     Bool(bool),
     Number(f64),
     Str(StrId),
+    Identifier(StrId),
     Nil,
 }
 pub type ValueArray = Vec<Value>;
@@ -19,6 +20,9 @@ pub fn print_value(value: &Value, interner: &Interner) {
         Value::Nil => xprint!("Nil"),
         Value::Str(s) => {
             xprint!("{}", interner.lookup(s));
+        }
+        Value::Identifier(id) => {
+            xprint!("Identifier: {}", interner.lookup(id))
         }
     }
 }

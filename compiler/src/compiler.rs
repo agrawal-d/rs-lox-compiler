@@ -74,7 +74,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, GreaterEqual, None, Some(Compiler::binary), Precedence::Comparison);
     add_rule!(map, Less, None, Some(Compiler::binary), Precedence::Comparison);
     add_rule!(map, LessEqual, None, None, Precedence::Comparison);
-    add_rule!(map, Identifier, None, None, Precedence::None);
+    add_rule!(map, Identifier, Some(Compiler::variable), None, Precedence::None);
     add_rule!(map, String, Some(Compiler::string), None, Precedence::None);
     add_rule!(map, Number, Some(Compiler::number), None, Precedence::None);
     add_rule!(map, And, None, None, Precedence::None);
@@ -162,7 +162,7 @@ impl Parser {
     }
 
     fn check_tt(&mut self, typ: TokenType) -> bool {
-        return self.current.typ == typ;
+        self.current.typ == typ
     }
 
     fn match_tt(&mut self, typ: TokenType) -> bool {
@@ -172,7 +172,7 @@ impl Parser {
 
         self.advance();
 
-        return true;
+        true
     }
 
     fn advance(&mut self) {
@@ -297,6 +297,19 @@ impl<'src> Compiler<'src> {
         self.parse_precedence(Precedence::Assignment);
     }
 
+    fn var_declaration(&mut self) {
+        let global = self.parse_variable("Expect variable name");
+
+        if self.parser.match_tt(TokenType::Equal) {
+            self.expression();
+        } else {
+            self.emit_byte(Opcode::Nil as u8);
+        }
+
+        self.parser.consume(TokenType::Semicolon, "Expect ';' after variable declaration");
+        self.define_variable(global);
+    }
+
     fn expression_statement(&mut self) {
         self.expression();
         self.parser.consume(TokenType::Semicolon, "Expect ';' after expression");
@@ -310,7 +323,11 @@ impl<'src> Compiler<'src> {
     }
 
     fn declaration(&mut self) {
-        self.statement();
+        if self.parser.match_tt(TokenType::Var) {
+            self.var_declaration();
+        } else {
+            self.statement();
+        }
 
         if self.parser.panic_mode {
             self.parser.synchronize();
@@ -342,6 +359,15 @@ impl<'src> Compiler<'src> {
         self.emit_constant(Value::Str(id));
     }
 
+    fn named_variable(&mut self, token: &Token) {
+        let arg = self.identifier_constant(token);
+        self.emit_bytes(Opcode::GetGlobal as u8, arg as u8);
+    }
+
+    fn variable(&mut self) {
+        self.named_variable(&self.parser.previous.clone());
+    }
+
     fn unary(&mut self) {
         let operator_type = self.parser.previous.typ;
         self.parse_precedence(Precedence::Unary);
@@ -351,6 +377,12 @@ impl<'src> Compiler<'src> {
             TokenType::Bang => self.emit_byte(Opcode::Not as u8),
             _ => (),
         }
+    }
+
+    fn parse_variable(&mut self, error_message: &str) -> usize {
+        self.parser.consume(TokenType::Identifier, error_message);
+        let previous = &self.parser.previous.clone();
+        self.identifier_constant(previous)
     }
 
     // Parse expressions with equal or higher precedence
@@ -378,6 +410,15 @@ impl<'src> Compiler<'src> {
                 }
             }
         }
+    }
+
+    fn identifier_constant(&mut self, name: &Token) -> usize {
+        let identifier = self.interner.intern(name.source.as_ref());
+        self.make_constant(Value::Identifier(identifier))
+    }
+
+    fn define_variable(&mut self, global: usize) {
+        self.emit_bytes(Opcode::DefineGlobal as u8, global as u8);
     }
 
     fn make_constant(&mut self, value: Value) -> usize {
