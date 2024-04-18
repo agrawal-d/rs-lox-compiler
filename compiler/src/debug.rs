@@ -12,7 +12,9 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
     };
 
     let ret: usize = match instruction {
-        Opcode::Constant | Opcode::DefineGlobal | Opcode::GetGlobal => constant_instruction(chunk, instruction, offset, interner),
+        Opcode::Constant | Opcode::DefineGlobal | Opcode::GetGlobal | Opcode::SetGlobal => {
+            constant_instruction(chunk, instruction, offset, interner)
+        }
         Opcode::Add
         | Opcode::Return
         | Opcode::Negate

@@ -20,6 +20,7 @@ pub enum Opcode {
     Equal,
     Less,
     DefineGlobal,
+    SetGlobal,
     GetGlobal,
 }
 

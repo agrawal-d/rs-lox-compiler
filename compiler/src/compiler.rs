@@ -12,6 +12,7 @@ use std::{collections::HashMap, rc::Rc};
 
 #[repr(u8)]
 #[derive(Eq, Clone, Copy, TryFromPrimitive, PartialEq, PartialOrd, IntoPrimitive, strum_macros::Display)]
+// Low to High precedence
 enum Precedence {
     None,
     Assignment, // =
@@ -26,7 +27,7 @@ enum Precedence {
     Primary,
 }
 
-type Parsefn<'src> = fn(&mut Compiler<'src>);
+type Parsefn<'src> = fn(&mut Compiler<'src>, bool);
 
 struct ParseRule<'src> {
     prefix: Option<Parsefn<'src>>,
@@ -264,7 +265,7 @@ impl<'src> Compiler<'src> {
         self.rules.get(&token_type).unwrap()
     }
 
-    fn binary(&mut self) {
+    fn binary(&mut self, _can_assign: bool) {
         let operator_type = self.parser.previous.typ;
         let rule = self.get_rule(operator_type);
         self.parse_precedence(increment_prec(rule.precedence));
@@ -284,7 +285,7 @@ impl<'src> Compiler<'src> {
         }
     }
 
-    fn literal(&mut self) {
+    fn literal(&mut self, _can_assign: bool) {
         match self.parser.previous.typ {
             TokenType::False => self.emit_byte(Opcode::False as u8),
             TokenType::Nil => self.emit_byte(Opcode::Nil as u8),
@@ -342,33 +343,40 @@ impl<'src> Compiler<'src> {
         }
     }
 
-    fn grouping(&mut self) {
+    fn grouping(&mut self, _can_assign: bool) {
         self.expression();
         self.parser.consume(TokenType::RightParen, "Expect ')' after expression.");
     }
 
-    fn number(&mut self) {
+    fn number(&mut self, _can_assign: bool) {
         let num = self.parser.previous.source.parse::<f64>().unwrap();
         self.emit_constant(Value::Number(num));
     }
 
-    fn string(&mut self) {
+    fn string(&mut self, _can_assign: bool) {
         let data = self.parser.previous.source.clone();
         let data = &data[1..data.len() - 1];
         let id = self.interner.intern(data);
         self.emit_constant(Value::Str(id));
     }
 
-    fn named_variable(&mut self, token: &Token) {
+    fn named_variable(&mut self, token: &Token, can_assign: bool) {
         let arg = self.identifier_constant(token);
-        self.emit_bytes(Opcode::GetGlobal as u8, arg as u8);
+
+        if can_assign && self.parser.match_tt(TokenType::Equal) {
+            self.expression();
+            self.emit_bytes(Opcode::SetGlobal as u8, arg as u8);
+        } else {
+            self.emit_bytes(Opcode::GetGlobal as u8, arg as u8);
+        }
     }
 
-    fn variable(&mut self) {
-        self.named_variable(&self.parser.previous.clone());
+    fn variable(&mut self, can_assign: bool) {
+        self.named_variable(&self.parser.previous.clone(), can_assign);
     }
 
-    fn unary(&mut self) {
+    fn unary(&mut self, can_assign: bool) {
+        let _ = can_assign;
         let operator_type = self.parser.previous.typ;
         self.parse_precedence(Precedence::Unary);
 
@@ -389,9 +397,10 @@ impl<'src> Compiler<'src> {
     fn parse_precedence(&mut self, precedence: Precedence) {
         self.parser.advance();
         let prefix_rule = self.get_rule(self.parser.previous.typ).prefix;
+        let can_assign = precedence <= Precedence::Assignment;
 
         match prefix_rule {
-            Some(rule) => rule(self),
+            Some(rule) => rule(self, can_assign),
             None => {
                 self.parser.error_at_previous("Expect expression");
                 return;
@@ -403,12 +412,16 @@ impl<'src> Compiler<'src> {
             let infix_rule = self.get_rule(self.parser.previous.typ).infix;
 
             match infix_rule {
-                Some(rule) => rule(self),
+                Some(rule) => rule(self, can_assign),
                 None => {
                     self.parser.error_at_previous("Expect expression");
                     return;
                 }
             }
+        }
+
+        if can_assign && self.parser.match_tt(TokenType::Equal) {
+            self.parser.error_at_current("Invalid assignment target");
         }
     }
 

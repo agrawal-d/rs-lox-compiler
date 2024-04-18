@@ -97,12 +97,8 @@ impl<'src> Vm<'src> {
     fn read_string_or_id(&mut self) -> StrId {
         let value = self.read_constant().expect("Could not read constant");
         match value {
-            Value::Str(id) => {
-                id
-            }
-            Value::Identifier(id) => {
-                id
-            }
+            Value::Str(id) => id,
+            Value::Identifier(id) => id,
             other => panic!("Found {other} instead"),
         }
     }
@@ -145,6 +141,14 @@ impl<'src> Vm<'src> {
                         self.stack.push(*value);
                     } else {
                         self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
+                    }
+                }
+                Opcode::SetGlobal => {
+                    let name = self.read_string_or_id();
+                    if !self.globals.contains_key(&name) {
+                        self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
+                    } else {
+                        self.globals.insert(name, self.peek(0).clone());
                     }
                 }
                 Opcode::DefineGlobal => {
