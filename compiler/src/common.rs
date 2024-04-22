@@ -1,3 +1,4 @@
+use crate::scanner::Token;
 use num_enum::{IntoPrimitive, TryFromPrimitive};
 
 #[repr(u8)]
@@ -26,4 +27,8 @@ pub enum Opcode {
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {
     std::mem::discriminant(a) == std::mem::discriminant(b)
+}
+
+pub fn identifiers_equal(a: &Token, b: &Token) -> bool {
+    return a.source == b.source;
 }

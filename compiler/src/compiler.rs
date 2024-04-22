@@ -1,6 +1,6 @@
 use crate::{
     chunk::Chunk,
-    common::Opcode,
+    common::{identifiers_equal, Opcode},
     interner::Interner,
     scanner::{Scanner, Token, TokenType},
     value::Value,
@@ -33,6 +33,11 @@ struct ParseRule<'src> {
     prefix: Option<Parsefn<'src>>,
     infix: Option<Parsefn<'src>>,
     precedence: Precedence,
+}
+
+struct Local {
+    name: Token,
+    depth: isize,
 }
 
 /// This is a table that, given a token type, lets us find
@@ -223,6 +228,8 @@ pub struct Compiler<'src> {
     line: usize,
     interner: &'src mut Interner,
     rules: HashMap<TokenType, ParseRule<'src>>,
+    locals: Vec<Local>,
+    scope_depth: isize,
 }
 
 impl<'src> Compiler<'src> {
@@ -237,6 +244,8 @@ impl<'src> Compiler<'src> {
             parser,
             interner,
             rules,
+            locals: Default::default(),
+            scope_depth: 0,
         };
 
         compiler.parser.advance();
@@ -258,6 +267,19 @@ impl<'src> Compiler<'src> {
         self.emit_return();
         if !self.parser.had_error {
             self.compiling_chunk.disassemble("code", self.interner);
+        }
+    }
+
+    fn begin_scope(&mut self) {
+        self.scope_depth += 1;
+    }
+
+    fn end_scope(&mut self) {
+        self.scope_depth -= 1;
+
+        while self.locals.len() > 0 && self.locals.last().unwrap().depth > self.scope_depth {
+            self.emit_byte(Opcode::Pop as u8);
+            self.locals.pop();
         }
     }
 
@@ -296,6 +318,14 @@ impl<'src> Compiler<'src> {
 
     fn expression(&mut self) {
         self.parse_precedence(Precedence::Assignment);
+    }
+
+    fn block(&mut self) {
+        while !self.parser.check_tt(TokenType::RightBrace) && !self.parser.check_tt(TokenType::EOF) {
+            self.declaration();
+        }
+
+        self.parser.consume(TokenType::RightBrace, "Expect '}' after block");
     }
 
     fn var_declaration(&mut self) {
@@ -338,6 +368,10 @@ impl<'src> Compiler<'src> {
     fn statement(&mut self) {
         if self.parser.match_tt(TokenType::Print) {
             self.print_statement();
+        } else if self.parser.match_tt(TokenType::LeftBrace) {
+            self.begin_scope();
+            self.block();
+            self.end_scope();
         } else {
             self.expression_statement();
         }
@@ -389,6 +423,12 @@ impl<'src> Compiler<'src> {
 
     fn parse_variable(&mut self, error_message: &str) -> usize {
         self.parser.consume(TokenType::Identifier, error_message);
+
+        self.declare_variable();
+        if self.scope_depth > 0 {
+            return 0;
+        }
+
         let previous = &self.parser.previous.clone();
         self.identifier_constant(previous)
     }
@@ -430,7 +470,44 @@ impl<'src> Compiler<'src> {
         self.make_constant(Value::Identifier(identifier))
     }
 
+    fn add_local(&mut self, name: Token) {
+        let local = Local {
+            name: name.clone(),
+            depth: self.scope_depth,
+        };
+        self.locals.push(local);
+    }
+
+    fn declare_variable(&mut self) {
+        if self.scope_depth == 0 {
+            return;
+        }
+
+        let name = self.parser.previous.clone();
+
+        let mut i = self.locals.len() - 1;
+        while i >= 0 {
+            let local = &self.locals[i];
+
+            if local.depth != -1 && local.depth < self.scope_depth {
+                break;
+            }
+
+            if identifiers_equal(&name, &local.name) {
+                self.parser.error_at_current("Already a variable with this name in this scope");
+            }
+
+            i -= 1;
+        }
+
+        self.add_local(name);
+    }
+
     fn define_variable(&mut self, global: usize) {
+        if self.scope_depth > 0 {
+            return;
+        }
+
         self.emit_bytes(Opcode::DefineGlobal as u8, global as u8);
     }
 
