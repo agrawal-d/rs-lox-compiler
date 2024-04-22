@@ -23,6 +23,8 @@ pub enum Opcode {
     DefineGlobal,
     SetGlobal,
     GetGlobal,
+    GetLocal,
+    SetLocal,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {

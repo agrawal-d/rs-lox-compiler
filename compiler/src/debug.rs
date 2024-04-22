@@ -30,6 +30,8 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         | Opcode::Print
         | Opcode::Pop
         | Opcode::Not => simple_instruction(chunk, instruction, offset),
+
+        Opcode::GetLocal | Opcode::SetLocal => byte_instruction(chunk, instruction, offset),
     };
 
     xprintln!("");
@@ -53,6 +55,12 @@ fn constant_instruction(chunk: &Chunk, instruction: Opcode, offset: usize, inter
     xprint!("{instruction} Idx {constant_idx} ");
     print_value(&chunk.constants[constant_idx], interner);
 
+    offset + 2
+}
+
+fn byte_instruction(chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
+    let slot = chunk.code[offset + 1];
+    xprint!("{instruction} {slot}");
     offset + 2
 }
 

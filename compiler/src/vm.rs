@@ -134,6 +134,10 @@ impl<'src> Vm<'src> {
                 Opcode::Pop => {
                     self.pop()?;
                 }
+                Opcode::GetLocal => {
+                    let slot = self.read_byte() as usize;
+                    self.stack.push(self.stack[slot].clone())
+                }
                 Opcode::GetGlobal => {
                     let name = self.read_string_or_id();
 
@@ -142,6 +146,10 @@ impl<'src> Vm<'src> {
                     } else {
                         self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
                     }
+                }
+                Opcode::SetLocal => {
+                    let slot = self.read_byte() as usize;
+                    self.stack[slot] = self.peek(0).clone();
                 }
                 Opcode::SetGlobal => {
                     let name = self.read_string_or_id();

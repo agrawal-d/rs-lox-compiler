@@ -395,13 +395,24 @@ impl<'src> Compiler<'src> {
     }
 
     fn named_variable(&mut self, token: &Token, can_assign: bool) {
-        let arg = self.identifier_constant(token);
+        let get_op: Opcode;
+        let set_op: Opcode;
+        let mut arg = self.resolve_local(&token);
+
+        if arg != -1 {
+            set_op = Opcode::SetLocal;
+            get_op = Opcode::GetLocal;
+        } else {
+            arg = self.identifier_constant(token) as isize;
+            set_op = Opcode::SetGlobal;
+            get_op = Opcode::GetGlobal;
+        }
 
         if can_assign && self.parser.match_tt(TokenType::Equal) {
             self.expression();
-            self.emit_bytes(Opcode::SetGlobal as u8, arg as u8);
+            self.emit_bytes(set_op as u8, arg as u8);
         } else {
-            self.emit_bytes(Opcode::GetGlobal as u8, arg as u8);
+            self.emit_bytes(get_op as u8, arg as u8);
         }
     }
 
@@ -470,10 +481,28 @@ impl<'src> Compiler<'src> {
         self.make_constant(Value::Identifier(identifier))
     }
 
+    fn mark_initialized(&mut self) {
+        self.locals.last_mut().unwrap().depth = self.scope_depth;
+    }
+
+    fn resolve_local(&mut self, name: &Token) -> isize {
+        for (i, local) in self.locals.iter().enumerate().rev() {
+            if identifiers_equal(&local.name, &name) {
+                if local.depth == -1 {
+                    self.parser.error_at_current("Can't read local variable in its own initializer")
+                }
+
+                return i as isize;
+            }
+        }
+
+        return -1;
+    }
+
     fn add_local(&mut self, name: Token) {
         let local = Local {
             name: name.clone(),
-            depth: self.scope_depth,
+            depth: -1,
         };
         self.locals.push(local);
     }
@@ -485,10 +514,7 @@ impl<'src> Compiler<'src> {
 
         let name = self.parser.previous.clone();
 
-        let mut i = self.locals.len() - 1;
-        while i >= 0 {
-            let local = &self.locals[i];
-
+        for local in self.locals.iter().rev() {
             if local.depth != -1 && local.depth < self.scope_depth {
                 break;
             }
@@ -496,8 +522,6 @@ impl<'src> Compiler<'src> {
             if identifiers_equal(&name, &local.name) {
                 self.parser.error_at_current("Already a variable with this name in this scope");
             }
-
-            i -= 1;
         }
 
         self.add_local(name);
@@ -505,6 +529,7 @@ impl<'src> Compiler<'src> {
 
     fn define_variable(&mut self, global: usize) {
         if self.scope_depth > 0 {
+            self.mark_initialized();
             return;
         }
 

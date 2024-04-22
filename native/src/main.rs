@@ -3,10 +3,12 @@ use std::io::Write;
 
 fn print(output: String) {
     print!("{}", output);
+    std::io::stdout().flush().unwrap();
 }
 
 fn println(output: String) {
     println!("{}", output);
+    std::io::stdout().flush().unwrap();
 }
 
 fn main() {
