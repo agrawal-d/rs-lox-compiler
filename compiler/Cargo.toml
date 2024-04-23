@@ -15,19 +15,6 @@ log = "0.4.21"
 num_enum = "0.7.2"
 rustc-hash = "1.1.0"
 strum_macros = "0.26.2"
-wasm-bindgen = "0.2.92"
-
-[dependencies.web-sys]
-version = "0.3.4"
-features = [
-  'Document',
-  'Element',
-  'HtmlElement',
-  'HtmlTextAreaElement',
-  'Node',
-  'Window',
-  'console',
-]
 
 [features]
 tracing = []
