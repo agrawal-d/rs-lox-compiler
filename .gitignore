@@ -4,3 +4,5 @@
 /docs/wasm_bg.wasm
 /docs/wasm.js
 /docs/snippets
+/native/code.cs
+/native/launcher.sh

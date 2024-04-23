@@ -1,25 +1,49 @@
 use compiler::{init, run_code};
 use std::io::Write;
 
+#[cfg(debug_assertions)]
+fn flush_if_debug() {
+    std::io::stdout().flush().unwrap();
+}
+
+#[cfg(not(debug_assertions))]
+fn flush_if_debug() {}
+
 fn print(output: String) {
     print!("{}", output);
-    std::io::stdout().flush().unwrap();
+    flush_if_debug();
 }
 
 fn println(output: String) {
     println!("{}", output);
-    std::io::stdout().flush().unwrap();
+    flush_if_debug();
+}
+
+fn help(args: &Vec<String>) {
+    println(format!("Usage: {} <FILE> \nInterpret the program in FILE", args[0]));
 }
 
 fn main() {
     init(print, println);
-    println!("Write a line of code below:");
-    loop {
-        print!("> ");
-        std::io::stdout().flush().unwrap();
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input).unwrap();
-        run_code(&input);
-        println!("========================================")
+
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        help(&args);
+        std::process::exit(1);
     }
+
+    if args[1] == "-h" || args[1] == "--help" {
+        help(&args);
+        std::process::exit(0);
+    }
+
+    let path = &args[1];
+    let input = std::fs::read_to_string(path).expect("Failed to read file");
+
+    println("== Source ==".to_string());
+    println(input.clone());
+
+    run_code(&input);
+
+    println("== Done ==".to_string());
 }
