@@ -46,7 +46,5 @@ impl Chunk {
         while offset < self.code.len() {
             offset = disassemble_instruction(self, offset, interner);
         }
-
-        xprintln!("====");
     }
 }

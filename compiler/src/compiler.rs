@@ -251,6 +251,8 @@ impl<'src> Compiler<'src> {
             scope_depth: 0,
         };
 
+        xprintln!("== Parser (Scan on demand) ==");
+
         compiler.parser.advance();
         while !compiler.parser.match_tt(TokenType::EOF) {
             compiler.declaration();

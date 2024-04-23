@@ -273,6 +273,7 @@ impl<'src> Vm<'src> {
     }
 
     pub fn interpret(chunk: Chunk, interner: &'src mut Interner) -> Result<()> {
+        xprintln!("== Interpreter VM ==");
         let mut vm: Vm = Vm::new(chunk, interner);
         xprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
         vm.run()
