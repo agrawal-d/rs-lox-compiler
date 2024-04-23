@@ -65,6 +65,8 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, RightParen, None, None, Precedence::None);
     add_rule!(map, LeftBrace, None, None, Precedence::None);
     add_rule!(map, RightBrace, None, None, Precedence::None);
+    add_rule!(map, LeftBracket, None, None, Precedence::None);
+    add_rule!(map, RightBracket, None, None, Precedence::None);
     add_rule!(map, Comma, None, None, Precedence::None);
     add_rule!(map, Dot, None, None, Precedence::None);
     add_rule!(map, Minus, Some(Compiler::unary), Some(Compiler::binary), Precedence::Term);
@@ -186,6 +188,7 @@ impl Parser {
 
         loop {
             self.current = self.scanner.scan_token();
+            xprintln!("Current token: {}", self.current.typ);
             if self.current.typ != TokenType::Error {
                 break;
             }
@@ -265,9 +268,9 @@ impl<'src> Compiler<'src> {
     #[cfg(feature = "print_code")]
     fn end(&mut self) {
         self.emit_return();
-        if !self.parser.had_error {
-            self.compiling_chunk.disassemble("code", self.interner);
-        }
+        // if !self.parser.had_error {
+        self.compiling_chunk.disassemble("code", self.interner);
+        // }
     }
 
     fn begin_scope(&mut self) {
@@ -329,16 +332,20 @@ impl<'src> Compiler<'src> {
     }
 
     fn var_declaration(&mut self) {
-        let global = self.parse_variable("Expect variable name");
+        let (global_variable_idx, is_array) = self.parse_variable("Expect variable name");
 
-        if self.parser.match_tt(TokenType::Equal) {
+        if is_array {
+            self.expression();
+            self.emit_byte(Opcode::DeclareArray as u8);
+            self.parser.consume(TokenType::RightBracket, "Expect ']' after array size");
+        } else if self.parser.match_tt(TokenType::Equal) {
             self.expression();
         } else {
             self.emit_byte(Opcode::Nil as u8);
         }
 
         self.parser.consume(TokenType::Semicolon, "Expect ';' after variable declaration");
-        self.define_variable(global);
+        self.define_variable(global_variable_idx, is_array);
     }
 
     fn expression_statement(&mut self) {
@@ -432,16 +439,26 @@ impl<'src> Compiler<'src> {
         }
     }
 
-    fn parse_variable(&mut self, error_message: &str) -> usize {
+    /// Parse a variable.
+    /// If its a global, the return value is the index in the constant pool.
+    /// If its an array, the boolean value is true.
+    fn parse_variable(&mut self, error_message: &str) -> (usize, bool) {
         self.parser.consume(TokenType::Identifier, error_message);
+        let array_name: Token = self.parser.previous.clone();
+        let is_array = self.parser.match_tt(TokenType::LeftBracket);
 
-        self.declare_variable();
-        if self.scope_depth > 0 {
-            return 0;
+        if is_array {
+            self.declare_local_variable(Some(array_name));
+        } else {
+            self.declare_local_variable(None);
+        }
+
+        if self.scope_depth > 0 || is_array {
+            return (0, is_array);
         }
 
         let previous = &self.parser.previous.clone();
-        self.identifier_constant(previous)
+        (self.identifier_constant(previous), false)
     }
 
     // Parse expressions with equal or higher precedence
@@ -504,15 +521,21 @@ impl<'src> Compiler<'src> {
             name: name.clone(),
             depth: -1,
         };
+
+        xprintln!("Adding local: {}", name.source);
+
         self.locals.push(local);
     }
 
-    fn declare_variable(&mut self) {
-        if self.scope_depth == 0 {
+    fn declare_local_variable(&mut self, array: Option<Token>) {
+        if self.scope_depth == 0 && array.is_none() {
             return;
         }
 
-        let name = self.parser.previous.clone();
+        let name = match array {
+            Some(token) => token,
+            None => self.parser.previous.clone(),
+        };
 
         for local in self.locals.iter().rev() {
             if local.depth != -1 && local.depth < self.scope_depth {
@@ -527,8 +550,8 @@ impl<'src> Compiler<'src> {
         self.add_local(name);
     }
 
-    fn define_variable(&mut self, global: usize) {
-        if self.scope_depth > 0 {
+    fn define_variable(&mut self, global: usize, is_array: bool) {
+        if self.scope_depth > 0 || is_array {
             self.mark_initialized();
             return;
         }

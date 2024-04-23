@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::xprint;
 use crate::{
     chunk::Chunk,
@@ -57,7 +59,7 @@ impl<'src> Vm<'src> {
 
     fn read_constant(&mut self) -> Option<Value> {
         let index: usize = self.read_byte() as usize;
-        return self.chunk.constants.get(index).copied();
+        return self.chunk.constants.get(index).cloned();
     }
 
     #[cfg(feature = "tracing")]
@@ -105,8 +107,8 @@ impl<'src> Vm<'src> {
 
     fn run(&mut self) -> Result<()> {
         loop {
-            disassemble_instruction(&self.chunk, self.ip, self.interner);
             self.stack_trace();
+            disassemble_instruction(&self.chunk, self.ip, self.interner);
             let instruction = Opcode::try_from(self.read_byte()).context("Byte to opcode failed")?;
             match instruction {
                 Opcode::Print => {
@@ -142,7 +144,7 @@ impl<'src> Vm<'src> {
                     let name = self.read_string_or_id();
 
                     if let Some(value) = self.globals.get(&name) {
-                        self.stack.push(*value);
+                        self.stack.push(value.clone());
                     } else {
                         self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
                     }
@@ -161,8 +163,19 @@ impl<'src> Vm<'src> {
                 }
                 Opcode::DefineGlobal => {
                     let name = self.read_string_or_id();
-                    self.globals.insert(name, *self.peek(0));
+                    self.globals.insert(name, self.peek(0).clone());
                     self.pop().unwrap();
+                }
+                Opcode::DeclareArray => {
+                    let size_val = self.pop()?;
+                    match size_val {
+                        Number(len) => {
+                            self.stack.push(Value::Array(Rc::new(vec![Nil; len as usize])));
+                        }
+                        other => {
+                            self.runtime_error(&format!("Expected number, got {other}"));
+                        }
+                    }
                 }
                 Opcode::Equal => {
                     let a = self.pop()?;

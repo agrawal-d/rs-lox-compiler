@@ -21,6 +21,7 @@ pub enum Opcode {
     Equal,
     Less,
     DefineGlobal,
+    DeclareArray,
     SetGlobal,
     GetGlobal,
     GetLocal,

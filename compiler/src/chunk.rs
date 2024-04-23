@@ -30,10 +30,11 @@ impl Chunk {
         self.constants.len() - 1
     }
 
-    pub(crate) fn write_constant(&mut self, constant_index: usize, line: usize) {
-        self.write_opcode(Opcode::Constant, line);
-        self.code.push(constant_index.try_into().unwrap());
-    }
+    // Unused
+    // pub(crate) fn write_constant(&mut self, constant_index: usize, line: usize) {
+    //     self.write_opcode(Opcode::Constant, line);
+    //     self.code.push(constant_index.try_into().unwrap());
+    // }
 }
 
 // Disassemble related methods

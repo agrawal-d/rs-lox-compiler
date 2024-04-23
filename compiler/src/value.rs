@@ -1,13 +1,16 @@
+use std::rc::Rc;
+
 use crate::interner::Interner;
 use crate::{interner::StrId, xprint};
 use strum_macros::Display;
 
-#[derive(Debug, Display, Clone, Copy)]
+#[derive(Debug, Display, Clone)]
 pub enum Value {
     Bool(bool),
     Number(f64),
     Str(StrId),
     Identifier(StrId),
+    Array(Rc<ValueArray>),
     Nil,
 }
 pub type ValueArray = Vec<Value>;
@@ -23,6 +26,9 @@ pub fn print_value(value: &Value, interner: &Interner) {
         }
         Value::Identifier(id) => {
             xprint!("Identifier: {}", interner.lookup(id))
+        }
+        Value::Array(arr) => {
+            xprint!("<Array[{}]>", arr.len());
         }
     }
 }
@@ -41,6 +47,7 @@ impl PartialEq<Value> for Value {
             (Bool(a), Bool(b)) => a == b,
             (Str(a), Str(b)) => a == b,
             (Nil, Nil) => true,
+            (Array(a), Array(b)) => Rc::ptr_eq(a, b),
             _ => false,
         }
     }
