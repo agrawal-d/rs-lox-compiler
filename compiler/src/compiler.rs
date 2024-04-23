@@ -404,7 +404,7 @@ impl<'src> Compiler<'src> {
     fn named_variable(&mut self, token: &Token, can_assign: bool) {
         let get_op: Opcode;
         let set_op: Opcode;
-        let mut arg = self.resolve_local(&token);
+        let mut arg: isize = self.resolve_local(&token);
 
         if arg != -1 {
             set_op = Opcode::SetLocal;
@@ -415,11 +415,29 @@ impl<'src> Compiler<'src> {
             get_op = Opcode::GetGlobal;
         }
 
+        if self.array_access_index() {
+            xprintln!("{} is array access", token.source);
+        }
+
         if can_assign && self.parser.match_tt(TokenType::Equal) {
             self.expression();
+            xprintln!("Done with expr");
             self.emit_bytes(set_op as u8, arg as u8);
         } else {
             self.emit_bytes(get_op as u8, arg as u8);
+        }
+    }
+
+    // Array index (or max value if not an array index)
+    fn array_access_index(&mut self) -> bool {
+        // Array index (or max value if not an array index)
+        if self.parser.match_tt(TokenType::LeftBracket) {
+            self.expression();
+            self.parser.consume(TokenType::RightBracket, "Expect ']' after array index");
+            return true;
+        } else {
+            self.emit_constant(Value::Nil);
+            return false;
         }
     }
 
@@ -503,6 +521,7 @@ impl<'src> Compiler<'src> {
     }
 
     fn resolve_local(&mut self, name: &Token) -> isize {
+        xprintln!("Resolving local: {}", name.source);
         for (i, local) in self.locals.iter().enumerate().rev() {
             if identifiers_equal(&local.name, &name) {
                 if local.depth == -1 {

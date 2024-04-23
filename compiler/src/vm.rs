@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::xprint;
@@ -137,21 +138,30 @@ impl<'src> Vm<'src> {
                     self.pop()?;
                 }
                 Opcode::GetLocal => {
+                    let array_index = self.pop()?;
                     let slot = self.read_byte() as usize;
-                    self.stack.push(self.stack[slot].clone())
+                    let value = self.get_value(self.stack[slot].clone(), &array_index);
+                    self.stack.push(value)
                 }
                 Opcode::GetGlobal => {
                     let name = self.read_string_or_id();
+                    let array_index = self.pop()?;
 
                     if let Some(value) = self.globals.get(&name) {
-                        self.stack.push(value.clone());
+                        let value = self.get_value(value.clone(), &array_index);
+                        self.stack.push(value);
                     } else {
                         self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
                     }
                 }
                 Opcode::SetLocal => {
                     let slot = self.read_byte() as usize;
-                    self.stack[slot] = self.peek(0).clone();
+                    let new_value = self.pop()?;
+                    let array_index = self.pop()?;
+                    self.stack.push(new_value.clone());
+                    let mut value_to_be_modified = self.stack[slot].clone();
+                    self.set_value(&mut value_to_be_modified, &array_index, new_value);
+                    self.stack[slot] = value_to_be_modified;
                 }
                 Opcode::SetGlobal => {
                     let name = self.read_string_or_id();
@@ -170,7 +180,8 @@ impl<'src> Vm<'src> {
                     let size_val = self.pop()?;
                     match size_val {
                         Number(len) => {
-                            self.stack.push(Value::Array(Rc::new(vec![Nil; len as usize])));
+                            self.stack
+                                .push(Value::Array(Rc::new(RefCell::new(vec![Number(199.99); len as usize]))));
                         }
                         other => {
                             self.runtime_error(&format!("Expected number, got {other}"));
@@ -211,6 +222,46 @@ impl<'src> Vm<'src> {
                 }
                 Opcode::Greater => binop!(self, Bool, >),
                 Opcode::Less => binop!(self, Bool, <),
+            }
+        }
+    }
+
+    // If array index is valid, return the value at that index
+    // Otherwise, return the value itself
+    fn get_value(&mut self, value: Value, array_index: &Value) -> Value {
+        match (value, array_index) {
+            (Value::Array(array), Value::Number(index)) => {
+                let index = *index as usize;
+                if index < array.borrow().len() {
+                    array.borrow()[index].clone()
+                } else {
+                    self.runtime_error(&format!("Index out of bounds: {index}"));
+                    Nil
+                }
+            }
+            (value, Value::Nil) => value,
+            (value, index) => {
+                self.runtime_error(&format!("Tried to index value of type {value} with index {index}"));
+                value
+            }
+        }
+    }
+
+    // If array index is valid, change the value at that index
+    // Otherwise, change the value itself
+    fn set_value(&mut self, value: &mut Value, array_index: &Value, new_value: Value) {
+        match (value, array_index) {
+            (Value::Array(array), Value::Number(index)) => {
+                let index = *index as usize;
+                if index < array.borrow().len() {
+                    array.borrow_mut()[index] = new_value;
+                } else {
+                    self.runtime_error(&format!("Index out of bounds: {index}"));
+                }
+            }
+            (value, Value::Nil) => *value = new_value,
+            (value, index) => {
+                self.runtime_error(&format!("Tried to index value of type {value} with index {index}"));
             }
         }
     }

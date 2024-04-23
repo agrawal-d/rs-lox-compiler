@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::interner::Interner;
@@ -10,7 +11,7 @@ pub enum Value {
     Number(f64),
     Str(StrId),
     Identifier(StrId),
-    Array(Rc<ValueArray>),
+    Array(Rc<RefCell<ValueArray>>),
     Nil,
 }
 pub type ValueArray = Vec<Value>;
@@ -28,7 +29,7 @@ pub fn print_value(value: &Value, interner: &Interner) {
             xprint!("Identifier: {}", interner.lookup(id))
         }
         Value::Array(arr) => {
-            xprint!("<Array[{}]>", arr.len());
+            xprint!("<Array[{}]>", arr.borrow().len());
         }
     }
 }
