@@ -165,10 +165,16 @@ impl<'src> Vm<'src> {
                 }
                 Opcode::SetGlobal => {
                     let name = self.read_string_or_id();
+
                     if !self.globals.contains_key(&name) {
                         self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
                     } else {
-                        self.globals.insert(name, self.peek(0).clone());
+                        let new_value = self.pop()?;
+                        let array_index = self.pop()?;
+                        self.stack.push(new_value.clone());
+                        let mut value_to_be_modified = self.globals.get(&name).unwrap().clone();
+                        self.set_value(&mut value_to_be_modified, &array_index, new_value);
+                        self.globals.insert(name, value_to_be_modified);
                     }
                 }
                 Opcode::DefineGlobal => {
