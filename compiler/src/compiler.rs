@@ -283,7 +283,7 @@ impl<'src> Compiler<'src> {
     fn end_scope(&mut self) {
         self.scope_depth -= 1;
 
-        while self.locals.len() > 0 && self.locals.last().unwrap().depth > self.scope_depth {
+        while !self.locals.is_empty() && self.locals.last().unwrap().depth > self.scope_depth {
             self.emit_byte(Opcode::Pop as u8);
             self.locals.pop();
         }
@@ -449,7 +449,7 @@ impl<'src> Compiler<'src> {
     fn named_variable(&mut self, token: &Token, can_assign: bool) {
         let get_op: Opcode;
         let set_op: Opcode;
-        let mut arg: isize = self.resolve_local(&token);
+        let mut arg: isize = self.resolve_local(token);
 
         if arg != -1 {
             set_op = Opcode::SetLocal;
@@ -478,10 +478,10 @@ impl<'src> Compiler<'src> {
         if self.parser.match_tt(TokenType::LeftBracket) {
             self.expression();
             self.parser.consume(TokenType::RightBracket, "Expect ']' after array index");
-            return true;
+            true
         } else {
             self.emit_constant(Value::Nil);
-            return false;
+            false
         }
     }
 
@@ -567,7 +567,7 @@ impl<'src> Compiler<'src> {
     fn resolve_local(&mut self, name: &Token) -> isize {
         dbgln!("Resolving local: {}", name.source);
         for (i, local) in self.locals.iter().enumerate().rev() {
-            if identifiers_equal(&local.name, &name) {
+            if identifiers_equal(&local.name, name) {
                 if local.depth == -1 {
                     self.parser.error_at_current("Can't read local variable in its own initializer")
                 }
@@ -576,7 +576,7 @@ impl<'src> Compiler<'src> {
             }
         }
 
-        return -1;
+        -1
     }
 
     fn add_local(&mut self, name: Token) {
@@ -674,7 +674,7 @@ impl<'src> Compiler<'src> {
     fn emit_jump(&mut self, instr: u8) -> usize {
         self.emit_byte(instr);
         self.emit_bytes(0xff, 0xff);
-        return self.compiling_chunk.code.len() - 2;
+        self.compiling_chunk.code.len() - 2
     }
 
     fn emit_bytes(&mut self, byte1: u8, byte2: u8) {

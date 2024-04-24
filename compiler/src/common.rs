@@ -36,5 +36,5 @@ pub fn variant_eq<T>(a: &T, b: &T) -> bool {
 }
 
 pub fn identifiers_equal(a: &Token, b: &Token) -> bool {
-    return a.source == b.source;
+    a.source == b.source
 }

@@ -88,8 +88,8 @@ impl<'src> Vm<'src> {
 
     fn read_u16(&mut self) -> u16 {
         self.ip += 2;
-        let num = (self.chunk.code[self.ip - 2] as u16) << 8 | self.chunk.code[self.ip - 1] as u16;
-        num
+        
+        (self.chunk.code[self.ip - 2] as u16) << 8 | self.chunk.code[self.ip - 1] as u16
     }
 
     #[cfg(not(feature = "tracing"))]
