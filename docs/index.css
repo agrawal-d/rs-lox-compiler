@@ -29,7 +29,8 @@ body {
 }
 
 button,
-textarea {
+textarea,
+.textarea {
     border-radius: 5px;
 }
 
@@ -128,6 +129,7 @@ button:active {
 }
 
 textarea:focus,
+.textarea:focus-within,
 button:focus {
     box-shadow: 0px 0px 0px 5px rgba(0, 123, 255, 1);
 }
