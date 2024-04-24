@@ -16,7 +16,6 @@ pub enum Value {
 }
 pub type ValueArray = Vec<Value>;
 
-#[cfg(feature = "tracing")]
 pub fn print_value(value: &Value, interner: &Interner) {
     match value {
         Value::Number(num) => xprint!("{num}"),
@@ -32,11 +31,6 @@ pub fn print_value(value: &Value, interner: &Interner) {
             xprint!("<Array[{}]>", arr.borrow().len());
         }
     }
-}
-
-#[cfg(not(feature = "tracing"))]
-pub fn print_value(value: Value) {
-    xprint!("Value {value}");
 }
 
 use Value::*;

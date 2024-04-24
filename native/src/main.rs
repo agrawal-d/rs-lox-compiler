@@ -40,9 +40,5 @@ fn main() {
     let path = &args[1];
     let input = std::fs::read_to_string(path).expect("Failed to read file");
 
-    println("== Source ==".to_string());
-    println(input.clone());
     run_code(&input);
-
-    println("== Done ==".to_string());
 }

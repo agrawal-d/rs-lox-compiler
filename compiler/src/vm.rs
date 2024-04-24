@@ -1,20 +1,22 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::xprint;
 use crate::{
     chunk::Chunk,
     common::Opcode,
+    dbgln,
     debug::disassemble_instruction,
     interner::{Interner, StrId},
     value::{
         print_value,
         Value::{self, *},
     },
-    xprintln,
 };
 use anyhow::*;
 use rustc_hash::FxHashMap;
+
+#[allow(unused_imports)]
+use crate::{xprint, xprintln};
 
 pub struct Vm<'src> {
     chunk: Chunk,
@@ -293,9 +295,9 @@ impl<'src> Vm<'src> {
     }
 
     pub fn interpret(chunk: Chunk, interner: &'src mut Interner) -> Result<()> {
-        xprintln!("== Interpreter VM ==");
+        dbgln!("== Interpreter VM ==");
         let mut vm: Vm = Vm::new(chunk, interner);
-        xprintln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
+        dbgln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
         vm.run()
     }
 

@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use crate::{
     common::*,
+    dbgln,
     debug::disassemble_instruction,
     interner::Interner,
     value::{Value, ValueArray},
-    xprintln,
 };
 
 #[derive(Default)]
@@ -39,8 +39,9 @@ impl Chunk {
 
 // Disassemble related methods
 impl Chunk {
+    #[allow(unused_variables)]
     pub fn disassemble(&self, name: &str, interner: &Interner) {
-        xprintln!("== {name} ==");
+        dbgln!("== {name} ==");
 
         let mut offset = 0;
         while offset < self.code.len() {

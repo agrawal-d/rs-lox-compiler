@@ -34,6 +34,36 @@ macro_rules! xprintln {
     }
 }
 
+#[macro_export]
+#[cfg(not(feature = "tracing"))]
+macro_rules! dbg {
+    // No-op version
+    ($($arg:tt)*) => {};
+}
+
+#[macro_export]
+#[cfg(not(feature = "tracing"))]
+macro_rules! dbgln {
+    // No-op version
+    ($($arg:tt)*) => {};
+}
+
+#[macro_export]
+#[cfg(feature = "tracing")]
+macro_rules! dbg {
+    ($($arg:tt)*) => {
+        $crate::xprint!($($arg)*)
+    }
+}
+
+#[macro_export]
+#[cfg(feature = "tracing")]
+macro_rules! dbgln {
+    ($($arg:tt)*) => {
+        $crate::xprintln!($($arg)*)
+    }
+}
+
 pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> ()) {
     let res = LOGGER.set(Logger { print_fn, println_fn });
 

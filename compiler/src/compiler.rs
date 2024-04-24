@@ -1,6 +1,7 @@
 use crate::{
     chunk::Chunk,
     common::{identifiers_equal, Opcode},
+    dbgln,
     interner::Interner,
     scanner::{Scanner, Token, TokenType},
     value::Value,
@@ -188,7 +189,7 @@ impl Parser {
 
         loop {
             self.current = self.scanner.scan_token();
-            xprintln!("Current token: {}", self.current.typ);
+            dbgln!("Current token: {}", self.current.typ);
             if self.current.typ != TokenType::Error {
                 break;
             }
@@ -251,7 +252,7 @@ impl<'src> Compiler<'src> {
             scope_depth: 0,
         };
 
-        xprintln!("== Parser (Scan on demand) ==");
+        dbgln!("== Parser (Scan on demand) ==");
 
         compiler.parser.advance();
         while !compiler.parser.match_tt(TokenType::EOF) {
@@ -270,9 +271,9 @@ impl<'src> Compiler<'src> {
     #[cfg(feature = "print_code")]
     fn end(&mut self) {
         self.emit_return();
-        // if !self.parser.had_error {
-        self.compiling_chunk.disassemble("code", self.interner);
-        // }
+        if !self.parser.had_error {
+            self.compiling_chunk.disassemble("code", self.interner);
+        }
     }
 
     fn begin_scope(&mut self) {
@@ -465,7 +466,6 @@ impl<'src> Compiler<'src> {
 
         if can_assign && self.parser.match_tt(TokenType::Equal) {
             self.expression();
-            xprintln!("Done with expr");
             self.emit_bytes(set_op as u8, arg as u8);
         } else {
             self.emit_bytes(get_op as u8, arg as u8);
@@ -565,7 +565,7 @@ impl<'src> Compiler<'src> {
     }
 
     fn resolve_local(&mut self, name: &Token) -> isize {
-        xprintln!("Resolving local: {}", name.source);
+        dbgln!("Resolving local: {}", name.source);
         for (i, local) in self.locals.iter().enumerate().rev() {
             if identifiers_equal(&local.name, &name) {
                 if local.depth == -1 {

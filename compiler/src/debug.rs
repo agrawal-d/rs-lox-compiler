@@ -1,13 +1,12 @@
-use crate::{chunk::Chunk, common::Opcode, interner::Interner, value::print_value, xprint, xprintln};
+use crate::{chunk::Chunk, common::Opcode, dbg, dbgln, interner::Interner};
 
-#[cfg(feature = "tracing")]
 pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner) -> usize {
-    xprint!("{offset:04} ");
-    xprint!("{:4} ", chunk.lines[&offset]);
+    dbg!("{offset:04} ");
+    dbg!("{:4} ", chunk.lines[&offset]);
 
     let instruction = Opcode::try_from(chunk.code[offset]);
     let Ok(instruction) = instruction else {
-        xprint!("Invalid opcode {:04}", chunk.code[offset],);
+        dbg!("Invalid opcode {:04}", chunk.code[offset],);
         return offset + 1;
     };
 
@@ -39,48 +38,72 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         Opcode::GetLocal | Opcode::SetLocal => byte_instruction(chunk, instruction, offset),
     };
 
-    xprintln!("");
+    dbgln!("");
 
     ret
 }
 
+///////////////////////////
+
+#[cfg(feature = "tracing")]
 fn jump_instruction(chunk: &Chunk, instruction: Opcode, sign: i32, offset: usize) -> usize {
     let jump = chunk.code[offset + 1] as u16 | (chunk.code[offset + 2] as u16) << 8;
     let mut target: isize = offset as isize + 3;
     target += (sign * jump as i32) as isize;
-    xprintln!("{instruction} {jump} -> {}", target);
-
+    dbgln!("{instruction} {jump} -> {}", target);
     offset + 3
 }
 
 #[cfg(not(feature = "tracing"))]
-pub fn disassemble_instruction(chunk: &Chunk, _offset: usize) -> usize {
-    chunk.code.len()
+fn jump_instruction(_chunk: &Chunk, _instruction: Opcode, _sign: i32, offset: usize) -> usize {
+    offset + 3
 }
 
-fn simple_instruction(_chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
-    xprint!("{instruction}");
+///////////////////////////
 
+#[allow(unused_variables)]
+fn simple_instruction(_chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
+    dbg!("{instruction}");
     offset + 1
 }
 
+///////////////////////////
+
+#[cfg(feature = "tracing")]
 fn constant_instruction(chunk: &Chunk, instruction: Opcode, offset: usize, interner: &Interner) -> usize {
+    use crate::value::print_value;
+
     let constant_idx: usize = chunk.code[offset + 1].into();
-    xprint!("{instruction} Idx {constant_idx} ");
+    dbg!("{instruction} Idx {constant_idx} ");
     print_value(&chunk.constants[constant_idx], interner);
 
     offset + 2
 }
 
-fn byte_instruction(chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
-    let slot = chunk.code[offset + 1];
-    xprint!("{instruction} {slot}");
+#[cfg(not(feature = "tracing"))]
+fn constant_instruction(_chunk: &Chunk, _instruction: Opcode, offset: usize, _interner: &Interner) -> usize {
     offset + 2
 }
 
+///////////////////////////
+
+#[cfg(feature = "tracing")]
+fn byte_instruction(chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
+    let slot = chunk.code[offset + 1];
+    dbg!("{instruction} {slot}");
+    offset + 2
+}
+
+#[cfg(not(feature = "tracing"))]
+fn byte_instruction(_chunk: &Chunk, _instruction: Opcode, offset: usize) -> usize {
+    offset + 2
+}
+
+///////////////////////////
+
 #[cfg(feature = "tracing")]
 pub fn line() {
-    xprintln!("");
+    dbgln!("");
 }
 
 #[cfg(not(feature = "tracing"))]
