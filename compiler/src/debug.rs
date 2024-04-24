@@ -32,12 +32,9 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         | Opcode::Pop
         | Opcode::Not => simple_instruction(chunk, instruction, offset),
 
-        Opcode::Jump | Opcode::JumpIfFalse => {
-            let jump: u16 = chunk.code[offset + 1] as u16 | (chunk.code[offset + 2] as u16) << 8;
-            xprintln!("{instruction} {jump}");
+        Opcode::Jump | Opcode::JumpIfFalse => jump_instruction(chunk, instruction, 1, offset),
 
-            offset + 3
-        }
+        Opcode::Loop => jump_instruction(chunk, instruction, -1, offset),
 
         Opcode::GetLocal | Opcode::SetLocal => byte_instruction(chunk, instruction, offset),
     };
@@ -45,6 +42,15 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
     xprintln!("");
 
     ret
+}
+
+fn jump_instruction(chunk: &Chunk, instruction: Opcode, sign: i32, offset: usize) -> usize {
+    let jump = chunk.code[offset + 1] as u16 | (chunk.code[offset + 2] as u16) << 8;
+    let mut target: isize = offset as isize + 3;
+    target += (sign * jump as i32) as isize;
+    xprintln!("{instruction} {jump} -> {}", target);
+
+    offset + 3
 }
 
 #[cfg(not(feature = "tracing"))]

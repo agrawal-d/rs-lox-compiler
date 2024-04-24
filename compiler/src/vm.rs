@@ -128,6 +128,10 @@ impl<'src> Vm<'src> {
                         self.ip += offset as usize;
                     }
                 }
+                Opcode::Loop => {
+                    let offset = self.read_u16();
+                    self.ip -= offset as usize;
+                }
                 Opcode::Jump => {
                     let offset: u16 = self.read_u16();
                     self.ip += offset as usize;

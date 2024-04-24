@@ -28,6 +28,7 @@ pub enum Opcode {
     SetLocal,
     JumpIfFalse,
     Jump,
+    Loop,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {
