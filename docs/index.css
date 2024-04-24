@@ -90,6 +90,7 @@ textarea,
 #editor {
     padding: 0px;
     border-radius: 5px !important;
+    background-color: white;
 }
 
 .overflow-guard,

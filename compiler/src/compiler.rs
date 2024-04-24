@@ -461,7 +461,7 @@ impl<'src> Compiler<'src> {
         }
 
         if self.array_access_index() {
-            xprintln!("{} is array access", token.source);
+            dbgln!("{} is array access", token.source);
         }
 
         if can_assign && self.parser.match_tt(TokenType::Equal) {
@@ -585,7 +585,7 @@ impl<'src> Compiler<'src> {
             depth: -1,
         };
 
-        xprintln!("Adding local: {}", name.source);
+        dbgln!("Adding local: {}", name.source);
 
         self.locals.push(local);
     }
