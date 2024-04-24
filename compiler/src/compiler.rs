@@ -362,6 +362,29 @@ impl<'src> Compiler<'src> {
         self.emit_byte(Opcode::Print as u8);
     }
 
+    fn if_statement(&mut self) {
+        self.parser.consume(TokenType::LeftParen, "Expect '(' after 'if'");
+        self.expression();
+        self.parser.consume(TokenType::RightParen, "Expect ')' after condition");
+
+        let then_jump = self.emit_jump(Opcode::JumpIfFalse as u8);
+
+        self.emit_byte(Opcode::Pop as u8);
+
+        self.statement();
+
+        self.patch_jump(then_jump);
+
+        self.emit_byte(Opcode::Pop as u8);
+
+        if self.parser.match_tt(TokenType::Else) {
+            self.statement();
+        }
+
+        let else_jump = self.emit_jump(Opcode::Jump as u8);
+        self.patch_jump(else_jump);
+    }
+
     fn declaration(&mut self) {
         if self.parser.match_tt(TokenType::Var) {
             self.var_declaration();
@@ -377,6 +400,8 @@ impl<'src> Compiler<'src> {
     fn statement(&mut self) {
         if self.parser.match_tt(TokenType::Print) {
             self.print_statement();
+        } else if self.parser.match_tt(TokenType::If) {
+            self.if_statement();
         } else if self.parser.match_tt(TokenType::LeftBrace) {
             self.begin_scope();
             self.block();
@@ -589,12 +614,30 @@ impl<'src> Compiler<'src> {
         self.emit_bytes(Opcode::Constant as u8, index as u8);
     }
 
+    fn patch_jump(&mut self, offset: usize) {
+        let jump = self.compiling_chunk.code.len() - offset - 2;
+
+        if jump > u16::MAX as usize {
+            self.parser.error_at_current("Too much code to jump over");
+        }
+
+        let jump = jump as u16;
+        self.compiling_chunk.code[offset] = ((jump >> 8) & 0xff) as u8;
+        self.compiling_chunk.code[offset + 1] = (jump & 0xff) as u8;
+    }
+
     fn emit_return(&mut self) {
         self.emit_byte(Opcode::Return as u8);
     }
 
     fn emit_byte(&mut self, byte: u8) {
         self.compiling_chunk.write_byte(byte, self.line);
+    }
+
+    fn emit_jump(&mut self, instr: u8) -> usize {
+        self.emit_byte(instr);
+        self.emit_bytes(0xff, 0xff);
+        return self.compiling_chunk.code.len() - 2;
     }
 
     fn emit_bytes(&mut self, byte1: u8, byte2: u8) {

@@ -26,6 +26,8 @@ pub enum Opcode {
     GetGlobal,
     GetLocal,
     SetLocal,
+    JumpIfFalse,
+    Jump,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {

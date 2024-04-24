@@ -32,6 +32,13 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         | Opcode::Pop
         | Opcode::Not => simple_instruction(chunk, instruction, offset),
 
+        Opcode::Jump | Opcode::JumpIfFalse => {
+            let jump: u16 = chunk.code[offset + 1] as u16 | (chunk.code[offset + 2] as u16) << 8;
+            xprintln!("{instruction} {jump}");
+
+            offset + 3
+        }
+
         Opcode::GetLocal | Opcode::SetLocal => byte_instruction(chunk, instruction, offset),
     };
 

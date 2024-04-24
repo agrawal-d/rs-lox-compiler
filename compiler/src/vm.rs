@@ -76,12 +76,18 @@ impl<'src> Vm<'src> {
         xprintln!("");
     }
 
-    fn is_falsey(&self, value: Value) -> bool {
+    fn is_falsey(&self, value: &Value) -> bool {
         match value {
             Nil => true,
             Bool(b) => !b,
             _ => false,
         }
+    }
+
+    fn read_u16(&mut self) -> u16 {
+        self.ip += 2;
+        let num = (self.chunk.code[self.ip - 2] as u16) << 8 | self.chunk.code[self.ip - 1] as u16;
+        num
     }
 
     #[cfg(not(feature = "tracing"))]
@@ -115,6 +121,16 @@ impl<'src> Vm<'src> {
                 Opcode::Print => {
                     print_value(&self.pop()?, self.interner);
                     xprintln!("");
+                }
+                Opcode::JumpIfFalse => {
+                    let offset: u16 = self.read_u16();
+                    if self.is_falsey(self.peek(0)) {
+                        self.ip += offset as usize;
+                    }
+                }
+                Opcode::Jump => {
+                    let offset: u16 = self.read_u16();
+                    self.ip += offset as usize;
                 }
                 Opcode::Return => {
                     return Ok(());
@@ -224,7 +240,7 @@ impl<'src> Vm<'src> {
                 Opcode::Divide => binop!(self, Number, /),
                 Opcode::Not => {
                     let val = self.pop()?;
-                    self.stack.push(Bool(self.is_falsey(val)))
+                    self.stack.push(Bool(self.is_falsey(&val)))
                 }
                 Opcode::Greater => binop!(self, Bool, >),
                 Opcode::Less => binop!(self, Bool, <),
