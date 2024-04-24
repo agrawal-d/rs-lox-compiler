@@ -85,7 +85,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, Identifier, Some(Compiler::variable), None, Precedence::None);
     add_rule!(map, String, Some(Compiler::string), None, Precedence::None);
     add_rule!(map, Number, Some(Compiler::number), None, Precedence::None);
-    add_rule!(map, And, None, None, Precedence::None);
+    add_rule!(map, And, None, Some(Compiler::and), Precedence::And);
     add_rule!(map, Class, None, None, Precedence::None);
     add_rule!(map, Else, None, None, Precedence::None);
     add_rule!(map, False, Some(Compiler::literal), None, Precedence::None);
@@ -93,7 +93,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, Fun, None, None, Precedence::None);
     add_rule!(map, If, None, None, Precedence::None);
     add_rule!(map, Nil, Some(Compiler::literal), None, Precedence::None);
-    add_rule!(map, Or, None, None, Precedence::None);
+    add_rule!(map, Or, None, Some(Compiler::or), Precedence::Or);
     add_rule!(map, Print, None, None, Precedence::None);
     add_rule!(map, Return, None, None, Precedence::None);
     add_rule!(map, Super, None, None, Precedence::None);
@@ -506,7 +506,7 @@ impl<'src> Compiler<'src> {
         (self.identifier_constant(previous), false)
     }
 
-    // Parse expressions with equal or higher precedence
+    /// Parse expressions with equal or higher precedence
     fn parse_precedence(&mut self, precedence: Precedence) {
         self.parser.advance();
         let prefix_rule = self.get_rule(self.parser.previous.typ).prefix;
@@ -603,6 +603,26 @@ impl<'src> Compiler<'src> {
         }
 
         self.emit_bytes(Opcode::DefineGlobal as u8, global as u8);
+    }
+
+    fn and(&mut self, _can_assign: bool) {
+        let end_jump = self.emit_jump(Opcode::JumpIfFalse as u8);
+
+        self.emit_byte(Opcode::Pop as u8);
+        self.parse_precedence(Precedence::And);
+
+        self.patch_jump(end_jump);
+    }
+
+    fn or(&mut self, _can_assign: bool) {
+        let else_jump = self.emit_jump(Opcode::JumpIfFalse as u8);
+        let end_jump = self.emit_jump(Opcode::Jump as u8);
+
+        self.patch_jump(else_jump);
+        self.emit_byte(Opcode::Pop as u8);
+
+        self.parse_precedence(Precedence::Or);
+        self.patch_jump(end_jump);
     }
 
     fn make_constant(&mut self, value: Value) -> usize {
