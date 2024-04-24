@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-compiler = {path = "../compiler", features = ["tracing", "print_code"]}
+compiler = {path = "../compiler", features = []}
 anyhow = { version = "1.0.81", features = ["backtrace"] }
 console_log = "1.0.0"
 log = "0.4.21"

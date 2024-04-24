@@ -1,8 +1,8 @@
 use compiler::{init, run_code};
-use std::io::Write;
 
 #[cfg(debug_assertions)]
 fn flush_if_debug() {
+    use std::io::Write;
     std::io::stdout().flush().unwrap();
 }
 
