@@ -18,6 +18,16 @@ body {
     padding: 0px 5px;
 }
 
+@media (max-width: 768px) {
+    .column {
+        flex: 100%;
+    }
+
+    .row {
+        flex-direction: column;
+    }
+}
+
 button,
 textarea {
     border-radius: 5px;
@@ -33,7 +43,16 @@ h6 {
     font-weight: 500;
 }
 
-h1 img {
+#stats {
+    text-align: center;
+    height: 32px;
+}
+
+.hidden {
+    display: none;
+}
+
+img {
     vertical-align: middle;
 }
 
@@ -54,7 +73,8 @@ a {
     text-decoration: none;
 }
 
-textarea {
+textarea,
+.textarea {
     width: 100%;
     height: 200px;
     margin: 20px 0px;
@@ -65,6 +85,16 @@ textarea {
     padding: 5px;
     font-family: Consolas, "Ubuntu Mono", "Courier New", Courier, monospace;
     resize: none;
+}
+
+#editor {
+    padding: 0px;
+    border-radius: 5px !important;
+}
+
+.overflow-guard,
+.monaco-editor {
+    border-radius: 5px !important;
 }
 
 button {
@@ -103,4 +133,60 @@ button:focus {
 
 .credits {
     color: #8e8e8e !important;
+}
+
+/* Loader */
+
+.loader,
+.loader:after {
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+}
+
+.loader,
+.loader:after {
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+}
+
+.loader {
+    margin: 60px auto;
+    font-size: 10px;
+    position: relative;
+    text-indent: -9999em;
+    border-top: 4px solid rgba(153, 193, 241, 0.2);
+    border-right: 4px solid rgba(153, 193, 241, 0.2);
+    border-bottom: 4px solid rgba(153, 193, 241, 0.2);
+    border-left: 4px solid #99c1f1;
+    -webkit-transform: translateZ(0);
+    -ms-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-animation: load8 0.5s infinite linear;
+    animation: load8 0.5s infinite linear;
+}
+
+@-webkit-keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes load8 {
+    0% {
+        -webkit-transform: rotate(0deg);
+        transform: rotate(0deg);
+    }
+
+    100% {
+        -webkit-transform: rotate(360deg);
+        transform: rotate(360deg);
+    }
 }

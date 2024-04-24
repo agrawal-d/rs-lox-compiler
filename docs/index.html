@@ -7,6 +7,8 @@
     <title>Crafting Interpreters</title>
     <link rel="stylesheet" href="index.css">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs/editor/editor.main.css"
+        rel="stylesheet" />
 </head>
 
 <body>
@@ -24,7 +26,7 @@
         <div class="row">
             <div class="column">
                 <h3>Code</h3>
-                <textarea id="inputTextarea" spellcheck="false"></textarea>
+                <div id="editor" class="textarea"></div>
             </div>
             <div class="column">
                 <h3>Output</h3>
@@ -34,12 +36,18 @@
         <div class="text-center">
             <button class="green" id="runButton">Run</button>
             <button id="resetButton">Reset</button>
+            <br />
+            <br />
+            <div id="stats">Ready</div>
         </div>
         <p class="credits text-center">
             Inspired by <a href="https://craftinginterpreters.com/">The Crafting Interpreters Book</a> |
             <a target="_blank" href="https://icons8.com/icon/vJRmcMqtI5o4/terraria">Terraria</a> icon by <a
                 target="_blank" href="https://icons8.com">Icons8</a>
         </p>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs/loader.min.js"
+            integrity="sha512-ZG31AN9z/CQD1YDDAK4RUAvogwbJHv6bHrumrnMLzdCrVu4HeAqrUX7Jsal/cbUwXGfaMUNmQU04tQ8XXl5Znw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="index.js" type="module"></script>
     </div>
 
