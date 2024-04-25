@@ -39,7 +39,7 @@ use Value::*;
 impl PartialEq<Value> for Value {
     fn eq(&self, other: &Value) -> bool {
         match (self, other) {
-            (Number(a), Number(b)) => a == b,
+            (Number(a), Number(b)) => (a - b) < f64::EPSILON,
             (Bool(a), Bool(b)) => a == b,
             (Str(a), Str(b)) => a == b,
             (Nil, Nil) => true,
