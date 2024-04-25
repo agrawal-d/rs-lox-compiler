@@ -55,6 +55,7 @@ impl Scanner {
             m.insert("super", TokenType::Super);
             m.insert("var", TokenType::Var);
             m.insert("while", TokenType::While);
+            m.insert("for", TokenType::For);
             m.insert("true", TokenType::True);
             m.insert("false", TokenType::False);
             m

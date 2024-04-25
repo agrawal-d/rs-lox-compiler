@@ -14,6 +14,7 @@ pub enum Value {
     Array(Rc<RefCell<ValueArray>>),
     Nil,
 }
+
 pub type ValueArray = Vec<Value>;
 
 pub fn print_value(value: &Value, interner: &Interner) {

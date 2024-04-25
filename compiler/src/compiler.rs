@@ -357,6 +357,52 @@ impl<'src> Compiler<'src> {
         self.emit_byte(Opcode::Pop as u8);
     }
 
+    fn for_statement(&mut self) {
+        self.begin_scope();
+        self.parser.consume(TokenType::LeftParen, "Expect '(' after for");
+
+        if self.parser.match_tt(TokenType::Semicolon) {
+            // No initializer
+        } else if self.parser.match_tt(TokenType::Var) {
+            self.var_declaration();
+        } else {
+            self.expression_statement();
+        }
+
+        let mut loop_start = self.compiling_chunk.code.len();
+
+        let mut exit_jump = usize::MAX;
+        if !self.parser.match_tt(TokenType::Semicolon) {
+            self.expression();
+            self.parser.consume(TokenType::Semicolon, "Expect ';' after loop condition");
+
+            exit_jump = self.emit_jump(Opcode::JumpIfFalse as u8);
+            self.emit_byte(Opcode::Pop as u8);
+        }
+
+        if !self.parser.match_tt(TokenType::RightParen) {
+            let body_jump = self.emit_jump(Opcode::Jump as u8);
+            let increment_start = self.compiling_chunk.code.len();
+            self.expression();
+            self.emit_byte(Opcode::Pop as u8);
+            self.parser.consume(TokenType::RightParen, "Expect ')' after for clauses");
+
+            self.emit_loop(loop_start);
+            loop_start = increment_start;
+            self.patch_jump(body_jump);
+        }
+
+        self.statement();
+        self.emit_loop(loop_start);
+
+        if exit_jump != usize::MAX {
+            self.patch_jump(exit_jump);
+            self.emit_byte(Opcode::Pop as u8);
+        }
+
+        self.end_scope();
+    }
+
     fn print_statement(&mut self) {
         self.expression();
         self.parser.consume(TokenType::Semicolon, "Expect ';' after expression");
@@ -420,6 +466,8 @@ impl<'src> Compiler<'src> {
             self.if_statement();
         } else if self.parser.match_tt(TokenType::While) {
             self.while_statement();
+        } else if self.parser.match_tt(TokenType::For) {
+            self.for_statement();
         } else if self.parser.match_tt(TokenType::LeftBrace) {
             self.begin_scope();
             self.block();
