@@ -1,14 +1,9 @@
-const outputTextarea = document.getElementById('outputTextarea');
+console.log("Snippets init inside worker");
 
 export function print(output) {
-    outputTextarea.value += output;
+    postMessage(output);
 }
 
 export function println(output) {
-    outputTextarea.value += output;
-    outputTextarea.value += '\n';
-}
-
-export function resetOutput() {
-    outputTextarea.value = "";
+    postMessage(output + "\n");
 }

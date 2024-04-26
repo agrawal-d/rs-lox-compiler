@@ -1,5 +1,4 @@
 import { print, println } from './snippets/wasm-4b0f351a8e6eeb46/src/snippet.js';
-import * as __wbg_star0 from './snippets/wasm-4b0f351a8e6eeb46/src/snippet.js';
 
 let wasm;
 
@@ -147,7 +146,6 @@ function __wbg_get_imports() {
             wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
         }
     };
-    imports['./snippets/wasm-4b0f351a8e6eeb46/src/snippet.js'] = __wbg_star0;
 
     return imports;
 }

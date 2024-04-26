@@ -1,6 +1,4 @@
-import init, { run } from './wasm.js';
-
-
+const myWorker = new Worker('worker.js', { type: 'module' });
 ///// Monaco
 
 console.log("Setting up Monaco Editor");
@@ -23,12 +21,17 @@ const runButton = document.getElementById('runButton');
 const resetButton = document.getElementById('resetButton');
 const statsP = document.getElementById('stats');
 
+myWorker.onmessage = function (e) {
+    outputTextarea.value += e.data;
+};
+
 runButton.addEventListener('click', async () => {
+    outputTextarea.value = '';
     runButton.innerText = 'Running...';
     runButton.disabled = true;
     const input = window.editor.getValue();
     const starts = performance.now();
-    run(input);
+    myWorker.postMessage(input);
     const endts = performance.now();
     const msTaken = endts - starts;
     outputTextarea.focus();
@@ -44,5 +47,3 @@ resetButton.addEventListener('click', () => {
     editor.focus();
     console.clear();
 });
-
-await init();
