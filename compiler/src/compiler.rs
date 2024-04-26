@@ -75,6 +75,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, Semicolon, None, None, Precedence::None);
     add_rule!(map, Slash, None, Some(Compiler::binary), Precedence::Factor);
     add_rule!(map, Star, None, Some(Compiler::binary), Precedence::Factor);
+    add_rule!(map, Modulo, None, Some(Compiler::binary), Precedence::Factor);
     add_rule!(map, Bang, Some(Compiler::unary), None, Precedence::None);
     add_rule!(map, BangEqual, None, Some(Compiler::binary), Precedence::Equality);
     add_rule!(map, Equal, None, None, Precedence::None);
@@ -302,6 +303,7 @@ impl<'src> Compiler<'src> {
             TokenType::Plus => self.emit_byte(Opcode::Add as u8),
             TokenType::Minus => self.emit_byte(Opcode::Subtract as u8),
             TokenType::Star => self.emit_byte(Opcode::Multiply as u8),
+            TokenType::Modulo => self.emit_byte(Opcode::Modulo as u8),
             TokenType::Slash => self.emit_byte(Opcode::Divide as u8),
             TokenType::BangEqual => self.emit_bytes(Opcode::Equal as u8, Opcode::Not as u8),
             TokenType::EqualEqual => self.emit_byte(Opcode::Equal as u8),
@@ -415,20 +417,17 @@ impl<'src> Compiler<'src> {
         self.parser.consume(TokenType::RightParen, "Expect ')' after condition");
 
         let then_jump = self.emit_jump(Opcode::JumpIfFalse as u8);
-
         self.emit_byte(Opcode::Pop as u8);
-
         self.statement();
 
+        let else_jump = self.emit_jump(Opcode::Jump as u8);
         self.patch_jump(then_jump);
-
         self.emit_byte(Opcode::Pop as u8);
 
         if self.parser.match_tt(TokenType::Else) {
             self.statement();
         }
 
-        let else_jump = self.emit_jump(Opcode::Jump as u8);
         self.patch_jump(else_jump);
     }
 

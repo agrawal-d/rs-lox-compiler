@@ -20,7 +20,6 @@ fn main() -> Result<(), JsValue> {
 extern "C" {
     pub fn print(output: String);
     pub fn println(output: String);
-    pub fn resetOutput();
 }
 
 #[wasm_bindgen]
@@ -30,6 +29,5 @@ pub fn run(code: &str) {
         init(print, println);
     }
 
-    resetOutput();
     run_code(code);
 }

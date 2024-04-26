@@ -19,6 +19,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         | Opcode::Negate
         | Opcode::Subtract
         | Opcode::Multiply
+        | Opcode::Modulo
         | Opcode::Divide
         | Opcode::False
         | Opcode::True

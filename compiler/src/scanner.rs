@@ -83,6 +83,7 @@ impl Scanner {
             '+' => self.make_token(TokenType::Plus),
             ';' => self.make_token(TokenType::Semicolon),
             '*' => self.make_token(TokenType::Star),
+            '%' => self.make_token(TokenType::Modulo),
             '!' => {
                 if self.match_char('=') {
                     self.make_token(TokenType::BangEqual)
@@ -268,6 +269,7 @@ pub enum TokenType {
     Semicolon,
     Slash,
     Star,
+    Modulo,
 
     // One or two chars
     Bang,

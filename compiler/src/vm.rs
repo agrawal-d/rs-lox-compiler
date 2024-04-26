@@ -36,7 +36,7 @@ macro_rules! binop {
                     let result = a $op b;
                     $vm.stack.push($typ(result));
                 },
-                _ => { $vm.runtime_error("Operands must be numbers"); }
+                (first, second)=> { $vm.runtime_error(&format!("Operands must be numbers, but got {first} and {second}")); }
             }
 
         }
@@ -82,6 +82,8 @@ impl<'src> Vm<'src> {
         match value {
             Nil => true,
             Bool(b) => !b,
+            Number(n) => (*n - 0.0).abs() < f64::EPSILON,
+            Array(arr) => arr.borrow().is_empty(),
             _ => false,
         }
     }
@@ -235,14 +237,15 @@ impl<'src> Vm<'src> {
                             let id = self.interner.intern(&new_string);
                             self.stack.push(Str(id));
                         }
-                        _ => {
-                            self.runtime_error("Operands must be numbers");
+                        (left, right) => {
+                            self.runtime_error(&format!("Operands must be numbers but got {left} {right}"));
                             self.stack.push(Nil);
                         }
                     }
                 }
                 Opcode::Subtract => binop!(self, Number, -),
                 Opcode::Multiply => binop!(self, Number, *),
+                Opcode::Modulo => binop!(self, Number, %),
                 Opcode::Divide => binop!(self, Number, /),
                 Opcode::Not => {
                     let val = self.pop()?;
