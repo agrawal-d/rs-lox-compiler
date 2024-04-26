@@ -124,6 +124,12 @@ button:hover {
     background-color: #d1d1d1;
 }
 
+button:disabled {
+    background-color: rgb(221, 221, 221) !important;
+    color: grey !important;
+    cursor: not-allowed !important;
+}
+
 button:active {
     background-color: #a5a5a5;
 }

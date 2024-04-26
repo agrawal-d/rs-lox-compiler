@@ -90,7 +90,7 @@ impl<'src> Vm<'src> {
 
     fn read_u16(&mut self) -> u16 {
         self.ip += 2;
-        
+
         (self.chunk.code[self.ip - 2] as u16) << 8 | self.chunk.code[self.ip - 1] as u16
     }
 
@@ -234,6 +234,12 @@ impl<'src> Vm<'src> {
                         (Str(b), Str(a)) => {
                             let mut new_string = String::from(self.interner.lookup(&a));
                             new_string.push_str(self.interner.lookup(&b));
+                            let id = self.interner.intern(&new_string);
+                            self.stack.push(Str(id));
+                        }
+                        (Number(b), Str(a)) => {
+                            let mut new_string = String::from(self.interner.lookup(&a));
+                            new_string.push_str(&b.to_string());
                             let id = self.interner.intern(&new_string);
                             self.stack.push(Str(id));
                         }
