@@ -41,6 +41,7 @@ runButton.addEventListener('click', async () => {
     runButton.disabled = true;
     resetButton.disabled = true;
     runButton.innerText = 'Running...';
+    statsP.innerHTML = "<div class='loader'></div>";
     outputTextarea.value = '';
     const input = window.editor.getValue();
     starts = performance.now();
