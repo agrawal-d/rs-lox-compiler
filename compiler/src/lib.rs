@@ -2,6 +2,7 @@ pub mod chunk;
 pub mod common;
 pub mod compiler;
 pub mod debug;
+pub mod fun;
 pub mod interner;
 pub mod scanner;
 pub mod value;
@@ -75,6 +76,7 @@ pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> ()) {
 pub fn run_code(code: &str) {
     let source: Rc<str> = Rc::from(code);
     let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
-    let chunk = compiler::Compiler::compile(source, &mut interner).unwrap();
-    Vm::interpret(chunk, &mut interner).unwrap();
+    let mut functions: Vec<fun::Fun> = Vec::new();
+    let fun = compiler::Compiler::compile(source, &mut interner, &mut functions, fun::FunType::Script).unwrap();
+    Vm::interpret(fun.chunk, &mut interner).unwrap();
 }

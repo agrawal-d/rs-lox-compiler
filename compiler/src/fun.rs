@@ -1,18 +1,24 @@
 use crate::{chunk::Chunk, interner::StrId};
 
 #[derive(Debug)]
-pub struct Function {
+pub struct Fun {
     pub arity: usize,
     pub chunk: Chunk,
     pub name: Option<StrId>,
 }
 
-impl Function {
-    pub fn new() -> Function {
-        Function {
+impl Fun {
+    pub fn new() -> Fun {
+        Fun {
             arity: 0,
             chunk: Chunk::default(),
             name: None,
         }
     }
+}
+
+#[derive(Eq, PartialEq, PartialOrd, Ord)]
+pub enum FunType {
+    Function,
+    Script,
 }

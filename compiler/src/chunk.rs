@@ -8,7 +8,7 @@ use crate::{
     value::{Value, ValueArray},
 };
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Chunk {
     pub code: Vec<u8>,
     pub lines: HashMap<usize, usize>,

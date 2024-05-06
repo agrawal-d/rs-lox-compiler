@@ -12,6 +12,7 @@ pub enum Value {
     Str(StrId),
     Identifier(StrId),
     Array(Rc<RefCell<ValueArray>>),
+    Function(usize),
     Nil,
 }
 
@@ -30,6 +31,9 @@ pub fn print_value(value: &Value, interner: &Interner) {
         }
         Value::Array(arr) => {
             xprint!("<Array[{}]>", arr.borrow().len());
+        }
+        Value::Function(idx) => {
+            xprint!("<Function {idx}>");
         }
     }
 }
