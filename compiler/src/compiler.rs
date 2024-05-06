@@ -246,10 +246,12 @@ impl<'src> Compiler<'src> {
         let rules = get_rules();
 
         let mut locals = Vec::new();
-        locals.push(Local {
-            name: Token::new(),
-            depth: 0,
-        });
+
+        // Dummy local for internal use
+        // locals.push(Local {
+        //     name: Token::new(),
+        //     depth: 0,
+        // });
 
         let mut compiler = Compiler {
             fun: Fun::new(),
@@ -354,6 +356,40 @@ impl<'src> Compiler<'src> {
         }
 
         self.parser.consume(TokenType::RightBrace, "Expect '}' after block");
+    }
+
+    fn function(&mut self, typ: FunType) {
+        let dummy_parser = Parser::new(Scanner::new(Rc::from("")));
+
+        let mut compiler = Compiler {
+            fun: Fun::new(),
+            fun_typ: typ,
+            parser: std::mem::replace(&mut self.parser, dummy_parser),
+            interner: &mut self.interner,
+            rules: get_rules(),
+            locals: Vec::new(),
+            scope_depth: 0,
+            functions: &mut self.functions,
+        };
+
+        compiler.begin_scope();
+        compiler.parser.consume(TokenType::LeftParen, "Expect '(' after function name");
+        compiler.parser.consume(TokenType::RightParen, "Expect ')' after parameters");
+        compiler.parser.consume(TokenType::LeftBrace, "Expect '{' before function body");
+        compiler.block();
+        let fun = compiler.end();
+
+        compiler.functions.push(fun);
+        _ = std::mem::replace(&mut self.parser, compiler.parser);
+        let constant_idx = self.make_constant(Value::Function(self.functions.len() - 1)) as u8;
+        self.emit_bytes(Opcode::Constant as u8, constant_idx);
+    }
+
+    fn fun_declaration(&mut self) {
+        let (global, is_array) = self.parse_variable("Expect function name");
+        self.mark_initialized();
+        self.function(FunType::Function);
+        self.define_variable(global, is_array);
     }
 
     fn var_declaration(&mut self) {
@@ -467,7 +503,9 @@ impl<'src> Compiler<'src> {
     }
 
     fn declaration(&mut self) {
-        if self.parser.match_tt(TokenType::Var) {
+        if self.parser.match_tt(TokenType::Fun) {
+            self.fun_declaration();
+        } else if self.parser.match_tt(TokenType::Var) {
             self.var_declaration();
         } else {
             self.statement();

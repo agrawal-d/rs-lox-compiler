@@ -58,6 +58,7 @@ impl Scanner {
             m.insert("for", TokenType::For);
             m.insert("true", TokenType::True);
             m.insert("false", TokenType::False);
+            m.insert("fun", TokenType::Fun);
             m
         })
     }
@@ -185,7 +186,6 @@ impl Scanner {
 
     fn skip_whitespace(&mut self) {
         while let ' ' | '\r' | '\t' | '\n' = self.peek() {
-
             if self.peek() == '\n' {
                 self.line += 1;
             }
