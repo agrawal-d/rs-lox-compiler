@@ -230,7 +230,6 @@ impl Parser {
 pub struct Compiler<'src> {
     compiling_chunk: Chunk,
     parser: Parser,
-    line: usize,
     interner: &'src mut Interner,
     rules: HashMap<TokenType, ParseRule<'src>>,
     locals: Vec<Local>,
@@ -239,13 +238,11 @@ pub struct Compiler<'src> {
 
 impl<'src> Compiler<'src> {
     pub fn compile(source: Rc<str>, interner: &mut Interner) -> Result<Chunk> {
-        let line: usize = 0;
         let scanner: Scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
         let rules = get_rules();
         let mut compiler = Compiler {
             compiling_chunk: Chunk::default(),
-            line,
             parser,
             interner,
             rules,
@@ -268,6 +265,10 @@ impl<'src> Compiler<'src> {
     fn end(&mut self) {
         self.emit_return();
     }
+
+    fn line(&self) -> usize {
+        self.parser.previous.line
+    } 
 
     #[cfg(feature = "print_code")]
     fn end(&mut self) {
@@ -715,7 +716,7 @@ impl<'src> Compiler<'src> {
     }
 
     fn emit_byte(&mut self, byte: u8) {
-        self.compiling_chunk.write_byte(byte, self.line);
+        self.compiling_chunk.write_byte(byte, self.line());
     }
 
     fn emit_jump(&mut self, instr: u8) -> usize {

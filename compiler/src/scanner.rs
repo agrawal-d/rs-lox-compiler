@@ -185,6 +185,11 @@ impl Scanner {
 
     fn skip_whitespace(&mut self) {
         while let ' ' | '\r' | '\t' | '\n' = self.peek() {
+
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+
             self.advance();
         }
     }
