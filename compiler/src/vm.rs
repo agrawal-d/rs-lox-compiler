@@ -6,6 +6,7 @@ use crate::{
     common::Opcode,
     dbgln,
     debug::disassemble_instruction,
+    fun::{self, Fun},
     interner::{Interner, StrId},
     value::{
         print_value,
@@ -18,9 +19,17 @@ use rustc_hash::FxHashMap;
 #[allow(unused_imports)]
 use crate::{xprint, xprintln};
 
+#[derive(Debug, Default, Clone, Copy)]
+struct CallFrame {
+    pub fun_idx: usize,
+    pub ip: usize,
+    pub slot_offset: usize, // Offset of this call-frame from the base of the stack
+}
+
 pub struct Vm<'src> {
-    chunk: Chunk,
-    ip: usize,
+    frames: Vec<CallFrame>,
+    // frame: &'src mut CallFrame,
+    functions: Vec<Fun>,
     stack: Vec<Value>,
     interner: &'src mut Interner,
     globals: FxHashMap<StrId, Value>,
@@ -43,26 +52,50 @@ macro_rules! binop {
     };
 }
 
+macro_rules! frame {
+    ($inst: expr) => {
+        $inst.frames.last().unwrap()
+    };
+}
+
+macro_rules! frame_mut {
+    ($inst: expr) => {
+        $inst.frames.last_mut().unwrap()
+    };
+}
+
 impl<'src> Vm<'src> {
-    pub fn new(chunk: Chunk, interner: &'src mut Interner) -> Vm {
+    pub fn new(interner: &'src mut Interner, functions: Vec<Fun>) -> Vm {
         Vm {
-            chunk,
-            ip: 0,
+            frames: vec![CallFrame {
+                fun_idx: functions.len() - 1,
+                ip: 0,
+                slot_offset: 0,
+            }],
+            functions,
             stack: Default::default(),
             interner,
             globals: Default::default(),
         }
     }
 
+    fn code(&self, offset: usize) -> u8 {
+        self.functions[frame!(self).fun_idx].chunk.code[offset]
+    }
+
+    fn constant(&self, index: usize) -> Option<&Value> {
+        self.functions[frame!(self).fun_idx].chunk.constants.get(index)
+    }
+
     fn read_byte(&mut self) -> u8 {
-        let value = self.chunk.code[self.ip];
-        self.ip += 1;
+        let value = self.code(self.frames.last().unwrap().ip);
+        frame_mut!(self).ip += 1;
         value
     }
 
     fn read_constant(&mut self) -> Option<Value> {
         let index: usize = self.read_byte() as usize;
-        return self.chunk.constants.get(index).cloned();
+        return self.constant(index).cloned();
     }
 
     #[cfg(feature = "tracing")]
@@ -89,9 +122,11 @@ impl<'src> Vm<'src> {
     }
 
     fn read_u16(&mut self) -> u16 {
-        self.ip += 2;
+        frame_mut!(self).ip += 2;
 
-        (self.chunk.code[self.ip - 2] as u16) << 8 | self.chunk.code[self.ip - 1] as u16
+        let high_byte = self.code(frame!(self).ip - 2) as u16;
+        let low_byte = self.code(frame!(self).ip - 1) as u16;
+        (high_byte << 8) | low_byte
     }
 
     #[cfg(not(feature = "tracing"))]
@@ -99,7 +134,7 @@ impl<'src> Vm<'src> {
 
     fn runtime_error(&mut self, msg: &str) {
         xprintln!("Runtime error: {msg}");
-        let line = self.chunk.lines[&self.ip];
+        let line = self.functions[frame!(self).fun_idx].chunk.lines[&frame!(self).ip];
         xprintln!("[line {line}] in script");
     }
 
@@ -119,7 +154,7 @@ impl<'src> Vm<'src> {
     fn run(&mut self) -> Result<()> {
         loop {
             self.stack_trace();
-            disassemble_instruction(&self.chunk, self.ip, self.interner);
+            disassemble_instruction(&self.functions[frame!(self).fun_idx].chunk, frame!(self).ip, self.interner);
             let instruction = Opcode::try_from(self.read_byte()).context("Byte to opcode failed")?;
             match instruction {
                 Opcode::Print => {
@@ -129,16 +164,16 @@ impl<'src> Vm<'src> {
                 Opcode::JumpIfFalse => {
                     let offset: u16 = self.read_u16();
                     if self.is_falsey(self.peek(0)) {
-                        self.ip += offset as usize;
+                        frame_mut!(self).ip += offset as usize;
                     }
                 }
                 Opcode::Loop => {
                     let offset = self.read_u16();
-                    self.ip -= offset as usize;
+                    frame_mut!(self).ip -= offset as usize;
                 }
                 Opcode::Jump => {
                     let offset: u16 = self.read_u16();
-                    self.ip += offset as usize;
+                    frame_mut!(self).ip += offset as usize;
                 }
                 Opcode::Return => {
                     return Ok(());
@@ -164,7 +199,8 @@ impl<'src> Vm<'src> {
                 Opcode::GetLocal => {
                     let array_index = self.pop()?;
                     let slot = self.read_byte() as usize;
-                    let value = self.get_value(self.stack[slot].clone(), &array_index);
+                    let value = self.stack[frame!(self).slot_offset + slot].clone();
+                    let value = self.get_value(value, &array_index);
                     self.stack.push(value)
                 }
                 Opcode::GetGlobal => {
@@ -183,9 +219,9 @@ impl<'src> Vm<'src> {
                     let new_value = self.pop()?;
                     let array_index = self.pop()?;
                     self.stack.push(new_value.clone());
-                    let mut value_to_be_modified = self.stack[slot].clone();
+                    let mut value_to_be_modified = self.stack[frame!(self).slot_offset + slot].clone();
                     self.set_value(&mut value_to_be_modified, &array_index, new_value);
-                    self.stack[slot] = value_to_be_modified;
+                    self.stack[frame!(self).slot_offset + slot] = value_to_be_modified;
                 }
                 Opcode::SetGlobal => {
                     let name = self.read_string_or_id();
@@ -303,10 +339,10 @@ impl<'src> Vm<'src> {
         }
     }
 
-    pub fn interpret(chunk: Chunk, interner: &'src mut Interner) -> Result<()> {
+    pub fn interpret(functions: Vec<Fun>, interner: &'src mut Interner) -> Result<()> {
         dbgln!("== Interpreter VM ==");
-        let mut vm: Vm = Vm::new(chunk, interner);
-        dbgln!("Interpreting chunk of {} bytes of code", vm.chunk.code.len());
+        let mut vm: Vm = Vm::new(interner, functions);
+        dbgln!("Interpreting  code");
         vm.run()
     }
 

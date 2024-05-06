@@ -78,5 +78,6 @@ pub fn run_code(code: &str) {
     let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
     let mut functions: Vec<fun::Fun> = Vec::new();
     let fun = compiler::Compiler::compile(source, &mut interner, &mut functions, fun::FunType::Script).unwrap();
-    Vm::interpret(fun.chunk, &mut interner).unwrap();
+    functions.push(fun);
+    Vm::interpret(functions, &mut interner).unwrap();
 }
