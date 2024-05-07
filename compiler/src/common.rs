@@ -4,7 +4,6 @@ use num_enum::{IntoPrimitive, TryFromPrimitive};
 #[repr(u8)]
 #[derive(Eq, TryFromPrimitive, PartialEq, PartialOrd, IntoPrimitive, strum_macros::Display)]
 pub enum Opcode {
-    Return,
     Constant,
     Not,
     Print,
@@ -30,6 +29,8 @@ pub enum Opcode {
     JumpIfFalse,
     Jump,
     Loop,
+    Call,
+    Return,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {

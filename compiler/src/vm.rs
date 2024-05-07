@@ -151,6 +151,25 @@ impl<'src> Vm<'src> {
         }
     }
 
+    fn call_value(&mut self, arg_count: u8) -> bool {
+        let callee = self.peek(arg_count as usize);
+        match callee {
+            Function(idx) => {
+                let frame: CallFrame = CallFrame {
+                    fun_idx: *idx,
+                    ip: 0,
+                    slot_offset: self.stack.len() - arg_count as usize - 1,
+                };
+                self.frames.push(frame);
+                true
+            }
+            other => {
+                self.runtime_error(&format!("Can only call functions, got {other}"));
+                return false;
+            }
+        }
+    }
+
     fn run(&mut self) -> Result<()> {
         loop {
             self.stack_trace();
@@ -174,6 +193,12 @@ impl<'src> Vm<'src> {
                 Opcode::Jump => {
                     let offset: u16 = self.read_u16();
                     frame_mut!(self).ip += offset as usize;
+                }
+                Opcode::Call => {
+                    let arg_count = self.read_byte();
+                    if !self.call_value(arg_count) {
+                        self.runtime_error("Could not call value");
+                    }
                 }
                 Opcode::Return => {
                     return Ok(());

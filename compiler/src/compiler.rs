@@ -63,7 +63,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
         };
     }
 
-    add_rule!(map, LeftParen, Some(Compiler::grouping), None, Precedence::None);
+    add_rule!(map, LeftParen, Some(Compiler::grouping), Some(Compiler::call), Precedence::Call);
     add_rule!(map, RightParen, None, None, Precedence::None);
     add_rule!(map, LeftBrace, None, None, Precedence::None);
     add_rule!(map, RightBrace, None, None, Precedence::None);
@@ -335,6 +335,34 @@ impl<'src> Compiler<'src> {
             TokenType::LessEqual => self.emit_bytes(Opcode::Greater as u8, Opcode::Not as u8),
             _ => (),
         }
+    }
+
+    fn call(&mut self, _can_assign: bool) {
+        let arg_count = self.argument_list();
+        self.emit_bytes(Opcode::Call as u8, arg_count);
+    }
+
+    fn argument_list(&mut self) -> u8 {
+        let mut arg_count = 0;
+
+        if !self.parser.check_tt(TokenType::RightParen) {
+            loop {
+                self.expression();
+
+                if arg_count == 255 {
+                    self.parser.error_at_previous("Can't have more than 255 arguments.");
+                }
+
+                arg_count += 1;
+
+                if !self.parser.match_tt(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+
+        self.parser.consume(TokenType::RightParen, "Expect ')' after arguments.");
+        return arg_count;
     }
 
     fn literal(&mut self, _can_assign: bool) {
