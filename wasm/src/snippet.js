@@ -9,5 +9,5 @@ export function println(output) {
 }
 
 export function read(text) {
-    return prompt(text) || "";
+    return "Input not implemented for web";
 }

@@ -7,3 +7,7 @@ export function print(output) {
 export function println(output) {
     postMessage(output + "\n");
 }
+
+export function read(text) {
+    return "Input not implemented for web";
+}

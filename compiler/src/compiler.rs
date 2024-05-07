@@ -1,5 +1,4 @@
 use crate::{
-    chunk::Chunk,
     common::{identifiers_equal, Opcode},
     dbgln,
     fun::{Fun, FunType},

@@ -33,7 +33,7 @@ macro_rules! callable_struct {
     };
 }
 
-callable_struct!(Clock, 0, |interner: &mut Interner, args: &[Value]| {
+callable_struct!(Clock, 0, |_interner: &mut Interner, _args: &[Value]| {
     let epoch = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
     return Value::Number(epoch.as_millis() as f64);
 });
