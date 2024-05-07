@@ -23,6 +23,7 @@ use crate::{xprint, xprintln};
 struct CallFrame {
     pub fun_idx: usize,
     pub ip: usize,
+    pub start_len: usize,   // Length of the stack before this frame
     pub slot_offset: usize, // Offset of this call-frame from the base of the stack
 }
 
@@ -70,6 +71,7 @@ impl<'src> Vm<'src> {
             frames: vec![CallFrame {
                 fun_idx: functions.len() - 1,
                 ip: 0,
+                start_len: 0,
                 slot_offset: 0,
             }],
             functions,
@@ -173,10 +175,13 @@ impl<'src> Vm<'src> {
                     return false;
                 }
 
+                let new_frame_offset = self.stack.len() - arg_count as usize;
+                let orig_len = self.stack.len() - 1 - fun.arity;
                 let frame: CallFrame = CallFrame {
                     fun_idx: *idx,
                     ip: 0,
-                    slot_offset: self.stack.len() - arg_count as usize, // -1 here in book ?
+                    start_len: orig_len,
+                    slot_offset: new_frame_offset, // -1 here in book ?
                 };
                 self.frames.push(frame);
                 true
@@ -219,7 +224,18 @@ impl<'src> Vm<'src> {
                     }
                 }
                 Opcode::Return => {
-                    return Ok(());
+                    let value = self.pop().expect("Nothing to return");
+                    let orig_len = frame!(self).start_len;
+                    self.frames.pop();
+
+                    if self.frames.is_empty() {
+                        return Ok(());
+                    }
+
+                    self.stack_trace();
+                    dbgln!("Truncating to length {}", orig_len,);
+                    self.stack.truncate(orig_len);
+                    self.stack.push(value);
                 }
                 Opcode::Constant => {
                     let constant = self.read_constant().context("Could not interpret constant opcode")?;

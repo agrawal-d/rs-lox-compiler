@@ -245,7 +245,7 @@ impl<'src> Compiler<'src> {
         let parser = Parser::new(scanner);
         let rules = get_rules();
 
-        let mut locals = Vec::new();
+        let locals = Vec::new();
 
         // Dummy local for internal use
         // locals.push(Local {
@@ -516,6 +516,20 @@ impl<'src> Compiler<'src> {
         self.emit_byte(Opcode::Print as u8);
     }
 
+    fn return_statement(&mut self) {
+        if self.fun_typ == FunType::Script {
+            self.parser.error_at_previous("Can't return from top-level code");
+        }
+
+        if self.parser.match_tt(TokenType::Semicolon) {
+            self.emit_return();
+        } else {
+            self.expression();
+            self.parser.consume(TokenType::Semicolon, "Expect ';' after return value");
+            self.emit_byte(Opcode::Return as u8);
+        }
+    }
+
     fn if_statement(&mut self) {
         self.parser.consume(TokenType::LeftParen, "Expect '(' after 'if'");
         self.expression();
@@ -568,6 +582,8 @@ impl<'src> Compiler<'src> {
     fn statement(&mut self) {
         if self.parser.match_tt(TokenType::Print) {
             self.print_statement();
+        } else if self.parser.match_tt(TokenType::Return) {
+            self.return_statement();
         } else if self.parser.match_tt(TokenType::If) {
             self.if_statement();
         } else if self.parser.match_tt(TokenType::While) {
@@ -823,6 +839,7 @@ impl<'src> Compiler<'src> {
     }
 
     fn emit_return(&mut self) {
+        self.emit_byte(Opcode::Nil as u8);
         self.emit_byte(Opcode::Return as u8);
     }
 
