@@ -134,8 +134,19 @@ impl<'src> Vm<'src> {
 
     fn runtime_error(&mut self, msg: &str) {
         xprintln!("Runtime error: {msg}");
-        let line = self.functions[frame!(self).fun_idx].chunk.lines[&frame!(self).ip];
-        xprintln!("[line {line}] in script");
+
+        let mut idx = self.frames.len() - 1;
+
+        while idx > 0 {
+            let frame = &self.frames[idx];
+            let fun: &Fun = &self.functions[frame.fun_idx];
+            let fun_name = match fun.name {
+                Some(name) => self.interner.lookup(&name),
+                None => "<script>",
+            };
+            xprintln!("[line {}] in {}", fun.chunk.lines[&frame.ip], fun_name);
+            idx -= 1;
+        }
     }
 
     fn pop(&mut self) -> Result<Value> {
@@ -155,10 +166,17 @@ impl<'src> Vm<'src> {
         let callee = self.peek(arg_count as usize);
         match callee {
             Function(idx) => {
+                let fun = &self.functions[*idx];
+
+                if arg_count as usize != fun.arity {
+                    self.runtime_error(&format!("Expected {} arguments but got {} instead", fun.arity, arg_count));
+                    return false;
+                }
+
                 let frame: CallFrame = CallFrame {
                     fun_idx: *idx,
                     ip: 0,
-                    slot_offset: self.stack.len() - arg_count as usize - 1,
+                    slot_offset: self.stack.len() - arg_count as usize, // -1 here in book ?
                 };
                 self.frames.push(frame);
                 true

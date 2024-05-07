@@ -387,9 +387,10 @@ impl<'src> Compiler<'src> {
     }
 
     fn function(&mut self, typ: FunType) {
+        let name = Some(self.interner.intern(&self.parser.previous.source.as_ref()));
         let dummy_parser = Parser::new(Scanner::new(Rc::from("")));
 
-        let mut compiler = Compiler {
+        let mut fn_compiler = Compiler {
             fun: Fun::new(),
             fun_typ: typ,
             parser: std::mem::replace(&mut self.parser, dummy_parser),
@@ -400,15 +401,36 @@ impl<'src> Compiler<'src> {
             functions: &mut self.functions,
         };
 
-        compiler.begin_scope();
-        compiler.parser.consume(TokenType::LeftParen, "Expect '(' after function name");
-        compiler.parser.consume(TokenType::RightParen, "Expect ')' after parameters");
-        compiler.parser.consume(TokenType::LeftBrace, "Expect '{' before function body");
-        compiler.block();
-        let fun = compiler.end();
+        fn_compiler.fun.name = name;
+        fn_compiler.begin_scope();
+        fn_compiler.parser.consume(TokenType::LeftParen, "Expect '(' after function name");
+        if !fn_compiler.parser.check_tt(TokenType::RightParen) {
+            loop {
+                fn_compiler.fun.arity += 1;
+                if fn_compiler.fun.arity > 255 {
+                    fn_compiler.parser.error_at_current("Can't have more than 255 parameters");
+                }
 
-        compiler.functions.push(fun);
-        _ = std::mem::replace(&mut self.parser, compiler.parser);
+                let (constant, is_array) = fn_compiler.parse_variable("Expect parameter name");
+
+                if is_array {
+                    fn_compiler.parser.error_at_current("Array parameters are not supported");
+                }
+
+                fn_compiler.define_variable(constant, is_array);
+
+                if !fn_compiler.parser.match_tt(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+        fn_compiler.parser.consume(TokenType::RightParen, "Expect ')' after parameters");
+        fn_compiler.parser.consume(TokenType::LeftBrace, "Expect '{' before function body");
+        fn_compiler.block();
+        let fun = fn_compiler.end();
+
+        fn_compiler.functions.push(fun);
+        _ = std::mem::replace(&mut self.parser, fn_compiler.parser);
         let constant_idx = self.make_constant(Value::Function(self.functions.len() - 1)) as u8;
         self.emit_bytes(Opcode::Constant as u8, constant_idx);
     }
@@ -694,6 +716,9 @@ impl<'src> Compiler<'src> {
     }
 
     fn mark_initialized(&mut self) {
+        if self.scope_depth == 0 {
+            return;
+        }
         self.locals.last_mut().unwrap().depth = self.scope_depth;
     }
 
