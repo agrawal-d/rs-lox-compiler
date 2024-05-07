@@ -1,11 +1,34 @@
 const myWorker = new Worker('worker.js', { type: 'module' });
 ///// Monaco
+// fun fib(n) {
 
+//     // Base Case
+//     if (n < 2) {
+//         return n;
+//     }
+
+//     var a = 0;
+//     var b = 1;
+//     var temp;
+
+//     for(var i = 2; i < n; i = i + 1) {
+//         temp = a + b;
+//         a = b;
+//         b = temp;
+//     }
+
+//     return b;
+// }
+
+// var start = Clock();
+// print("Fib(10) is  " + fib(10));
+// var end = Clock();
+// print("Time taken: " + (end - start) + "ms");
 console.log("Setting up Monaco Editor");
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs' } });
 require(["vs/editor/editor.main"], function () {
     window.editor = monaco.editor.create(document.getElementById('editor'), {
-        value: 'for(var i = 0; i < 10000000; i = i + 1)\n{\n    if(i % 1000000 == 0)\n    {\n        print("Crunched numbers: " + i);\n    }\n}\n\nprint("Crunching numbers complete!");',
+        value: 'fun fib(n) {\n\n    // Base Case\n    if (n < 2) {\n        return n;\n    }\n\n    var a = 0;\n    var b = 1;\n    var temp;\n\n    for(var i = 2; i < n; i = i + 1) {\n        temp = a + b;\n        a = b;\n        b = temp;\n    }\n\n    return b;\n}\n\nvar start = Clock();\nprint("Fib(10) is  " + fib(10));\nvar end = Clock();\nprint("Time taken: " + (end - start) + "ms");',
         language: 'csharp',
         scrollBeyondLastLine: false,
         minimap: { enabled: false },
