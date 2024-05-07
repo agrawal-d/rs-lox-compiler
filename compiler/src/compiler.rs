@@ -278,7 +278,6 @@ impl<'src> Compiler<'src> {
         self.parser.previous.line
     }
 
-    #[cfg(feature = "print_code")]
     fn end(&mut self) -> Fun {
         self.emit_return();
 
