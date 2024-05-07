@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::interner::Interner;
+use crate::native::Callable;
 use crate::{interner::StrId, xprint};
 use strum_macros::Display;
 
@@ -13,6 +14,7 @@ pub enum Value {
     Identifier(StrId),
     Array(Rc<RefCell<ValueArray>>),
     Function(usize),
+    NativeFunction(Rc<dyn Callable>),
     Nil,
 }
 
@@ -34,6 +36,9 @@ pub fn print_value(value: &Value, interner: &Interner) {
         }
         Value::Function(idx) => {
             xprint!("<Function {idx}>");
+        }
+        Value::NativeFunction(fun) => {
+            xprint!("<Native Function {}>", fun.as_ref().name());
         }
     }
 }

@@ -23,8 +23,17 @@ fn help(args: &Vec<String>) {
     println(format!("Usage: {} <FILE> \nInterpret the program in FILE", args[0]));
 }
 
+fn read(prompt: String) -> String {
+    println(prompt);
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+    let len = input.len();
+    input.truncate(len - 1);
+    input
+}
+
 fn main() {
-    init(print, println);
+    init(print, println, read);
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 2 {

@@ -4,6 +4,7 @@ pub mod compiler;
 pub mod debug;
 pub mod fun;
 pub mod interner;
+pub mod native;
 pub mod scanner;
 pub mod value;
 pub mod vm;
@@ -14,24 +15,25 @@ use std::rc::Rc;
 
 const INTERNER_DEFAULT_CAP: usize = 1024;
 
-struct Logger {
+struct Imports {
     print_fn: fn(String) -> (),
     println_fn: fn(String) -> (),
+    read_fn: fn(String) -> String,
 }
 
-static LOGGER: OnceLock<Logger> = OnceLock::new();
+static IMPORTS: OnceLock<Imports> = OnceLock::new();
 
 #[macro_export]
 macro_rules! xprint {
     ($($arg:tt)*) => {
-        ($crate::LOGGER.get().expect("Compiler not initialized").print_fn)(format!($($arg)*))
+        ($crate::IMPORTS.get().expect("Compiler not initialized").print_fn)(format!($($arg)*))
     }
 }
 
 #[macro_export]
 macro_rules! xprintln {
     ($($arg:tt)*) => {
-        ($crate::LOGGER.get().expect("Compiler not initialized").println_fn)(format!($($arg)*))
+        ($crate::IMPORTS.get().expect("Compiler not initialized").println_fn)(format!($($arg)*))
     }
 }
 
@@ -65,8 +67,12 @@ macro_rules! dbgln {
     }
 }
 
-pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> ()) {
-    let res = LOGGER.set(Logger { print_fn, println_fn });
+pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> (), read_fn: fn(String) -> String) {
+    let res = IMPORTS.set(Imports {
+        print_fn,
+        println_fn,
+        read_fn,
+    });
 
     if res.is_err() {
         panic!("Compiler already initialized");

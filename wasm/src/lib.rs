@@ -20,13 +20,14 @@ fn main() -> Result<(), JsValue> {
 extern "C" {
     pub fn print(output: String);
     pub fn println(output: String);
+    pub fn read(text: String) -> String;
 }
 
 #[wasm_bindgen]
 pub fn run(code: &str) {
     if !COMPILER_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed) {
         COMPILER_INITIALIZED.store(true, std::sync::atomic::Ordering::Relaxed);
-        init(print, println);
+        init(print, println, read);
     }
 
     run_code(code);

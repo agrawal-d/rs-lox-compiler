@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::{
-    chunk::Chunk,
     common::Opcode,
     dbgln,
     debug::disassemble_instruction,
-    fun::{self, Fun},
+    fun::Fun,
     interner::{Interner, StrId},
+    native::*,
     value::{
         print_value,
         Value::{self, *},
@@ -62,6 +62,14 @@ macro_rules! frame {
 macro_rules! frame_mut {
     ($inst: expr) => {
         $inst.frames.last_mut().unwrap()
+    };
+}
+
+macro_rules! register_native {
+    ($vm: ident, $name: ident) => {
+        let name = $vm.interner.intern(stringify!($name));
+        dbgln!("Registering native function {}", stringify!($name));
+        $vm.globals.insert(name, Value::NativeFunction(Rc::new($name)));
     };
 }
 
@@ -149,6 +157,8 @@ impl<'src> Vm<'src> {
             xprintln!("[line {}] in {}", fun.chunk.lines[&frame.ip], fun_name);
             idx -= 1;
         }
+
+        std::process::exit(1);
     }
 
     fn pop(&mut self) -> Result<Value> {
@@ -184,6 +194,19 @@ impl<'src> Vm<'src> {
                     slot_offset: new_frame_offset, // -1 here in book ?
                 };
                 self.frames.push(frame);
+                true
+            }
+            NativeFunction(fun) => {
+                if arg_count as usize != fun.arity() {
+                    self.runtime_error(&format!("Expected {} arguments but got {} instead", fun.arity(), arg_count));
+                    return false;
+                }
+
+                let args = &self.stack[self.stack.len() - arg_count as usize..];
+                let function = fun.clone();
+                let result = function.call(self.interner, args);
+                self.stack.push(result);
+
                 true
             }
             other => {
@@ -401,6 +424,16 @@ impl<'src> Vm<'src> {
     pub fn interpret(functions: Vec<Fun>, interner: &'src mut Interner) -> Result<()> {
         dbgln!("== Interpreter VM ==");
         let mut vm: Vm = Vm::new(interner, functions);
+        register_native!(vm, Clock);
+        register_native!(vm, Sleep);
+        register_native!(vm, GetType);
+        register_native!(vm, Print);
+        register_native!(vm, ReadNumber);
+        register_native!(vm, ReadString);
+        register_native!(vm, ReadBool);
+        register_native!(vm, ToString);
+        register_native!(vm, ToNumber);
+        register_native!(vm, StringAt);
         dbgln!("Interpreting  code");
         vm.run()
     }
