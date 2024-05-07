@@ -84,7 +84,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, Greater, None, Some(Compiler::binary), Precedence::Comparison);
     add_rule!(map, GreaterEqual, None, Some(Compiler::binary), Precedence::Comparison);
     add_rule!(map, Less, None, Some(Compiler::binary), Precedence::Comparison);
-    add_rule!(map, LessEqual, None, None, Precedence::Comparison);
+    add_rule!(map, LessEqual, None, Some(Compiler::binary), Precedence::Comparison);
     add_rule!(map, Identifier, Some(Compiler::variable), None, Precedence::None);
     add_rule!(map, String, Some(Compiler::string), None, Precedence::None);
     add_rule!(map, Number, Some(Compiler::number), None, Precedence::None);
