@@ -205,6 +205,8 @@ impl<'src> Vm<'src> {
                 let args = &self.stack[self.stack.len() - arg_count as usize..];
                 let function = fun.clone();
                 let result = function.call(self.interner, args);
+                dbgln!("Truncating to length {}", self.stack.len() - 1 - arg_count as usize);
+                self.stack.truncate(self.stack.len() - 1 - arg_count as usize);
                 self.stack.push(result);
 
                 true
