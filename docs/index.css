@@ -48,6 +48,19 @@ h4 {
     font-weight: 800 !important;
 }
 
+.ref {
+    position: absolute;
+    right: 10px;
+    background-color: rgb(148, 209, 224);
+    padding: 2px;
+    border-radius: 5px;
+    z-index: 1000;
+}
+
+summary {
+    cursor: pointer;
+}
+
 #stats {
     text-align: center;
     height: 32px;
