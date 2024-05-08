@@ -436,6 +436,7 @@ impl<'src> Vm<'src> {
         register_native!(vm, ToString);
         register_native!(vm, ToNumber);
         register_native!(vm, StringAt);
+        register_native!(vm, StrLen);
         dbgln!("Interpreting  code");
         vm.run()
     }

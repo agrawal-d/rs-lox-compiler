@@ -161,3 +161,18 @@ callable_struct!(StringAt, 2, |interner: &mut Interner, args: &[Value]| {
         }
     }
 });
+
+callable_struct!(StrLen, 1, |interner: &mut Interner, args: &[Value]| {
+    match &args[0] {
+        Value::Str(s) => {
+            let str = interner.lookup(&s);
+            Value::Number(str.len() as f64)
+        }
+        _ => {
+            let error = "Expected string as argument to strlen";
+            let strid = interner.intern(error);
+            xprintln!("{}", error);
+            Value::Str(strid)
+        }
+    }
+});

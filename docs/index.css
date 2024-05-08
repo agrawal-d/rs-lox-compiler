@@ -44,6 +44,10 @@ h6 {
     font-weight: 500;
 }
 
+h4 {
+    font-weight: 800 !important;
+}
+
 #stats {
     text-align: center;
     height: 32px;

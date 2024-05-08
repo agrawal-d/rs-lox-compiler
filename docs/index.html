@@ -20,6 +20,63 @@
                     Crafting Interpreters
                 </h1>
                 <span class="float-right">A simple interpreter that runs in your browser. Powered by Rust</span>
+                <br>
+                <details class="float-right">
+                    <summary>Reference</summary>
+                    <br />
+                    <h4>Builtin Types</h4>
+                    <ul>
+                        <li>Number</li>
+                        <li>Str</li>
+                        <li>Bool</li>
+                        <li>Array</li>
+                        <li>Function</li>
+                    </ul>
+                    <h4>Native Functions</h4>
+                    <ol>
+                        <li>
+                            <h4>Clock() -> Number</h4>
+                            Returns the current epoch in milliseconds.
+                        </li>
+                        <li>
+                            <h4>Print(Str)</h4>
+                            Prints the given string to the output.
+                        </li>
+                        <li>
+                            <h4>ReadNumber() -> Number</h4>
+                            Reads a number from the input.
+                        </li>
+                        <li>
+                            <h4>ReadString() -> Str</h4>
+                            Reads a string from the input.
+                        </li>
+                        <li>
+                            <h4>ReadBool() -> Bool</h4>
+                            Reads a boolean from the input.
+                        </li>
+                        <li>
+                            <h4>GetType(Any) -> String</h4>
+                            Returns the type of the given value.
+                        </li>
+                        <li>
+                            <h4>ToString(Any) -> String</h4>
+                            Converts the given value to a string.
+                        </li>
+                        <li>
+                            <h4>ToNumber(String) -> Number</h4>
+                            Converts the given string to a number.
+                        </li>
+                        <li>
+                            <h4>StringAt(String, Number) -> String</h4>
+                            Returns the character at the given index in the string.
+                        </li>
+                        <li>
+                            <h4>StrLen(String) -> Number</h4>
+                            Returns the length of the given string.
+                        </li>
+
+                    </ol>
+                </details>
             </div>
         </div>
         <br />
