@@ -80,8 +80,24 @@ impl Scanner {
             ']' => self.make_token(TokenType::RightBracket),
             ',' => self.make_token(TokenType::Comma),
             '.' => self.make_token(TokenType::Dot),
-            '-' => self.make_token(TokenType::Minus),
-            '+' => self.make_token(TokenType::Plus),
+            '-' => {
+                if self.match_char('=') {
+                    self.error_token("-= is not supported".to_string())
+                } else if self.match_char('-') {
+                    self.error_token("-- is not supported".to_string())
+                } else {
+                    self.make_token(TokenType::Minus)
+                }
+            }
+            '+' => {
+                if self.match_char('=') {
+                    self.error_token("+= is not supported".to_string())
+                } else if self.match_char('+') {
+                    self.error_token("++ is not supported".to_string())
+                } else {
+                    self.make_token(TokenType::Plus)
+                }
+            }
             ';' => self.make_token(TokenType::Semicolon),
             '*' => self.make_token(TokenType::Star),
             '%' => self.make_token(TokenType::Modulo),
@@ -203,11 +219,7 @@ impl Scanner {
     }
 
     fn error_token(&self, msg: String) -> Token {
-        Token {
-            typ: TokenType::Error,
-            source: Rc::from(msg),
-            line: self.line,
-        }
+        panic!("[Line {}] {}", self.line, msg);
     }
 
     fn string(&mut self) -> Token {
@@ -245,7 +257,7 @@ impl Scanner {
     }
 
     fn identifier(&mut self) -> Token {
-        while self.peek().is_alphanumeric() {
+        while self.peek().is_alphanumeric() || self.peek() == '_' {
             self.advance();
         }
 
@@ -270,7 +282,9 @@ pub enum TokenType {
     Comma,
     Dot,
     Minus,
+    MinusEqual,
     Plus,
+    PlusEqual,
     Semicolon,
     Slash,
     Star,

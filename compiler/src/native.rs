@@ -72,15 +72,23 @@ callable_struct!(ReadString, 1, |interner: &mut Interner, args: &[Value]| {
     }
 });
 
-callable_struct!(ReadNumber, 0, |interner: &mut Interner, _args: &[Value]| {
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let len = input.len();
-    input.truncate(len - 1);
-    match input.parse::<f64>() {
-        Ok(n) => Value::Number(n),
-        Err(_) => {
-            let error = "Failed to parse number";
+callable_struct!(ReadNumber, 1, |interner: &mut Interner, args: &[Value]| {
+    match &args[0] {
+        Value::Str(s) => {
+            let prompt_text = interner.lookup(&s);
+            let input = (IMPORTS.get().expect("Compiler not initialized").read_fn)(prompt_text.to_string());
+            match input.parse::<f64>() {
+                Ok(n) => Value::Number(n),
+                Err(_) => {
+                    let error = "Failed to parse number";
+                    let strid = interner.intern(error);
+                    xprintln!("{}", error);
+                    Value::Str(strid)
+                }
+            }
+        }
+        _ => {
+            let error = "Expected string as argument to read_number";
             let strid = interner.intern(error);
             xprintln!("{}", error);
             Value::Str(strid)
