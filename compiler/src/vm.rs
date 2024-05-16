@@ -147,7 +147,7 @@ impl<'src> Vm<'src> {
     #[cfg(not(feature = "tracing"))]
     fn stack_trace(&self) {}
 
-    fn runtime_error(&mut self, msg: &str) {
+    fn runtime_error(&self, msg: &str) -> ! {
         xprintln!("Runtime error: {msg}");
         xprintln!("Traceback (most recent call first):");
         let mut idx = (self.frames.len() - 1) as isize;
@@ -309,13 +309,19 @@ impl<'src> Vm<'src> {
                     }
                 }
                 Opcode::SetLocal => {
-                    let slot = self.read_byte() as usize;
+                    let slot: usize = self.read_byte() as usize;
                     let new_value = self.pop()?;
                     let array_index = self.pop()?;
                     self.stack.push(new_value.clone());
-                    let mut value_to_be_modified = self.stack[frame!(self).slot_offset + slot].clone();
-                    self.set_value(&mut value_to_be_modified, &array_index, new_value);
-                    self.stack[frame!(self).slot_offset + slot] = value_to_be_modified;
+                    let value_to_be_modified = &mut self.stack[frame!(self).slot_offset + slot];
+
+                    if array_index == Value::Nil {
+                        *value_to_be_modified = new_value;
+                    } else {
+                        Vm::set_array(value_to_be_modified, &array_index, new_value).unwrap_or_else(|err| {
+                            self.runtime_error(&format!("Error setting array: {err}"));
+                        });
+                    }
                 }
                 Opcode::SetGlobal => {
                     let name = self.read_string_or_id();
@@ -326,9 +332,15 @@ impl<'src> Vm<'src> {
                         let new_value = self.pop()?;
                         let array_index = self.pop()?;
                         self.stack.push(new_value.clone());
-                        let mut value_to_be_modified = self.globals.get(&name).unwrap().clone();
-                        self.set_value(&mut value_to_be_modified, &array_index, new_value);
-                        self.globals.insert(name, value_to_be_modified);
+                        let value_to_be_modified = self.globals.get_mut(&name).unwrap();
+
+                        if array_index == Value::Nil {
+                            *value_to_be_modified = new_value;
+                        } else {
+                            Vm::set_array(value_to_be_modified, &array_index, new_value).unwrap_or_else(|err| {
+                                self.runtime_error(&format!("Error setting array: {err}"));
+                            });
+                        }
                     }
                 }
                 Opcode::DefineGlobal => {
@@ -374,7 +386,6 @@ impl<'src> Vm<'src> {
                         }
                         (left, right) => {
                             self.runtime_error(&format!("Operands must be numbers but got {left} {right}"));
-                            self.stack.push(Nil);
                         }
                     }
                 }
@@ -402,32 +413,28 @@ impl<'src> Vm<'src> {
                     array.borrow()[index].clone()
                 } else {
                     self.runtime_error(&format!("Index out of bounds: {index}"));
-                    Nil
                 }
             }
             (value, Value::Nil) => value,
             (value, index) => {
                 self.runtime_error(&format!("Tried to index value of type {value} with index {index}"));
-                value
             }
         }
     }
 
-    // If array index is valid, change the value at that index
-    // Otherwise, change the value itself
-    fn set_value(&mut self, value: &mut Value, array_index: &Value, new_value: Value) {
-        match (value, array_index) {
+    fn set_array(arr: &mut Value, index: &Value, new_value: Value) -> anyhow::Result<(), Error> {
+        match (arr, index) {
             (Value::Array(array), Value::Number(index)) => {
                 let index = *index as usize;
                 if index < array.borrow().len() {
                     array.borrow_mut()[index] = new_value;
+                    Ok(())
                 } else {
-                    self.runtime_error(&format!("Index out of bounds: {index}"));
+                    bail!("Index out of bounds: {index}")
                 }
             }
-            (value, Value::Nil) => *value = new_value,
-            (value, index) => {
-                self.runtime_error(&format!("Tried to index value of type {value} with index {index}"));
+            (arr, index) => {
+                bail!(format!("Tried to index value of type {arr} with index {index}"));
             }
         }
     }

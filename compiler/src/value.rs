@@ -29,9 +29,7 @@ pub fn value_as_string(value: &Value, interner: &Interner) -> String {
         Value::Number(num) => format!("{num}"),
         Value::Bool(b) => format!("{b}"),
         Value::Nil => "Nil".to_string(),
-        Value::Str(s) => {
-            interner.lookup(s).to_string()
-        }
+        Value::Str(s) => interner.lookup(s).to_string(),
         Value::Identifier(id) => {
             format!("Identifier: {}", interner.lookup(id))
         }
