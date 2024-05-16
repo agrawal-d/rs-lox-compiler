@@ -42,8 +42,8 @@ pub struct Vm<'src> {
 macro_rules! binop {
     ($vm: ident, $typ: tt, $op: tt) => {
         {
-            let b = $vm.stack.pop().context("Stack underflow")?;
-            let a = $vm.stack.pop().context("Stack underflow")?;
+            let b = $vm.pop_unchecked();
+            let a = $vm.pop_unchecked();
             match (a, b) {
                 (Number(a), Number(b)) => {
                     let result = a $op b;
@@ -240,7 +240,7 @@ impl<'src> Vm<'src> {
             let instruction = unsafe { Opcode::try_from(self.read_byte()).unwrap_unchecked() };
             match instruction {
                 Opcode::Print => {
-                    print_value(&self.pop()?, self.interner);
+                    print_value(&self.pop_unchecked(), self.interner);
                     xprintln!("");
                 }
                 Opcode::JumpIfFalse => {
@@ -296,7 +296,7 @@ impl<'src> Vm<'src> {
                     self.pop_unchecked();
                 }
                 Opcode::GetLocal => {
-                    let array_index = self.pop()?;
+                    let array_index = self.pop_unchecked();
                     let slot = self.read_byte() as usize;
                     let value = &self.stack[frame!(self).slot_offset + slot];
 
@@ -310,7 +310,7 @@ impl<'src> Vm<'src> {
                 }
                 Opcode::GetGlobal => {
                     let name = self.read_string_or_id();
-                    let array_index = self.pop()?;
+                    let array_index = self.pop_unchecked();
 
                     if let Some(value) = self.globals.get(&name) {
                         if array_index == Value::Nil {
@@ -326,8 +326,8 @@ impl<'src> Vm<'src> {
                 }
                 Opcode::SetLocal => {
                     let slot: usize = self.read_byte() as usize;
-                    let new_value = self.pop()?;
-                    let array_index = self.pop()?;
+                    let new_value = self.pop_unchecked();
+                    let array_index = self.pop_unchecked();
                     self.stack.push(new_value.clone());
                     let value_to_be_modified = &mut self.stack[frame!(self).slot_offset + slot];
 
@@ -345,8 +345,8 @@ impl<'src> Vm<'src> {
                     if !self.globals.contains_key(&name) {
                         self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
                     } else {
-                        let new_value = self.pop()?;
-                        let array_index = self.pop()?;
+                        let new_value = self.pop_unchecked();
+                        let array_index = self.pop_unchecked();
                         self.stack.push(new_value.clone());
                         let value_to_be_modified = self.globals.get_mut(&name).unwrap();
 
@@ -361,11 +361,11 @@ impl<'src> Vm<'src> {
                 }
                 Opcode::DefineGlobal => {
                     let name = self.read_string_or_id();
-                    let value = self.pop().unwrap();
+                    let value = self.pop_unchecked();
                     self.globals.insert(name, value);
                 }
                 Opcode::DeclareArray => {
-                    let size_val = self.pop()?;
+                    let size_val = self.pop_unchecked();
                     match size_val {
                         Number(len) => {
                             self.stack.push(Value::Array(Rc::new(RefCell::new(vec![Nil; len as usize]))));
@@ -376,14 +376,14 @@ impl<'src> Vm<'src> {
                     }
                 }
                 Opcode::Equal => {
-                    let a = self.pop()?;
-                    let b = self.pop()?;
+                    let a = self.pop_unchecked();
+                    let b = self.pop_unchecked();
                     self.stack.push(Bool(a == b))
                 }
                 Opcode::Nil => self.stack.push(Nil),
                 Opcode::Add => {
-                    let b = self.pop()?;
-                    let a = self.pop()?;
+                    let b = self.pop_unchecked();
+                    let a = self.pop_unchecked();
                     match (b, a) {
                         (Number(a), Number(b)) => {
                             self.stack.push(Number(a + b));
@@ -410,7 +410,7 @@ impl<'src> Vm<'src> {
                 Opcode::Modulo => binop!(self, Number, %),
                 Opcode::Divide => binop!(self, Number, /),
                 Opcode::Not => {
-                    let val = self.pop()?;
+                    let val = self.pop_unchecked();
                     self.stack.push(Bool(self.is_falsey(&val)))
                 }
                 Opcode::Greater => binop!(self, Bool, >),
