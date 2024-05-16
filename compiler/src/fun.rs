@@ -7,6 +7,12 @@ pub struct Fun {
     pub name: Option<StrId>,
 }
 
+impl Default for Fun {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Fun {
     pub fn new() -> Fun {
         Fun {

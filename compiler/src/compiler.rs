@@ -285,7 +285,7 @@ impl<'src> Compiler<'src> {
             let name = if self.fun_typ == FunType::Script {
                 "script"
             } else if let Some(fn_name) = self.fun.name {
-                self.interner.lookup(&fn_name).as_ref()
+                self.interner.lookup(&fn_name)
             } else {
                 "unnamed"
             };
@@ -293,8 +293,8 @@ impl<'src> Compiler<'src> {
             self.fun.chunk.disassemble(name, self.interner);
         }
 
-        let compiled_fun = std::mem::replace(&mut self.fun, Fun::new());
-        return compiled_fun;
+        
+        std::mem::replace(&mut self.fun, Fun::new())
     }
 
     fn begin_scope(&mut self) {
@@ -360,7 +360,7 @@ impl<'src> Compiler<'src> {
         }
 
         self.parser.consume(TokenType::RightParen, "Expect ')' after arguments.");
-        return arg_count;
+        arg_count
     }
 
     fn literal(&mut self, _can_assign: bool) {
@@ -385,18 +385,18 @@ impl<'src> Compiler<'src> {
     }
 
     fn function(&mut self, typ: FunType) {
-        let name = Some(self.interner.intern(&self.parser.previous.source.as_ref()));
+        let name = Some(self.interner.intern(self.parser.previous.source.as_ref()));
         let dummy_parser = Parser::new(Scanner::new(Rc::from("")));
 
         let mut fn_compiler = Compiler {
             fun: Fun::new(),
             fun_typ: typ,
             parser: std::mem::replace(&mut self.parser, dummy_parser),
-            interner: &mut self.interner,
+            interner: self.interner,
             rules: get_rules(),
             locals: Vec::new(),
             scope_depth: 0,
-            functions: &mut self.functions,
+            functions: self.functions,
         };
 
         fn_compiler.fun.name = name;

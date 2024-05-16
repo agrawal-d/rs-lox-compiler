@@ -223,7 +223,7 @@ impl<'src> Vm<'src> {
             }
             other => {
                 self.runtime_error(&format!("Can only call functions, got {other}"));
-                return false;
+                false
             }
         }
     }
@@ -340,8 +340,7 @@ impl<'src> Vm<'src> {
                     let size_val = self.pop()?;
                     match size_val {
                         Number(len) => {
-                            self.stack
-                                .push(Value::Array(Rc::new(RefCell::new(vec![Number(199.99); len as usize]))));
+                            self.stack.push(Value::Array(Rc::new(RefCell::new(vec![Nil; len as usize]))));
                         }
                         other => {
                             self.runtime_error(&format!("Expected number, got {other}"));

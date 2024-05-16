@@ -28,9 +28,9 @@ pub fn value_as_string(value: &Value, interner: &Interner) -> String {
     match value {
         Value::Number(num) => format!("{num}"),
         Value::Bool(b) => format!("{b}"),
-        Value::Nil => format!("Nil"),
+        Value::Nil => "Nil".to_string(),
         Value::Str(s) => {
-            format!("{}", interner.lookup(s))
+            interner.lookup(s).to_string()
         }
         Value::Identifier(id) => {
             format!("Identifier: {}", interner.lookup(id))
