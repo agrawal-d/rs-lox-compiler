@@ -58,13 +58,13 @@ macro_rules! binop {
 
 macro_rules! frame {
     ($inst: expr) => {
-        $inst.frames.last().unwrap()
+        unsafe { $inst.frames.last().unwrap_unchecked() }
     };
 }
 
 macro_rules! frame_mut {
     ($inst: expr) => {
-        $inst.frames.last_mut().unwrap()
+        unsafe { $inst.frames.last_mut().unwrap_unchecked() }
     };
 }
 
@@ -79,13 +79,17 @@ macro_rules! register_native {
 impl<'src> Vm<'src> {
     pub fn new(interner: &'src mut Interner, functions: Vec<Fun>) -> Vm {
         let global_error_id = interner.intern(ERR_STRING);
+
+        let mut frames: Vec<CallFrame> = Vec::with_capacity(10240);
+        frames.push(CallFrame {
+            fun_idx: functions.len() - 1,
+            ip: 0,
+            start_len: 0,
+            slot_offset: 0,
+        });
+
         Vm {
-            frames: vec![CallFrame {
-                fun_idx: functions.len() - 1,
-                ip: 0,
-                start_len: 0,
-                slot_offset: 0,
-            }],
+            frames,
             functions,
             stack: Default::default(),
             interner,
@@ -103,7 +107,7 @@ impl<'src> Vm<'src> {
     }
 
     fn read_byte(&mut self) -> u8 {
-        let value = self.code(self.frames.last().unwrap().ip);
+        let value = unsafe { self.code(self.frames.last().unwrap_unchecked().ip) };
         frame_mut!(self).ip += 1;
         value
     }
@@ -192,7 +196,6 @@ impl<'src> Vm<'src> {
 
                 if arg_count as usize != fun.arity {
                     self.runtime_error(&format!("Expected {} arguments but got {} instead", fun.arity, arg_count));
-                    return false;
                 }
 
                 let new_frame_offset = self.stack.len() - arg_count as usize;
@@ -209,7 +212,6 @@ impl<'src> Vm<'src> {
             NativeFunction(fun) => {
                 if arg_count as usize != fun.arity() {
                     self.runtime_error(&format!("Expected {} arguments but got {} instead", fun.arity(), arg_count));
-                    return false;
                 }
 
                 let args = &self.stack[self.stack.len() - arg_count as usize..];
@@ -223,7 +225,6 @@ impl<'src> Vm<'src> {
             }
             other => {
                 self.runtime_error(&format!("Can only call functions, got {other}"));
-                false
             }
         }
     }
@@ -356,8 +357,8 @@ impl<'src> Vm<'src> {
                 }
                 Opcode::DefineGlobal => {
                     let name = self.read_string_or_id();
-                    self.globals.insert(name, self.peek(0).clone());
-                    self.pop().unwrap();
+                    let value = self.pop().unwrap();
+                    self.globals.insert(name, value);
                 }
                 Opcode::DeclareArray => {
                     let size_val = self.pop()?;
