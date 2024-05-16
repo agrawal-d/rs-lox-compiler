@@ -91,7 +91,7 @@ impl<'src> Vm<'src> {
         Vm {
             frames,
             functions,
-            stack: Default::default(),
+            stack: Vec::with_capacity(10240),
             interner,
             globals: Default::default(),
             global_error_id,
@@ -102,8 +102,8 @@ impl<'src> Vm<'src> {
         self.functions[frame!(self).fun_idx].chunk.code[offset]
     }
 
-    fn constant(&self, index: usize) -> Option<&Value> {
-        self.functions[frame!(self).fun_idx].chunk.constants.get(index)
+    fn constant(&self, index: usize) -> &Value {
+        unsafe { self.functions[frame!(self).fun_idx].chunk.constants.get_unchecked(index) }
     }
 
     fn read_byte(&mut self) -> u8 {
@@ -112,9 +112,9 @@ impl<'src> Vm<'src> {
         value
     }
 
-    fn read_constant(&mut self) -> Option<Value> {
+    fn read_constant(&mut self) -> &Value {
         let index: usize = self.read_byte() as usize;
-        return self.constant(index).cloned();
+        return self.constant(index);
     }
 
     #[cfg(feature = "tracing")]
@@ -174,11 +174,15 @@ impl<'src> Vm<'src> {
         self.stack.pop().context("Nothing in stack to pop")
     }
 
+    fn pop_unchecked(&mut self) -> Value {
+        unsafe { self.stack.pop().unwrap_unchecked() }
+    }
+
     fn read_string_or_id(&mut self) -> StrId {
-        let value = self.read_constant().expect("Could not read constant");
+        let value = self.read_constant();
         match value {
-            Value::Str(id) => id,
-            Value::Identifier(id) => id,
+            Value::Str(id) => *id,
+            Value::Identifier(id) => *id,
             other => panic!("Found {other} instead"),
         }
     }
@@ -188,7 +192,6 @@ impl<'src> Vm<'src> {
     }
 
     fn call_value(&mut self, arg_count: u8) -> bool {
-        self.reset_err_string();
         let callee = self.peek(arg_count as usize);
         match callee {
             Function(idx) => {
@@ -216,6 +219,7 @@ impl<'src> Vm<'src> {
 
                 let args = &self.stack[self.stack.len() - arg_count as usize..];
                 let function = fun.clone();
+                self.globals.insert(self.global_error_id, Value::Nil); // Reset error string
                 let result = function.call(self.interner, &mut self.globals, args);
                 dbgln!("Truncating to length {}", self.stack.len() - 1 - arg_count as usize);
                 self.stack.truncate(self.stack.len() - 1 - arg_count as usize);
@@ -233,7 +237,7 @@ impl<'src> Vm<'src> {
         loop {
             self.stack_trace();
             disassemble_instruction(&self.functions[frame!(self).fun_idx].chunk, frame!(self).ip, self.interner);
-            let instruction = Opcode::try_from(self.read_byte()).context("Byte to opcode failed")?;
+            let instruction = unsafe { Opcode::try_from(self.read_byte()).unwrap_unchecked() };
             match instruction {
                 Opcode::Print => {
                     print_value(&self.pop()?, self.interner);
@@ -274,11 +278,11 @@ impl<'src> Vm<'src> {
                     self.stack.push(value);
                 }
                 Opcode::Constant => {
-                    let constant = self.read_constant().context("Could not interpret constant opcode")?;
+                    let constant = self.read_constant().clone();
                     self.stack.push(constant);
                 }
                 Opcode::Negate => {
-                    let value = self.pop()?;
+                    let value = self.pop_unchecked();
                     match value {
                         Number(num) => self.stack.push(Value::Number(-num)),
                         _ => {
@@ -289,7 +293,7 @@ impl<'src> Vm<'src> {
                 Opcode::True => self.stack.push(Bool(true)),
                 Opcode::False => self.stack.push(Bool(false)),
                 Opcode::Pop => {
-                    self.pop()?;
+                    self.pop_unchecked();
                 }
                 Opcode::GetLocal => {
                     let array_index = self.pop()?;
