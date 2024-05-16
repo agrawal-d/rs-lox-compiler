@@ -149,17 +149,17 @@ impl<'src> Vm<'src> {
 
     fn runtime_error(&mut self, msg: &str) {
         xprintln!("Runtime error: {msg}");
+        xprintln!("Traceback (most recent call first):");
+        let mut idx = (self.frames.len() - 1) as isize;
 
-        let mut idx = self.frames.len() - 1;
-
-        while idx > 0 {
-            let frame = &self.frames[idx];
+        while idx >= 0 {
+            let frame = &self.frames[idx as usize];
             let fun: &Fun = &self.functions[frame.fun_idx];
             let fun_name = match fun.name {
                 Some(name) => self.interner.lookup(&name),
                 None => "<script>",
             };
-            xprintln!("[line {}] in {}", fun.chunk.lines[&frame.ip], fun_name);
+            xprintln!("[line {:3}] in {}", fun.chunk.lines[&frame.ip], fun_name);
             idx -= 1;
         }
 
