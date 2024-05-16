@@ -27,6 +27,8 @@ struct CallFrame {
     pub slot_offset: usize, // Offset of this call-frame from the base of the stack
 }
 
+pub const ERR_STRING: &str = "errString";
+
 pub struct Vm<'src> {
     frames: Vec<CallFrame>,
     // frame: &'src mut CallFrame,
@@ -34,6 +36,7 @@ pub struct Vm<'src> {
     stack: Vec<Value>,
     interner: &'src mut Interner,
     globals: FxHashMap<StrId, Value>,
+    global_error_id: StrId, // StrId of global error variable
 }
 
 macro_rules! binop {
@@ -75,6 +78,7 @@ macro_rules! register_native {
 
 impl<'src> Vm<'src> {
     pub fn new(interner: &'src mut Interner, functions: Vec<Fun>) -> Vm {
+        let global_error_id = interner.intern(ERR_STRING);
         Vm {
             frames: vec![CallFrame {
                 fun_idx: functions.len() - 1,
@@ -86,6 +90,7 @@ impl<'src> Vm<'src> {
             stack: Default::default(),
             interner,
             globals: Default::default(),
+            global_error_id,
         }
     }
 
@@ -174,7 +179,12 @@ impl<'src> Vm<'src> {
         }
     }
 
+    fn reset_err_string(&mut self) {
+        self.globals.insert(self.global_error_id, Value::Nil);
+    }
+
     fn call_value(&mut self, arg_count: u8) -> bool {
+        self.reset_err_string();
         let callee = self.peek(arg_count as usize);
         match callee {
             Function(idx) => {
@@ -204,7 +214,7 @@ impl<'src> Vm<'src> {
 
                 let args = &self.stack[self.stack.len() - arg_count as usize..];
                 let function = fun.clone();
-                let result = function.call(self.interner, args);
+                let result = function.call(self.interner, &mut self.globals, args);
                 dbgln!("Truncating to length {}", self.stack.len() - 1 - arg_count as usize);
                 self.stack.truncate(self.stack.len() - 1 - arg_count as usize);
                 self.stack.push(result);
@@ -426,6 +436,9 @@ impl<'src> Vm<'src> {
     pub fn interpret(functions: Vec<Fun>, interner: &'src mut Interner) -> Result<()> {
         dbgln!("== Interpreter VM ==");
         let mut vm: Vm = Vm::new(interner, functions);
+
+        vm.reset_err_string();
+
         register_native!(vm, Clock);
         register_native!(vm, Sleep);
         register_native!(vm, GetType);
