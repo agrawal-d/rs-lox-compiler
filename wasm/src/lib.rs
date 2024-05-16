@@ -1,4 +1,5 @@
 use compiler::{init, run_code};
+use futures::executor;
 use std::{panic, sync::atomic::AtomicBool};
 use wasm_bindgen::prelude::*;
 
@@ -21,10 +22,11 @@ extern "C" {
     pub fn print(output: String);
     pub fn println(output: String);
     pub fn read(text: String) -> String;
+    pub async fn sleep(ms: u32);
 }
 
 #[wasm_bindgen]
-pub fn run(code: &str) {
+pub async fn run(code: &str) {
     if !COMPILER_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed) {
         COMPILER_INITIALIZED.store(true, std::sync::atomic::Ordering::Relaxed);
         init(print, println, read);

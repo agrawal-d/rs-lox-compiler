@@ -18,18 +18,22 @@ pub trait Callable: Debug {
     fn name(&self) -> &str;
 }
 
-macro_rules! callable_struct {
-    ($name:ident, $arity:expr, $body:expr) => {
-        #[derive(Debug, Default)]
-        pub struct $name;
+fn set_global_error(interner: &mut Interner, globals: &mut Globals, message: &str) {
+    globals.insert(interner.intern(ERR_STRING), Value::Str(interner.intern(message)));
+}
 
-        impl Callable for $name {
+macro_rules! callable_struct {
+    ($struct_name:ident, $arity:expr, $interner:ident: &mut Interner, $globals:ident: &mut Globals, $args:ident: &[Value], $body:block) => {
+        #[derive(Debug, Default)]
+        pub struct $struct_name;
+
+        impl Callable for $struct_name {
             fn arity(&self) -> usize {
                 $arity
             }
 
-            fn call(&self, interner: &mut Interner, globals: &mut Globals, args: &[Value]) -> Value {
-                $body(interner, globals, &args)
+            fn call(&self, $interner: &mut Interner, $globals: &mut Globals, $args: &[Value]) -> Value {
+                $body
             }
 
             fn name(&self) -> &str {
@@ -39,16 +43,12 @@ macro_rules! callable_struct {
     };
 }
 
-fn set_global_error(interner: &mut Interner, globals: &mut Globals, message: &str) {
-    globals.insert(interner.intern(ERR_STRING), Value::Str(interner.intern(message)));
-}
-
-callable_struct!(Clock, 0, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(Clock, 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     let epoch = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
     Value::Number(epoch.as_millis() as f64)
 });
 
-callable_struct!(Sleep, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(Sleep, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     if let Some(Value::Number(n)) = args.first() {
         std::thread::sleep(std::time::Duration::from_millis(*n as u64));
         Value::Nil
@@ -58,13 +58,13 @@ callable_struct!(Sleep, 1, |interner: &mut Interner, globals: &mut Globals, args
     }
 });
 
-callable_struct!(Print, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(Print, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value],{
     print_value(&args[0], interner);
     xprintln!("");
     Value::Nil
 });
 
-callable_struct!(ReadString, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(ReadString, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Str(s) => {
             let prompt_text = interner.lookup(s);
@@ -78,7 +78,7 @@ callable_struct!(ReadString, 1, |interner: &mut Interner, globals: &mut Globals,
     }
 });
 
-callable_struct!(ReadNumber, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(ReadNumber, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Str(s) => {
             let prompt_text = interner.lookup(s);
@@ -98,7 +98,7 @@ callable_struct!(ReadNumber, 1, |interner: &mut Interner, globals: &mut Globals,
     }
 });
 
-callable_struct!(ReadBool, 0, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(ReadBool, 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
     let len = input.len();
@@ -113,15 +113,15 @@ callable_struct!(ReadBool, 0, |interner: &mut Interner, globals: &mut Globals, a
     }
 });
 
-callable_struct!(TypeOf, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(TypeOf, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     Value::Str(interner.intern(&format!("{}", args[0])))
 });
 
-callable_struct!(ToString, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(ToString, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     Value::Str(interner.intern(&value_as_string(&args[0], interner)))
 });
 
-callable_struct!(ToNumber, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(ToNumber, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match args[0] {
         Value::Number(n) => Value::Number(n),
         Value::Bool(b) => Value::Number(b as i8 as f64),
@@ -142,7 +142,7 @@ callable_struct!(ToNumber, 1, |interner: &mut Interner, globals: &mut Globals, a
     }
 });
 
-callable_struct!(StringAt, 2, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(StringAt, 2, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match (&args[0], &args[1]) {
         (Value::Str(s), Value::Number(n)) => {
             let str = interner.lookup(s);
@@ -162,7 +162,7 @@ callable_struct!(StringAt, 2, |interner: &mut Interner, globals: &mut Globals, a
     }
 });
 
-callable_struct!(StrLen, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(StrLen, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Str(s) => {
             let str = interner.lookup(s);
@@ -175,7 +175,7 @@ callable_struct!(StrLen, 1, |interner: &mut Interner, globals: &mut Globals, arg
     }
 });
 
-callable_struct!(ArrLen, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(ArrLen, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Array(arr) => Value::Number(arr.borrow().len() as f64),
         _ => {
@@ -185,7 +185,7 @@ callable_struct!(ArrLen, 1, |interner: &mut Interner, globals: &mut Globals, arg
     }
 });
 
-callable_struct!(Ceil, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(Ceil, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.ceil()),
         _ => {
@@ -195,7 +195,7 @@ callable_struct!(Ceil, 1, |interner: &mut Interner, globals: &mut Globals, args:
     }
 });
 
-callable_struct!(Floor, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(Floor, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.floor()),
         _ => {
@@ -205,7 +205,7 @@ callable_struct!(Floor, 1, |interner: &mut Interner, globals: &mut Globals, args
     }
 });
 
-callable_struct!(Abs, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(Abs, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.abs()),
         _ => {
@@ -215,7 +215,7 @@ callable_struct!(Abs, 1, |interner: &mut Interner, globals: &mut Globals, args: 
     }
 });
 
-callable_struct!(Sort, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(Sort, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Array(arr) => {
             let mut arr = arr.borrow_mut();
@@ -235,7 +235,7 @@ callable_struct!(Sort, 1, |interner: &mut Interner, globals: &mut Globals, args:
     }
 });
 
-callable_struct!(IndexOf, 2, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(IndexOf, 2, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match (&args[0], &args[1]) {
         (Value::Array(arr), value) => {
             let arr = arr.borrow();
