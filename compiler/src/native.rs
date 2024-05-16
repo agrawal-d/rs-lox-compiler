@@ -113,7 +113,7 @@ callable_struct!(ReadBool, 0, |interner: &mut Interner, globals: &mut Globals, a
     }
 });
 
-callable_struct!(GetType, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+callable_struct!(TypeOf, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
     return Value::Str(interner.intern(&format!("{}", args[0])));
 });
 
@@ -169,10 +169,86 @@ callable_struct!(StrLen, 1, |interner: &mut Interner, globals: &mut Globals, arg
             Value::Number(str.len() as f64)
         }
         _ => {
-            let error = "Expected string as argument to strlen";
-            let strid = interner.intern(error);
-            xprintln!("{}", error);
-            Value::Str(strid)
+            set_global_error(interner, globals, "Expected string as argument to strlen");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(ArrLen, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+    match &args[0] {
+        Value::Array(arr) => Value::Number(arr.borrow().len() as f64),
+        _ => {
+            set_global_error(interner, globals, "Expected array as argument to arrlen");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Ceil, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+    match &args[0] {
+        Value::Number(n) => Value::Number(n.ceil()),
+        _ => {
+            set_global_error(interner, globals, "Expected number as argument to ceil");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Floor, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+    match &args[0] {
+        Value::Number(n) => Value::Number(n.floor()),
+        _ => {
+            set_global_error(interner, globals, "Expected number as argument to floor");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Abs, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+    match &args[0] {
+        Value::Number(n) => Value::Number(n.abs()),
+        _ => {
+            set_global_error(interner, globals, "Expected number as argument to abs");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Sort, 1, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+    match &args[0] {
+        Value::Array(arr) => {
+            let mut arr = arr.borrow_mut();
+            arr.sort_by(|a, b| match (a, b) {
+                (Value::Number(a), Value::Number(b)) => a.partial_cmp(b).unwrap(),
+                _ => {
+                    set_global_error(interner, globals, "Expected array of numbers");
+                    std::cmp::Ordering::Equal
+                }
+            });
+            Value::Nil
+        }
+        _ => {
+            set_global_error(interner, globals, "Expected array as argument to sort");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(IndexOf, 2, |interner: &mut Interner, globals: &mut Globals, args: &[Value]| {
+    match (&args[0], &args[1]) {
+        (Value::Array(arr), value) => {
+            let arr = arr.borrow();
+            for (i, v) in arr.iter().enumerate() {
+                if v == value {
+                    return Value::Number(i as f64);
+                }
+            }
+            Value::Number(arr.len() as f64)
+        }
+        _ => {
+            set_global_error(interner, globals, "Expected array and value as arguments to find");
+            Value::Nil
         }
     }
 });

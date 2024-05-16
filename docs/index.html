@@ -31,8 +31,14 @@
                         <li>Bool</li>
                         <li>Array</li>
                         <li>Function</li>
+                        <li>Nil</li>
                     </ul>
                     <h4>Native Functions</h4>
+                    In case of errors or invalid arguments, a global error variable named
+                    <pre>errString</pre> is set with the error message and the function returns
+                    <pre>nil</pre>.
+                    Otherwise, the global error variable is set to
+                    <pre>nil</pre>.
                     <ol>
                         <li>
                             <h4>Clock() -> Number</h4>
@@ -55,7 +61,7 @@
                             Reads a boolean from the input.
                         </li>
                         <li>
-                            <h4>GetType(Any) -> String</h4>
+                            <h4>TypeOf(Any) -> String</h4>
                             Returns the type of the given value.
                         </li>
                         <li>
@@ -74,7 +80,32 @@
                             <h4>StrLen(String) -> Number</h4>
                             Returns the length of the given string.
                         </li>
-
+                        <li>
+                            <h4>ArrLen(String) -> Number</h4>
+                            Returns the length of the given array.
+                        </li>
+                        <li>
+                            <hr>Ceil(Number) -> Number</h4>
+                            Returns the smallest integer greater than or equal to the given number.
+                        </li>
+                        <li>
+                            <h4>Floor(Number) -> Number</h4>
+                            Returns the largest integer less than or equal to the given number.
+                        </li>
+                        <li>
+                            <h4>Abs(Number) -> Number</h4>
+                            Returns the absolute value of the given number.
+                        </li>
+                        <li>
+                            <h4>Sort(Array)</h4>
+                            Sorts an arrray of numbers in ascending order. If the array has non-numbers, it's an
+                            error.
+                        </li>
+                        <li>
+                            <h4>IndexOf(Array, Number) -> Number</h4>
+                            Returns the index of the given number in the array. If the number is not found, returns the
+                            length of the array.
+                        </li>
                     </ol>
                 </details>
             </div>

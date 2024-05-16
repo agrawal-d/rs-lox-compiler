@@ -441,7 +441,7 @@ impl<'src> Vm<'src> {
 
         register_native!(vm, Clock);
         register_native!(vm, Sleep);
-        register_native!(vm, GetType);
+        register_native!(vm, TypeOf);
         register_native!(vm, Print);
         register_native!(vm, ReadNumber);
         register_native!(vm, ReadString);
@@ -450,6 +450,11 @@ impl<'src> Vm<'src> {
         register_native!(vm, ToNumber);
         register_native!(vm, StringAt);
         register_native!(vm, StrLen);
+        register_native!(vm, ArrLen);
+        register_native!(vm, Ceil);
+        register_native!(vm, Floor);
+        register_native!(vm, Sort);
+        register_native!(vm, IndexOf);
         dbgln!("Interpreting  code");
         vm.run()
     }
