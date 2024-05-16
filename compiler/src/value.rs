@@ -21,24 +21,42 @@ pub enum Value {
 pub type ValueArray = Vec<Value>;
 
 pub fn print_value(value: &Value, interner: &Interner) {
+    xprint!("{}", value_as_string(value, interner));
+}
+
+pub fn value_as_string(value: &Value, interner: &Interner) -> String {
     match value {
-        Value::Number(num) => xprint!("{num}"),
-        Value::Bool(b) => xprint!("{b}"),
-        Value::Nil => xprint!("Nil"),
+        Value::Number(num) => format!("{num}"),
+        Value::Bool(b) => format!("{b}"),
+        Value::Nil => format!("Nil"),
         Value::Str(s) => {
-            xprint!("{}", interner.lookup(s));
+            format!("{}", interner.lookup(s))
         }
         Value::Identifier(id) => {
-            xprint!("Identifier: {}", interner.lookup(id))
+            format!("Identifier: {}", interner.lookup(id))
         }
         Value::Array(arr) => {
-            xprint!("<Array[{}]>", arr.borrow().len());
+            let mut s = format!("Array<{} elements [", arr.borrow().len());
+            for (i, v) in arr.borrow().iter().enumerate() {
+                if i != 0 {
+                    s.push_str(", ");
+                }
+
+                if i >= 10 {
+                    s.push_str("...");
+                    break;
+                }
+
+                s.push_str(&value_as_string(v, interner));
+            }
+            s.push_str("]>");
+            s
         }
         Value::Function(idx) => {
-            xprint!("<Function {idx}>");
+            format!("<Function {idx}>")
         }
         Value::NativeFunction(fun) => {
-            xprint!("<Native Function {}>", fun.as_ref().name());
+            format!("<Native Function {}>", fun.as_ref().name())
         }
     }
 }

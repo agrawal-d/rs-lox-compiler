@@ -1,6 +1,6 @@
 use crate::{
     interner::Interner,
-    value::{print_value, Value},
+    value::{print_value, value_as_string, Value},
     xprintln, IMPORTS,
 };
 use std::fmt::Debug;
@@ -118,7 +118,7 @@ callable_struct!(GetType, 1, |interner: &mut Interner, args: &[Value]| {
 });
 
 callable_struct!(ToString, 1, |interner: &mut Interner, args: &[Value]| {
-    return Value::Str(interner.intern(&format!("{}", args[0])));
+    return Value::Str(interner.intern(&value_as_string(&args[0], interner)));
 });
 
 callable_struct!(ToNumber, 1, |interner: &mut Interner, args: &[Value]| {
