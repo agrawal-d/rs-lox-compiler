@@ -58,7 +58,7 @@ impl Scanner {
             m.insert("for", TokenType::For);
             m.insert("true", TokenType::True);
             m.insert("false", TokenType::False);
-            m.insert("fun", TokenType::Fun);
+            m.insert("function", TokenType::Fun);
             m
         })
     }

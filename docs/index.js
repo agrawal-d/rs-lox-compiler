@@ -4,7 +4,7 @@ console.log("Setting up Monaco Editor");
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs' } });
 require(["vs/editor/editor.main"], function () {
     window.editor = monaco.editor.create(document.getElementById('editor'), {
-        value: 'fun fib(n) {\n\n    // Base Case\n    if (n < 2) {\n        return n;\n    }\n\n    var a = 0;\n    var b = 1;\n    var temp;\n\n    for(var i = 2; i < n; i = i + 1) {\n        temp = a + b;\n        a = b;\n        b = temp;\n    }\n\n    return b;\n}\n\nvar start = Clock();\nprint("Fib(30) is  " + fib(30));\nvar end = Clock();\nprint("Time taken: " + (end - start) + "ms");',
+        value: 'function fib(n) {\n\n    // Base Case\n    if (n < 2) {\n        return n;\n    }\n\n    var a = 0;\n    var b = 1;\n    var temp;\n\n    for(var i = 2; i < n; i = i + 1) {\n        temp = a + b;\n        a = b;\n        b = temp;\n    }\n\n    return b;\n}\n\nvar start = Clock();\nprint("Fib(30) is  " + fib(30));\nvar end = Clock();\nprint("Time taken: " + (end - start) + "ms");',
         language: 'csharp',
         scrollBeyondLastLine: false,
         minimap: { enabled: false },
