@@ -293,17 +293,28 @@ impl<'src> Vm<'src> {
                 Opcode::GetLocal => {
                     let array_index = self.pop()?;
                     let slot = self.read_byte() as usize;
-                    let value = self.stack[frame!(self).slot_offset + slot].clone();
-                    let value = self.get_value(value, &array_index);
-                    self.stack.push(value)
+                    let value = &self.stack[frame!(self).slot_offset + slot];
+
+                    if array_index == Value::Nil {
+                        self.stack.push(value.clone());
+                    } else {
+                        self.stack.push(Vm::get_array(value, &array_index).unwrap_or_else(|err| {
+                            self.runtime_error(&format!("Error getting array: {err}"));
+                        }));
+                    }
                 }
                 Opcode::GetGlobal => {
                     let name = self.read_string_or_id();
                     let array_index = self.pop()?;
 
                     if let Some(value) = self.globals.get(&name) {
-                        let value = self.get_value(value.clone(), &array_index);
-                        self.stack.push(value);
+                        if array_index == Value::Nil {
+                            self.stack.push(value.clone());
+                        } else {
+                            self.stack.push(Vm::get_array(value, &array_index).unwrap_or_else(|err| {
+                                self.runtime_error(&format!("Error getting array: {err}"));
+                            }));
+                        }
                     } else {
                         self.runtime_error(&format!("Undefined variable {}", self.interner.lookup(&name)));
                     }
@@ -403,21 +414,18 @@ impl<'src> Vm<'src> {
         }
     }
 
-    // If array index is valid, return the value at that index
-    // Otherwise, return the value itself
-    fn get_value(&mut self, value: Value, array_index: &Value) -> Value {
-        match (value, array_index) {
+    fn get_array(arr: &Value, index: &Value) -> anyhow::Result<Value, Error> {
+        match (arr, index) {
             (Value::Array(array), Value::Number(index)) => {
                 let index = *index as usize;
                 if index < array.borrow().len() {
-                    array.borrow()[index].clone()
+                    Ok(array.borrow()[index].clone())
                 } else {
-                    self.runtime_error(&format!("Index out of bounds: {index}"));
+                    bail!("Index out of bounds: {index}")
                 }
             }
-            (value, Value::Nil) => value,
-            (value, index) => {
-                self.runtime_error(&format!("Tried to index value of type {value} with index {index}"));
+            (arr, index) => {
+                bail!(format!("Tried to index value of type {arr} with index {index}"));
             }
         }
     }

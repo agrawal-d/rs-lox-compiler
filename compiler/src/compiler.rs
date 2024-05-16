@@ -293,7 +293,6 @@ impl<'src> Compiler<'src> {
             self.fun.chunk.disassemble(name, self.interner);
         }
 
-        
         std::mem::replace(&mut self.fun, Fun::new())
     }
 
