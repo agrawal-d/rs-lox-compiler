@@ -20,7 +20,7 @@ fn println(output: String) {
     flush_if_debug();
 }
 
-fn help(args: &Vec<String>) {
+fn help(args: &[String]) {
     println(format!("Usage: {} <FILE> \nInterpret the program in FILE", args[0]));
 }
 

@@ -145,7 +145,10 @@ where
     }
 
     fn constant(&self, index: usize) -> &Value {
-        unsafe { self.functions[frame!(self).fun_idx].chunk.constants.get_unchecked(index) }
+        #[allow(unused_unsafe)]
+        unsafe {
+            self.functions[frame!(self).fun_idx].chunk.constants.get_unchecked(index)
+        }
     }
 
     fn read_byte(&mut self) -> u8 {
