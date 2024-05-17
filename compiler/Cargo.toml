@@ -10,12 +10,14 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 anyhow = { version = "1.0.81", features = ["backtrace"] }
+getrandom = { version = "0.2", features = ["js"] }
 console_log = "1.0.0"
 log = "0.4.21"
 num_enum = "0.7.2"
 rustc-hash = "1.1.0"
 strum_macros = "0.26.2"
 web-time = "1.1.0"
+rand = "0.8.5"
 
 [features]
 tracing = []

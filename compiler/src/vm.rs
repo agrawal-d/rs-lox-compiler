@@ -503,6 +503,7 @@ where
         register_native!(vm, Floor);
         register_native!(vm, Sort);
         register_native!(vm, IndexOf);
+        register_native!(vm, Rand);
         dbgln!("Interpreting  code");
         vm.run().await
     }

@@ -251,3 +251,8 @@ callable_struct!(IndexOf, 2, interner: &mut Interner, globals: &mut Globals, arg
         }
     }
 });
+
+callable_struct!(Rand, 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    let num: u32 = rand::random();
+    Value::Number(num as f64)
+});
