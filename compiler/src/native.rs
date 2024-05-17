@@ -64,12 +64,11 @@ callable_struct!(Print, 1, interner: &mut Interner, globals: &mut Globals, args:
     Value::Nil
 });
 
+// Arg is what the user gave
 callable_struct!(ReadString, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Str(s) => {
-            let prompt_text = interner.lookup(s);
-            let input = (IMPORTS.get().expect("Compiler not initialized").read_fn)(prompt_text.to_string());
-            Value::Str(interner.intern(&input))
+            args[0].clone()
         }
         _ => {
             set_global_error(interner, globals, "Expected string as argument to read");
@@ -78,11 +77,11 @@ callable_struct!(ReadString, 1, interner: &mut Interner, globals: &mut Globals, 
     }
 });
 
+// Arg is what the user gave
 callable_struct!(ReadNumber, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
-        Value::Str(s) => {
-            let prompt_text = interner.lookup(s);
-            let input = (IMPORTS.get().expect("Compiler not initialized").read_fn)(prompt_text.to_string());
+        Value::Str(user_input) => {
+            let input = interner.lookup(user_input);
             match input.parse::<f64>() {
                 Ok(n) => Value::Number(n),
                 Err(err) => {

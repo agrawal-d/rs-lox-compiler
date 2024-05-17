@@ -233,7 +233,7 @@ where
         self.globals.insert(self.global_error_id, Value::Nil);
     }
 
-    fn call_value(&mut self, arg_count: u8) -> bool {
+    async fn call_value(&mut self, arg_count: u8) -> bool {
         let callee = self.peek(arg_count as usize);
         match callee {
             Function(idx) => {
@@ -259,27 +259,26 @@ where
                     self.runtime_error(&format!("Expected {} arguments but got {} instead", fun.arity(), arg_count));
                 }
 
-                let args = &self.stack[self.stack.len() - arg_count as usize..];
                 let function = fun.clone();
+
+                // Speacial read input functions - take the prompt, and convert it the the user response
+                if function.name() == "ReadString" || function.name() == "ReadNumber" || function.name() == "ReadBool" {
+                    let len = self.stack.len();
+                    let first_arg = &mut self.stack[len - arg_count as usize];
+                    match first_arg {
+                        Value::Str(id) => {
+                            let prompt = self.interner.lookup(id);
+                            let input = (self.read_async)(prompt.to_string()).await;
+                            *first_arg = Value::Str(self.interner.intern(&input));
+                        }
+                        _ => *first_arg = Value::Nil,
+                    }
+                };
+
+                let args = &self.stack[self.stack.len() - arg_count as usize..];
                 self.globals.insert(self.global_error_id, Value::Nil); // Reset error string
 
-                // handle ReadString specially - dont call but ise the vm read_async to get the value
-                let result: Value = if function.name() == "ReadString" {
-                    match &args[0] {
-                        Str(prompt) => {
-                            // let prompt_text = self.interner.lookup(prompt);
-                            // let input = (self.read_async)(prompt_text.to_string()).await;
-                            let input = String::from("LOL");
-                            Value::Str(self.interner.intern(&input))
-                        }
-                        _ => {
-                            set_global_error(self.interner, &mut self.globals, "Expected string as argument to read");
-                            Value::Nil
-                        }
-                    }
-                } else {
-                    function.call(self.interner, &mut self.globals, args)
-                };
+                let result = function.call(self.interner, &mut self.globals, args);
 
                 dbgln!("Truncating to length {}", self.stack.len() - 1 - arg_count as usize);
                 self.stack.truncate(self.stack.len() - 1 - arg_count as usize);
@@ -293,7 +292,7 @@ where
         }
     }
 
-    fn run(&mut self) -> Result<()> {
+    async fn run(&mut self) -> Result<()> {
         loop {
             self.stack_trace();
             disassemble_instruction(&self.functions[frame!(self).fun_idx].chunk, frame!(self).ip, self.interner);
@@ -319,7 +318,7 @@ where
                 }
                 Opcode::Call => {
                     let arg_count = self.read_byte();
-                    if !self.call_value(arg_count) {
+                    if !self.call_value(arg_count).await {
                         self.runtime_error("Could not call value");
                     }
                 }
@@ -479,7 +478,7 @@ where
         }
     }
 
-    pub fn interpret(functions: Vec<Fun>, interner: &'src mut Interner, read_async: F) -> Result<()> {
+    pub async fn interpret(functions: Vec<Fun>, interner: &'src mut Interner, read_async: F) -> Result<()> {
         dbgln!("== Interpreter VM ==");
         let mut vm = Vm::new(interner, functions, read_async);
 
@@ -502,7 +501,7 @@ where
         register_native!(vm, Sort);
         register_native!(vm, IndexOf);
         dbgln!("Interpreting  code");
-        vm.run()
+        vm.run().await
     }
 
     fn peek(&self, distance: usize) -> &Value {
