@@ -22,7 +22,10 @@ const statsP = document.getElementById('stats');
 var starts = 0;
 
 myWorker.onmessage = function (e) {
-    if (e.data == null) {
+    let message = e.data
+    if (message.type == "output") {
+        outputTextarea.value += message.data;
+    } else if (message.type == "run-end") {
         const endts = performance.now();
         const msTaken = endts - starts;
         statsP.innerText = `Execution time ${msTaken.toFixed(2)} ms`;
@@ -30,10 +33,17 @@ myWorker.onmessage = function (e) {
         runButton.disabled = false;
         resetButton.disabled = false;
         runButton.innerText = 'Run';
-    } else {
-        outputTextarea.value += e.data;
+    } else if (message.type == "input-request") {
+        console.log("Input requested");
+        myWorker.postMessage({
+            type: 'input-response',
+            data: prompt(message.prompt)
+        });
     }
 
+    else {
+        console.error("Invalid message", message);
+    }
 };
 
 runButton.addEventListener('click', async () => {
@@ -44,7 +54,10 @@ runButton.addEventListener('click', async () => {
     outputTextarea.value = '';
     const input = window.editor.getValue();
     starts = performance.now();
-    myWorker.postMessage(input);
+    myWorker.postMessage({
+        type: 'run',
+        code: input
+    });
     outputTextarea.focus();
 });
 

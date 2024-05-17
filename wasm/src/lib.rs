@@ -1,5 +1,4 @@
 use compiler::{init, run_code};
-use futures::executor;
 use std::{panic, sync::atomic::AtomicBool};
 use wasm_bindgen::prelude::*;
 
@@ -23,6 +22,11 @@ extern "C" {
     pub fn println(output: String);
     pub fn read(text: String) -> String;
     pub async fn sleep(ms: u32);
+    pub async fn readAsync(text: String) -> JsValue;
+}
+
+async fn readAsyncExport(text: String) -> String {
+    readAsync(text).await.as_string().unwrap()
 }
 
 #[wasm_bindgen]
@@ -32,5 +36,5 @@ pub async fn run(code: &str) {
         init(print, println, read);
     }
 
-    run_code(code);
+    run_code(code, readAsyncExport).await;
 }

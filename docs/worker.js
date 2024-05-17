@@ -1,11 +1,24 @@
 import init, { run } from './wasm.js';
 
-onmessage = function(e) {
-    try{
-        run(e.data);
+self.userInput = null;
+
+onmessage = function (e) {
+    try {
+        let message = e.data;
+        if (message.type === "run") {
+            run(message.code);
+        }
+        else if (message.type === "input-response") {
+            self.userInput = message.data;
+        }
+        else {
+            console.error("Invalid message", e);
+        }
     }
-    finally{
-        this.postMessage(null);
+    finally {
+        this.postMessage({
+            type: "run-end"
+        });
     }
 }
 
