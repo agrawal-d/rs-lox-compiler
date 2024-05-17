@@ -1,13 +1,11 @@
 // A fun game where you guess the number!
 
 function GuessGame() {
-    var secret = Rand() % 11;
+    var secret = 1 + Rand() % 10;
     var userGuess;
 
     while(userGuess != secret) {
         userGuess = ReadValidGuess("Guess a number between 1 and 10");
-        print(secret);
-        print(userGuess);
         if (userGuess < secret) {
             print("Your guess is too low.");
         } else if (userGuess > secret) {
