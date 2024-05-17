@@ -26,6 +26,17 @@ body {
     .row {
         flex-direction: column;
     }
+
+    .ref {
+        position: initial;
+    }
+
+    details[open] {
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
 }
 
 button,
@@ -51,14 +62,39 @@ h4 {
 .ref {
     position: absolute;
     right: 10px;
-    background-color: rgb(148, 209, 224);
-    padding: 2px;
+    background-color: #dfdfdf;
     border-radius: 5px;
     z-index: 1000;
 }
 
 summary {
     cursor: pointer;
+}
+
+details[open] {
+    background-color: white;
+    border: 1px solid #dfdfdf;
+    position: fixed;
+    top: 10px;
+    right: 6px;
+    width: 600px;
+    max-width: 90vw;
+    height: 800px;
+    max-height: 80vh;
+    overflow-y:auto;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+details[open] div {
+    padding: 10px;
+}
+
+details[open] summary {
+    border-bottom: 1px solid #dfdfdf;
+    padding:10px;
+    position:sticky;
+    top:-1px;
+    background-color: white;
 }
 
 #stats {
@@ -103,6 +139,7 @@ textarea,
     padding: 5px;
     font-family: Consolas, "Ubuntu Mono", "Courier New", Courier, monospace;
     resize: none;
+    font-size:large;
 }
 
 #editor {

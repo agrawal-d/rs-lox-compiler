@@ -1,4 +1,5 @@
 import { print, println, readAsync } from './snippets/wasm-4b0f351a8e6eeb46/src/snippet.js';
+import * as __wbg_star0 from './snippets/wasm-4b0f351a8e6eeb46/src/snippet.js';
 
 let wasm;
 
@@ -241,7 +242,7 @@ function handleError(f, args) {
         wasm.__wbindgen_exn_store(addHeapObject(e));
     }
 }
-function __wbg_adapter_63(arg0, arg1, arg2, arg3) {
+function __wbg_adapter_65(arg0, arg1, arg2, arg3) {
     wasm.wasm_bindgen__convert__closures__invoke2_mut__h30424ad6db0ff1b7(arg0, arg1, addHeapObject(arg2), addHeapObject(arg3));
 }
 
@@ -311,17 +312,6 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbg_println_f496e38b862115f2 = function(arg0, arg1) {
-        let deferred0_0;
-        let deferred0_1;
-        try {
-            deferred0_0 = arg0;
-            deferred0_1 = arg1;
-            println(getStringFromWasm0(arg0, arg1));
-        } finally {
-            wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
-        }
-    };
     imports.wbg.__wbg_print_4e748f16a9f8c145 = function(arg0, arg1) {
         let deferred0_0;
         let deferred0_1;
@@ -329,6 +319,17 @@ function __wbg_get_imports() {
             deferred0_0 = arg0;
             deferred0_1 = arg1;
             print(getStringFromWasm0(arg0, arg1));
+        } finally {
+            wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
+        }
+    };
+    imports.wbg.__wbg_println_f496e38b862115f2 = function(arg0, arg1) {
+        let deferred0_0;
+        let deferred0_1;
+        try {
+            deferred0_0 = arg0;
+            deferred0_1 = arg1;
+            println(getStringFromWasm0(arg0, arg1));
         } finally {
             wasm.__wbindgen_free(deferred0_0, deferred0_1, 1);
         }
@@ -434,7 +435,7 @@ function __wbg_get_imports() {
                 const a = state0.a;
                 state0.a = 0;
                 try {
-                    return __wbg_adapter_63(a, state0.b, arg0, arg1);
+                    return __wbg_adapter_65(a, state0.b, arg0, arg1);
                 } finally {
                     state0.a = a;
                 }
@@ -494,10 +495,11 @@ function __wbg_get_imports() {
         const ret = wasm.memory;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper180 = function(arg0, arg1, arg2) {
+    imports.wbg.__wbindgen_closure_wrapper181 = function(arg0, arg1, arg2) {
         const ret = makeMutClosure(arg0, arg1, 112, __wbg_adapter_26);
         return addHeapObject(ret);
     };
+    imports['./snippets/wasm-4b0f351a8e6eeb46/src/snippet.js'] = __wbg_star0;
 
     return imports;
 }

@@ -1,4 +1,4 @@
-// Demonstation of useful stack traces during runtime errors
+// Demonstration of useful stack traces during runtime errors
 
 function isAdult(age) {
     if (age < 18) {

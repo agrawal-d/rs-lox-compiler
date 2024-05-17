@@ -33,3 +33,9 @@ export async function readAsync(text) {
     self.userInput = null;
     return input;
 }
+
+export function end() {
+    postMessage({
+        type: "run-end"
+    });
+}

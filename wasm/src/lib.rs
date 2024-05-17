@@ -9,7 +9,8 @@ static COMPILER_INITIALIZED: AtomicBool = AtomicBool::new(false);
 fn main() -> Result<(), JsValue> {
     panic::set_hook(Box::new(|p| {
         let s = p.to_string();
-        println(s);
+        // println(s);
+        end();
     }));
 
     Ok(())
@@ -20,12 +21,13 @@ fn main() -> Result<(), JsValue> {
 extern "C" {
     pub fn print(output: String);
     pub fn println(output: String);
+    pub fn end();
     pub async fn sleep(ms: u32);
     pub async fn readAsync(text: String) -> JsValue;
 }
 
 async fn read_async(text: String) -> String {
-    readAsync(text).await.as_string().unwrap()
+    readAsync(text).await.as_string().unwrap_or_default()
 }
 
 #[wasm_bindgen]

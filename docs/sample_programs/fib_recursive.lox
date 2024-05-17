@@ -8,6 +8,6 @@ function fib(n) {
 }
 
 var start = Clock();
-print("fib(10) = " + fib(30));
+print("fib(30) = " + fib(30));
 var dur = Clock() - start;
 print("Time: " + dur + "ms");

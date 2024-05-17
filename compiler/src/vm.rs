@@ -212,7 +212,7 @@ where
             idx -= 1;
         }
 
-        std::process::exit(1);
+        panic!("Exiting due to runtime error");
     }
 
     fn pop(&mut self) -> Result<Value> {

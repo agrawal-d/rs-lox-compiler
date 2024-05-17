@@ -1,15 +1,19 @@
 const myWorker = new Worker('worker.js', { type: 'module' });
+
 ///// Monaco
 console.log("Setting up Monaco Editor");
+
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs' } });
 require(["vs/editor/editor.main"], function () {
     window.editor = monaco.editor.create(document.getElementById('editor'), {
-        value: 'function fib(n) {\n\n    // Base Case\n    if (n < 2) {\n        return n;\n    }\n\n    var a = 0;\n    var b = 1;\n    var temp;\n\n    for(var i = 2; i < n; i = i + 1) {\n        temp = a + b;\n        a = b;\n        b = temp;\n    }\n\n    return b;\n}\n\nvar start = Clock();\nprint("Fib(30) is  " + fib(30));\nvar end = Clock();\nprint("Time taken: " + (end - start) + "ms");',
+        value: 'print("Please wait, samples are loading...")',
         language: 'csharp',
         scrollBeyondLastLine: false,
         minimap: { enabled: false },
         automaticLayout: true,
     });
+
+    loadSamples();
 });
 
 
@@ -70,3 +74,62 @@ resetButton.addEventListener('click', () => {
 });
 
 outputTextarea.value = '';
+
+
+///// Sample picker
+
+const samplePicker = document.getElementById('sample-select');
+
+function loadSamples() {
+    var samples = [
+        {
+            name: "Fibonacci (Iterative)",
+            code: "sample_programs/fib_iterative.lox",
+        },
+        {
+            name: "Fibonacci (Recursive)",
+            code: "sample_programs/fib_recursive.lox",
+        },
+        {
+            name: "Guess Game",
+            code: "sample_programs/guess_game.lox",
+        },
+        {
+            name: "Story Generator",
+            code: "sample_programs/interactive.lox",
+        }, {
+            name: "Merge Sort",
+            code: "sample_programs/merge_sort.lox",
+        }, {
+            name: "Trace Back",
+            code: "sample_programs/traceback.lox",
+        }
+    ]
+
+    // For each sample, fetch the code and add it to the dropdown, and also update samples with the real code
+
+    var promises = [];
+    for (let i = 0; i < samples.length; i++) {
+        var option = document.createElement("option");
+        option.text = samples[i].name;
+        samplePicker.add(option);
+        promises.push(fetch(samples[i].code)
+            .then(response => response.text())
+            .then(data => {
+                samples[i].code = data;
+            }));
+    }
+
+    // On select choose, update value of editor
+    samplePicker.addEventListener('change', () => {
+        const selected = samplePicker.selectedIndex;
+        window.editor.setValue(samples[selected].code);
+        editor.focus();
+    });
+
+    Promise.all(promises).then(() => {
+        console.log("Samples loaded");
+        window.editor.setValue(samples[0].code);
+        editor.focus();
+    });
+}

@@ -24,98 +24,103 @@
                 <details class="float-right ref">
                     <summary>Reference</summary>
                     <br />
-                    <h4>Builtin Types</h4>
-                    <ul>
-                        <li>Number - 64 bit float</li>
-                        <li>Str</li>
-                        <li>Bool</li>
-                        <li>Array</li>
-                        <li>Function</li>
-                        <li>Nil</li>
-                    </ul>
-                    <h4>Native Functions</h4>
-                    In case of errors or invalid arguments, a global error variable named
-                    "errString" is set with the error message and the function returns nil.
-                    Otherwise, the global error variable is set to nil.
-                    <ol>
-                        <li>
-                            <h4>Clock() -> Number</h4>
-                            Returns the current epoch in milliseconds.
-                        </li>
-                        <li>
-                            <h4>Print(Str)</h4>
-                            Prints the given string to the output.
-                        </li>
-                        <li>
-                            <h4>ReadNumber(String) -> Number</h4>
-                            Reads a number from the input, displaying the given string as a prompt.
-                        </li>
-                        <li>
-                            <h4>ReadString(String) -> Str</h4>
-                            Reads a string from the input, displaying the given string as a prompt.
-                        </li>
-                        <li>
-                            <h4>ReadBool() -> Bool</h4>
-                            Reads a boolean from the input.
-                        </li>
-                        <li>
-                            <h4>TypeOf(Any) -> String</h4>
-                            Returns the type of the given value.
-                        </li>
-                        <li>
-                            <h4>ToString(Any) -> String</h4>
-                            Converts the given value to a string.
-                        </li>
-                        <li>
-                            <h4>ToNumber(String) -> Number</h4>
-                            Converts the given string to a number.
-                        </li>
-                        <li>
-                            <h4>StringAt(String, Number) -> String</h4>
-                            Returns the character at the given index in the string.
-                        </li>
-                        <li>
-                            <h4>StrLen(String) -> Number</h4>
-                            Returns the length of the given string.
-                        </li>
-                        <li>
-                            <h4>ArrLen(String) -> Number</h4>
-                            Returns the length of the given array.
-                        </li>
-                        <li>
-                            <h4>Ceil(Number) -> Number</h4>
-                            Returns the smallest integer greater than or equal to the given number.
-                        </li>
-                        <li>
-                            <h4>Floor(Number) -> Number</h4>
-                            Returns the largest integer less than or equal to the given number.
-                        </li>
-                        <li>
-                            <h4>Abs(Number) -> Number</h4>
-                            Returns the absolute value of the given number.
-                        </li>
-                        <li>
-                            <h4>Rand() -> Number</h4>
-                            Returns a 32-bit unsigned integer ( as Number )
-                        </li>
-                        <li>
-                            <h4>Sort(Array)</h4>
-                            Sorts an arrray of numbers in ascending order. If the array has non-numbers, it's an
-                            error.
-                        </li>
-                        <li>
-                            <h4>IndexOf(Array, Any) -> Number</h4>
-                            Returns the index of the given value in the array. If the value is not found, returns the
-                            length of the array.
-                        </li>
-                    </ol>
+                    <div>
+                        <h4>Builtin Types</h4>
+                        <ul>
+                            <li>Number - 64 bit float</li>
+                            <li>Str</li>
+                            <li>Bool</li>
+                            <li>Array</li>
+                            <li>Function</li>
+                            <li>Nil</li>
+                        </ul>
+                        <h4>Native Functions</h4>
+                        In case of errors or invalid arguments, a global error variable named
+                        "errString" is set with the error message and the function returns nil.
+                        Otherwise, the global error variable is set to nil.
+                        <ol>
+                            <li>
+                                <h4>Clock() -> Number</h4>
+                                Returns the current epoch in milliseconds.
+                            </li>
+                            <li>
+                                <h4>Print(Str)</h4>
+                                Prints the given string to the output.
+                            </li>
+                            <li>
+                                <h4>ReadNumber(String) -> Number</h4>
+                                Reads a number from the input, displaying the given string as a prompt.
+                            </li>
+                            <li>
+                                <h4>ReadString(String) -> Str</h4>
+                                Reads a string from the input, displaying the given string as a prompt.
+                            </li>
+                            <li>
+                                <h4>ReadBool() -> Bool</h4>
+                                Reads a boolean from the input.
+                            </li>
+                            <li>
+                                <h4>TypeOf(Any) -> String</h4>
+                                Returns the type of the given value.
+                            </li>
+                            <li>
+                                <h4>ToString(Any) -> String</h4>
+                                Converts the given value to a string.
+                            </li>
+                            <li>
+                                <h4>ToNumber(String) -> Number</h4>
+                                Converts the given string to a number.
+                            </li>
+                            <li>
+                                <h4>StringAt(String, Number) -> String</h4>
+                                Returns the character at the given index in the string.
+                            </li>
+                            <li>
+                                <h4>StrLen(String) -> Number</h4>
+                                Returns the length of the given string.
+                            </li>
+                            <li>
+                                <h4>ArrLen(String) -> Number</h4>
+                                Returns the length of the given array.
+                            </li>
+                            <li>
+                                <h4>Ceil(Number) -> Number</h4>
+                                Returns the smallest integer greater than or equal to the given number.
+                            </li>
+                            <li>
+                                <h4>Floor(Number) -> Number</h4>
+                                Returns the largest integer less than or equal to the given number.
+                            </li>
+                            <li>
+                                <h4>Abs(Number) -> Number</h4>
+                                Returns the absolute value of the given number.
+                            </li>
+                            <li>
+                                <h4>Rand() -> Number</h4>
+                                Returns a 32-bit unsigned integer ( as Number )
+                            </li>
+                            <li>
+                                <h4>Sort(Array)</h4>
+                                Sorts an arrray of numbers in ascending order. If the array has non-numbers, it's an
+                                error.
+                            </li>
+                            <li>
+                                <h4>IndexOf(Array, Any) -> Number</h4>
+                                Returns the index of the given value in the array. If the value is not found, returns
+                                the
+                                length of the array.
+                            </li>
+                        </ol>
+                    </div>
                 </details>
             </div>
         </div>
         <br />
         <div class="row">
             <div class="column">
-                <h3>Code</h3>
+                <h3>
+                    Try a sample: <select name="Samples" id="sample-select"></select>
+                </h3>
                 <div id="editor" class="textarea"></div>
             </div>
             <div class="column">
