@@ -8,7 +8,7 @@ pub mod native;
 pub mod scanner;
 pub mod value;
 pub mod vm;
-use std::sync::OnceLock;
+use std::{future::Future, sync::OnceLock};
 
 use crate::vm::Vm;
 use std::rc::Rc;
@@ -79,11 +79,15 @@ pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> (), read_fn: f
     }
 }
 
-pub fn run_code(code: &str) {
+pub async fn run_code<F, Fut>(code: &str, read_async: F)
+where
+    F: Fn(String) -> Fut,
+    Fut: Future<Output = String>,
+{
     let source: Rc<str> = Rc::from(code);
     let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
     let mut functions: Vec<fun::Fun> = Vec::new();
     let fun = compiler::Compiler::compile(source, &mut interner, &mut functions, fun::FunType::Script).unwrap();
     functions.push(fun);
-    Vm::interpret(functions, &mut interner).unwrap();
+    Vm::interpret(functions, &mut interner, read_async).unwrap();
 }

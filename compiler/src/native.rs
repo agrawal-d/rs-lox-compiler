@@ -18,7 +18,7 @@ pub trait Callable: Debug {
     fn name(&self) -> &str;
 }
 
-fn set_global_error(interner: &mut Interner, globals: &mut Globals, message: &str) {
+pub fn set_global_error(interner: &mut Interner, globals: &mut Globals, message: &str) {
     globals.insert(interner.intern(ERR_STRING), Value::Str(interner.intern(message)));
 }
 
@@ -37,7 +37,7 @@ macro_rules! callable_struct {
             }
 
             fn name(&self) -> &str {
-                stringify!($name)
+                stringify!($struct_name)
             }
         }
     };

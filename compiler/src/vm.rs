@@ -1,5 +1,5 @@
-use std::cell::RefCell;
 use std::rc::Rc;
+use std::{cell::RefCell, future::Future};
 
 use crate::{
     common::Opcode,
@@ -29,14 +29,18 @@ struct CallFrame {
 
 pub const ERR_STRING: &str = "errString";
 
-pub struct Vm<'src> {
+pub struct Vm<'src, F, Fut>
+where
+    F: Fn(String) -> Fut,
+    Fut: Future<Output = String>,
+{
     frames: Vec<CallFrame>,
-    // frame: &'src mut CallFrame,
     functions: Vec<Fun>,
     stack: Vec<Value>,
     interner: &'src mut Interner,
     globals: FxHashMap<StrId, Value>,
     global_error_id: StrId, // StrId of global error variable
+    read_async: F,
 }
 
 macro_rules! binop {
@@ -76,8 +80,45 @@ macro_rules! register_native {
     };
 }
 
-impl<'src> Vm<'src> {
-    pub fn new(interner: &'src mut Interner, functions: Vec<Fun>) -> Vm {
+fn get_array(arr: &Value, index: &Value) -> anyhow::Result<Value, Error> {
+    match (arr, index) {
+        (Value::Array(array), Value::Number(index)) => {
+            let index = *index as usize;
+            if index < array.borrow().len() {
+                Ok(array.borrow()[index].clone())
+            } else {
+                bail!("Index out of bounds: {index}")
+            }
+        }
+        (arr, index) => {
+            bail!(format!("Tried to index value of type {arr} with index {index}"));
+        }
+    }
+}
+
+fn set_array(arr: &mut Value, index: &Value, new_value: Value) -> anyhow::Result<(), Error> {
+    match (arr, index) {
+        (Value::Array(array), Value::Number(index)) => {
+            let index = *index as usize;
+            if index < array.borrow().len() {
+                array.borrow_mut()[index] = new_value;
+                Ok(())
+            } else {
+                bail!("Index out of bounds: {index}")
+            }
+        }
+        (arr, index) => {
+            bail!(format!("Tried to index value of type {arr} with index {index}"));
+        }
+    }
+}
+
+impl<'src, F, Fut> Vm<'src, F, Fut>
+where
+    F: Fn(String) -> Fut,
+    Fut: Future<Output = String>,
+{
+    pub fn new(interner: &'src mut Interner, functions: Vec<Fun>, read_async: F) -> Vm<F, Fut> {
         let global_error_id = interner.intern(ERR_STRING);
 
         let mut frames: Vec<CallFrame> = Vec::with_capacity(10240);
@@ -95,6 +136,7 @@ impl<'src> Vm<'src> {
             interner,
             globals: Default::default(),
             global_error_id,
+            read_async,
         }
     }
 
@@ -220,7 +262,25 @@ impl<'src> Vm<'src> {
                 let args = &self.stack[self.stack.len() - arg_count as usize..];
                 let function = fun.clone();
                 self.globals.insert(self.global_error_id, Value::Nil); // Reset error string
-                let result = function.call(self.interner, &mut self.globals, args);
+
+                // handle ReadString specially - dont call but ise the vm read_async to get the value
+                let result: Value = if function.name() == "ReadString" {
+                    match &args[0] {
+                        Str(prompt) => {
+                            // let prompt_text = self.interner.lookup(prompt);
+                            // let input = (self.read_async)(prompt_text.to_string()).await;
+                            let input = String::from("LOL");
+                            Value::Str(self.interner.intern(&input))
+                        }
+                        _ => {
+                            set_global_error(self.interner, &mut self.globals, "Expected string as argument to read");
+                            Value::Nil
+                        }
+                    }
+                } else {
+                    function.call(self.interner, &mut self.globals, args)
+                };
+
                 dbgln!("Truncating to length {}", self.stack.len() - 1 - arg_count as usize);
                 self.stack.truncate(self.stack.len() - 1 - arg_count as usize);
                 self.stack.push(result);
@@ -303,7 +363,7 @@ impl<'src> Vm<'src> {
                     if array_index == Value::Nil {
                         self.stack.push(value.clone());
                     } else {
-                        self.stack.push(Vm::get_array(value, &array_index).unwrap_or_else(|err| {
+                        self.stack.push(get_array(value, &array_index).unwrap_or_else(|err| {
                             self.runtime_error(&format!("Error getting array: {err}"));
                         }));
                     }
@@ -316,7 +376,7 @@ impl<'src> Vm<'src> {
                         if array_index == Value::Nil {
                             self.stack.push(value.clone());
                         } else {
-                            self.stack.push(Vm::get_array(value, &array_index).unwrap_or_else(|err| {
+                            self.stack.push(get_array(value, &array_index).unwrap_or_else(|err| {
                                 self.runtime_error(&format!("Error getting array: {err}"));
                             }));
                         }
@@ -334,7 +394,7 @@ impl<'src> Vm<'src> {
                     if array_index == Value::Nil {
                         *value_to_be_modified = new_value;
                     } else {
-                        Vm::set_array(value_to_be_modified, &array_index, new_value).unwrap_or_else(|err| {
+                        set_array(value_to_be_modified, &array_index, new_value).unwrap_or_else(|err| {
                             self.runtime_error(&format!("Error setting array: {err}"));
                         });
                     }
@@ -353,7 +413,7 @@ impl<'src> Vm<'src> {
                         if array_index == Value::Nil {
                             *value_to_be_modified = new_value;
                         } else {
-                            Vm::set_array(value_to_be_modified, &array_index, new_value).unwrap_or_else(|err| {
+                            set_array(value_to_be_modified, &array_index, new_value).unwrap_or_else(|err| {
                                 self.runtime_error(&format!("Error setting array: {err}"));
                             });
                         }
@@ -419,42 +479,9 @@ impl<'src> Vm<'src> {
         }
     }
 
-    fn get_array(arr: &Value, index: &Value) -> anyhow::Result<Value, Error> {
-        match (arr, index) {
-            (Value::Array(array), Value::Number(index)) => {
-                let index = *index as usize;
-                if index < array.borrow().len() {
-                    Ok(array.borrow()[index].clone())
-                } else {
-                    bail!("Index out of bounds: {index}")
-                }
-            }
-            (arr, index) => {
-                bail!(format!("Tried to index value of type {arr} with index {index}"));
-            }
-        }
-    }
-
-    fn set_array(arr: &mut Value, index: &Value, new_value: Value) -> anyhow::Result<(), Error> {
-        match (arr, index) {
-            (Value::Array(array), Value::Number(index)) => {
-                let index = *index as usize;
-                if index < array.borrow().len() {
-                    array.borrow_mut()[index] = new_value;
-                    Ok(())
-                } else {
-                    bail!("Index out of bounds: {index}")
-                }
-            }
-            (arr, index) => {
-                bail!(format!("Tried to index value of type {arr} with index {index}"));
-            }
-        }
-    }
-
-    pub fn interpret(functions: Vec<Fun>, interner: &'src mut Interner) -> Result<()> {
+    pub fn interpret(functions: Vec<Fun>, interner: &'src mut Interner, read_async: F) -> Result<()> {
         dbgln!("== Interpreter VM ==");
-        let mut vm: Vm = Vm::new(interner, functions);
+        let mut vm = Vm::new(interner, functions, read_async);
 
         vm.reset_err_string();
 
