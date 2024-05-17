@@ -4,7 +4,7 @@ use crate::{
     interner::{Interner, StrId},
     value::{print_value, value_as_string, Value},
     vm::ERR_STRING,
-    xprintln, IMPORTS,
+    xprintln,
 };
 use rustc_hash::FxHashMap;
 use std::fmt::Debug;

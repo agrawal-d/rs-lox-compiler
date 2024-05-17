@@ -18,10 +18,6 @@ export function println(output) {
     });
 }
 
-export function read(text) {
-    return "Input not implemented for web";
-}
-
 export async function readAsync(text) {
     postMessage({
         type: "input-request",

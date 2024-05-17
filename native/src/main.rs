@@ -1,4 +1,5 @@
 use compiler::{init, run_code};
+use futures::executor;
 
 #[cfg(debug_assertions)]
 fn flush_if_debug() {
@@ -23,7 +24,7 @@ fn help(args: &Vec<String>) {
     println(format!("Usage: {} <FILE> \nInterpret the program in FILE", args[0]));
 }
 
-fn read(prompt: String) -> String {
+async fn read_async(prompt: String) -> String {
     println(prompt);
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
@@ -33,20 +34,19 @@ fn read(prompt: String) -> String {
 }
 
 fn main() {
-    // init(print, println, read);
+    init(print, println);
 
-    // let args: Vec<String> = std::env::args().collect();
-    // if args.len() != 2 {
-    //     help(&args);
-    //     std::process::exit(1);
-    // }
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        help(&args);
+        std::process::exit(1);
+    }
 
-    // if args[1] == "-h" || args[1] == "--help" {
-    //     help(&args);
-    //     std::process::exit(0);
-    // }
+    if args[1] == "-h" || args[1] == "--help" {
+        help(&args);
+        std::process::exit(0);
+    }
 
-    // let input = std::fs::read_to_string(&args[1]).expect("Failed to read file");
-
-    // run_code(&input);
+    let input = std::fs::read_to_string(&args[1]).expect("Failed to read file");
+    executor::block_on(run_code(&input, read_async));
 }

@@ -20,12 +20,11 @@ fn main() -> Result<(), JsValue> {
 extern "C" {
     pub fn print(output: String);
     pub fn println(output: String);
-    pub fn read(text: String) -> String;
     pub async fn sleep(ms: u32);
     pub async fn readAsync(text: String) -> JsValue;
 }
 
-async fn readAsyncExport(text: String) -> String {
+async fn read_async(text: String) -> String {
     readAsync(text).await.as_string().unwrap()
 }
 
@@ -33,8 +32,8 @@ async fn readAsyncExport(text: String) -> String {
 pub async fn run(code: &str) {
     if !COMPILER_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed) {
         COMPILER_INITIALIZED.store(true, std::sync::atomic::Ordering::Relaxed);
-        init(print, println, read);
+        init(print, println);
     }
 
-    run_code(code, readAsyncExport).await;
+    run_code(code, read_async).await;
 }

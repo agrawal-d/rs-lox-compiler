@@ -18,22 +18,21 @@ const INTERNER_DEFAULT_CAP: usize = 1024;
 struct Imports {
     print_fn: fn(String) -> (),
     println_fn: fn(String) -> (),
-    read_fn: fn(String) -> String,
 }
 
-static IMPORTS: OnceLock<Imports> = OnceLock::new();
+static WRITERS: OnceLock<Imports> = OnceLock::new();
 
 #[macro_export]
 macro_rules! xprint {
     ($($arg:tt)*) => {
-        ($crate::IMPORTS.get().expect("Compiler not initialized").print_fn)(format!($($arg)*))
+        ($crate::WRITERS.get().expect("Compiler not initialized").print_fn)(format!($($arg)*))
     }
 }
 
 #[macro_export]
 macro_rules! xprintln {
     ($($arg:tt)*) => {
-        ($crate::IMPORTS.get().expect("Compiler not initialized").println_fn)(format!($($arg)*))
+        ($crate::WRITERS.get().expect("Compiler not initialized").println_fn)(format!($($arg)*))
     }
 }
 
@@ -67,12 +66,8 @@ macro_rules! dbgln {
     }
 }
 
-pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> (), read_fn: fn(String) -> String) {
-    let res = IMPORTS.set(Imports {
-        print_fn,
-        println_fn,
-        read_fn,
-    });
+pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> ()) {
+    let res = WRITERS.set(Imports { print_fn, println_fn });
 
     if res.is_err() {
         panic!("Compiler already initialized");
