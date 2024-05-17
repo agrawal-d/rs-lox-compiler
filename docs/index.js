@@ -25,7 +25,7 @@ const resetButton = document.getElementById('resetButton');
 const statsP = document.getElementById('stats');
 var starts = 0;
 
-myWorker.onmessage = function (e) {
+myWorker.onmessage = async function (e) {
     let message = e.data
     if (message.type == "output") {
         outputTextarea.value += message.data;
@@ -41,7 +41,7 @@ myWorker.onmessage = function (e) {
         console.log("Input requested");
         myWorker.postMessage({
             type: 'input-response',
-            data: prompt(message.prompt)
+            data: await customPrompt(message.prompt)
         });
     }
 
@@ -131,5 +131,79 @@ function loadSamples() {
         console.log("Samples loaded");
         window.editor.setValue(samples[0].code);
         editor.focus();
+    });
+}
+
+
+///// Prompt
+
+window.customPrompt = (promptMessage) => {
+    return new Promise((resolve) => {
+        // Create the overlay
+        const overlay = document.createElement('div');
+        overlay.classList.add('custom-prompt-overlay');
+
+        // Create the prompt container
+        const promptContainer = document.createElement('div');
+        promptContainer.classList.add('custom-prompt-container');
+
+        // Create the prompt message
+        const promptText = document.createElement('p');
+        promptText.textContent = promptMessage;
+
+        // Create the input field
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+
+        // Create the buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.classList.add('custom-prompt-buttons');
+
+
+        function handleInput() {
+            resolve(inputField.value);
+            document.body.removeChild(overlay);
+        }
+
+        // Create the OK button
+        const okButton = document.createElement('button');
+        okButton.textContent = 'OK';
+        okButton.classList.add('ok-button');
+        okButton.classList.add('green');
+        okButton.addEventListener('click', handleInput);
+
+        inputField.addEventListener('keyup', function (event) {
+            if (event.key === 'Enter') {
+                handleInput();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                resolve('');
+                document.body.removeChild(overlay);
+            }
+        });
+
+        // Create the Cancel button
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.classList.add('cancel-button');
+        cancelButton.addEventListener('click', () => {
+            resolve('');
+            document.body.removeChild(overlay);
+        });
+
+        // Append elements
+        buttonsContainer.appendChild(okButton);
+        buttonsContainer.appendChild(cancelButton);
+        promptContainer.appendChild(promptText);
+        promptContainer.appendChild(inputField);
+        promptContainer.appendChild(buttonsContainer);
+        overlay.appendChild(promptContainer);
+        document.body.appendChild(overlay);
+
+        // Focus the input field
+        inputField.focus();
     });
 }
