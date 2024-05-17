@@ -1,0 +1,35 @@
+// Demo of built in functions like ReadString. For reference, refer to the blue box "Reference" on top right.
+
+function makeStory() {
+    var name = ReadString("Enter a name: ");
+    var age = ReadNumber("Enter an age: ");
+
+    // Built in functions return nil on error, and set a global variable `errString` with the error message.
+    if (age == nil) {
+        print("Invalid age : " + errString + ". Bye!");
+        return;
+    }
+
+    var favNumber = Rand() % 10;
+    var color = ReadString("Enter a color: ");
+    var animal = ReadString("Enter an animal: ");
+    var food = ReadString("Enter a food: ");
+
+    var story = "Once upon a time, there was a person named " + name + ". ";
+    story = story + name + " was " + age + " years old. ";
+    story = story + name + " loved the color " + color + ". ";
+    story = story + name + " had a pet " + animal + ". ";
+    story = story + name + " loved to eat " + food + ". ";
+    story = story + name + " loved the number " + favNumber + ". ";
+
+    // Haha
+    if (food == "pizza" ) {
+        story = story + name + " loved pizza so much that they ate it every day. ";
+    }
+
+    story = story + "The end.";
+
+    print(story);
+}
+
+makeStory();

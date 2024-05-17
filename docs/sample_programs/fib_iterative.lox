@@ -1,0 +1,23 @@
+// Iterative Fibonacci function (fast)
+function fib(n) {
+    if (n<2) {
+        return n;
+    }
+
+    var a = 0;
+    var b = 1;
+    var c = 0;
+
+    for (var i = 2; i <= n; i = i + 1) {
+        c = a + b;
+        a = b;
+        b = c;
+    }
+
+    return c;
+}
+
+var start = Clock();
+print("fib(10) = " + fib(30));
+var dur = Clock() - start;
+print("Time: " + dur + "ms");

@@ -1,0 +1,73 @@
+// Implementation of merge sort algorithm (sort in place)
+
+// Merge sorted subarrays arr[low..mid] and arr[mid+1..high]
+function merge(arr, low, mid, high) {
+    var len1 = mid - low + 1;
+    var len2 = high - mid;
+
+    var arr1[len1];
+    var arr2[len2];
+
+    for (var i = 0; i < len1; i = i + 1) {
+        arr1[i] = arr[low + i];
+    }
+
+    for (var i = 0; i < len2; i = i + 1) {
+        arr2[i] = arr[mid + 1 + i];
+    }
+
+    var idx1 = 0;
+    var idx2 = 0;
+    var idx = low;
+
+    while (idx1 < len1 and idx2 < len2) {
+        if (arr1[idx1] <= arr2[idx2]) {
+            arr[idx] = arr1[idx1];
+            idx1 = idx1 + 1;
+        } else {
+            arr[idx] = arr2[idx2];
+            idx2 = idx2 + 1;
+        }
+        idx = idx + 1;
+    }
+
+    while (idx1 < len1) {
+        arr[idx] = arr1[idx1];
+        idx1 = idx1 + 1;
+        idx = idx + 1;
+    }
+
+    while (idx2 < len2) {
+        arr[idx] = arr2[idx2];
+        idx2 = idx2 + 1;
+        idx = idx + 1;
+    }
+}
+
+// Sort subarray arr[low..high]
+function sortRange(arr, low, high) {
+    if (low < high) {
+        var mid = Floor((low + high) / 2);
+        sortRange(arr, low, mid);
+        sortRange(arr, mid + 1, high);
+        merge(arr, low, mid, high);
+    }
+}
+
+// Sort array arr using merge sort algorithm
+function sort(arr) {
+    sortRange(arr, 0, ArrLen(arr) - 1);
+}
+
+// Driver
+var arr[10];
+for(var i = 0; i < 10; i = i + 1) {
+    arr[i] = Rand() % 10;
+}
+
+Print("Original array:");
+Print(arr);
+
+Print("Sorted array:");
+sort(arr);
+Print(arr);

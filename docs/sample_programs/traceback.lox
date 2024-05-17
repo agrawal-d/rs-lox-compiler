@@ -1,0 +1,26 @@
+// Demonstation of useful stack traces during runtime errors
+
+function isAdult(age) {
+    if (age < 18) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+function showAge(age) {
+    if (isAdult(age)) {
+        print("You are all grown up!");
+    } else {
+        print("You are still a kid!");
+    }
+}
+
+
+function greet(name, age) {
+    print("Hello " + name + " !");
+    showAge(age);
+}
+
+// Pass invalid age
+greet("John", nil);
