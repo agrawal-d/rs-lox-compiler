@@ -9,7 +9,7 @@ static COMPILER_INITIALIZED: AtomicBool = AtomicBool::new(false);
 fn main() -> Result<(), JsValue> {
     panic::set_hook(Box::new(|p| {
         let s = p.to_string();
-        // println(s);
+        println(s);
         end();
     }));
 
