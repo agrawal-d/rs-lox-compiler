@@ -35,9 +35,9 @@ where
     Fut: Future<Output = String>,
 {
     frames: Vec<CallFrame>,
-    functions: Vec<Fun>,
+    pub functions: Vec<Fun>,
     stack: Vec<Value>,
-    interner: &'src mut Interner,
+    pub interner: &'src mut Interner,
     globals: FxHashMap<StrId, Value>,
     global_error_id: StrId, // StrId of global error variable
     read_async: F,
@@ -129,15 +129,68 @@ where
             slot_offset: 0,
         });
 
-        Vm {
+        let vm = Vm {
             frames,
             functions,
-            stack: Vec::with_capacity(10240),
+            stack: Vec::with_capacity(1024),
             interner,
-            globals: Default::default(),
+            globals: FxHashMap::default(),
             global_error_id,
             read_async,
-        }
+        };
+
+        vm
+    }
+
+    pub fn new_repl(interner: &'src mut Interner, read_async: F) -> Vm<'src, F, Fut> {
+        let global_error_id = interner.intern(ERR_STRING);
+        let mut vm = Vm {
+            frames: Vec::with_capacity(10240),
+            functions: Vec::new(),
+            stack: Vec::with_capacity(1024),
+            interner,
+            globals: FxHashMap::default(),
+            global_error_id,
+            read_async,
+        };
+
+        register_native!(vm, Clock);
+        register_native!(vm, Sleep);
+        register_native!(vm, TypeOf);
+        register_native!(vm, Print);
+        register_native!(vm, ReadNumber);
+        register_native!(vm, ReadString);
+        register_native!(vm, ReadBool);
+        register_native!(vm, ToString);
+        register_native!(vm, ToNumber);
+        register_native!(vm, StringAt);
+        register_native!(vm, StrLen);
+        register_native!(vm, ArrLen);
+        register_native!(vm, Ceil);
+        register_native!(vm, Floor);
+        register_native!(vm, Sort);
+        register_native!(vm, IndexOf);
+        register_native!(vm, Rand);
+
+        vm
+    }
+
+    pub async fn run_repl_chunk(&mut self, fun: Fun) -> Result<()> {
+        self.stack.clear();
+        self.frames.clear();
+
+        let fun_idx = self.functions.len();
+        self.functions.push(fun);
+
+        self.frames.push(CallFrame {
+            fun_idx,
+            ip: 0,
+            start_len: 0,
+            slot_offset: 0,
+        });
+
+        self.reset_err_string();
+        self.run().await
     }
 
     fn code(&self, offset: usize) -> u8 {

@@ -82,7 +82,9 @@ where
     let source: Rc<str> = Rc::from(code);
     let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
     let mut functions: Vec<fun::Fun> = Vec::new();
-    let fun = compiler::Compiler::compile(source, &mut interner, &mut functions, fun::FunType::Script).unwrap();
-    functions.push(fun);
-    Vm::interpret(functions, &mut interner, read_async).await.unwrap();
+    let (fun, had_error) = compiler::Compiler::compile(source, &mut interner, &mut functions, fun::FunType::Script).unwrap();
+    if !had_error {
+        functions.push(fun);
+        Vm::interpret(functions, &mut interner, read_async).await.unwrap();
+    }
 }

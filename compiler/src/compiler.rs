@@ -243,7 +243,7 @@ pub struct Compiler<'src> {
 }
 
 impl<'src> Compiler<'src> {
-    pub fn compile(source: Rc<str>, interner: &mut Interner, functions: &'src mut Vec<Fun>, fun_typ: FunType) -> Result<Fun> {
+    pub fn compile(source: Rc<str>, interner: &mut Interner, functions: &'src mut Vec<Fun>, fun_typ: FunType) -> Result<(Fun, bool)> {
         let scanner: Scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
         let rules = get_rules();
@@ -274,7 +274,8 @@ impl<'src> Compiler<'src> {
             compiler.declaration();
         }
 
-        Ok(compiler.end())
+        let had_error = compiler.parser.had_error;
+        Ok((compiler.end(), had_error))
     }
 
     fn line(&self) -> usize {
