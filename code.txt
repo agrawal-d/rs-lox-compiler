@@ -1,5 +1,0 @@
-function greet(first, age=10) {
-    print("Hi! " + first + " " + age +"!");
-}
-
-greet("Divyanshu", 20);
