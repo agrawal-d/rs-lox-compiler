@@ -82,7 +82,29 @@ where
     let source: Rc<str> = Rc::from(code);
     let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
     let mut functions: Vec<fun::Fun> = Vec::new();
-    let (fun, had_error) = compiler::Compiler::compile(source, &mut interner, &mut functions, fun::FunType::Script).unwrap();
+    let (fun, had_error) = compiler::Compiler::compile(source, None, &mut interner, &mut functions, fun::FunType::Script).unwrap();
+    if !had_error {
+        functions.push(fun);
+        Vm::interpret(functions, &mut interner, read_async).await.unwrap();
+    }
+}
+
+pub async fn run_file<F, Fut>(file_path: &str, read_async: F)
+where
+    F: Fn(String) -> Fut,
+    Fut: Future<Output = String>,
+{
+    use std::fs;
+    use std::path::Path;
+
+    let path = Path::new(file_path);
+    let current_dir = path.parent().map(|p| p.to_path_buf());
+    let code = fs::read_to_string(path).expect("Failed to read file");
+
+    let source: Rc<str> = Rc::from(code);
+    let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
+    let mut functions: Vec<fun::Fun> = Vec::new();
+    let (fun, had_error) = compiler::Compiler::compile(source, current_dir, &mut interner, &mut functions, fun::FunType::Script).unwrap();
     if !had_error {
         functions.push(fun);
         Vm::interpret(functions, &mut interner, read_async).await.unwrap();

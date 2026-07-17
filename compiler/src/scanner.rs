@@ -59,6 +59,8 @@ impl Scanner {
             m.insert("true", TokenType::True);
             m.insert("false", TokenType::False);
             m.insert("function", TokenType::Fun);
+            m.insert("import", TokenType::Import);
+            m.insert("as", TokenType::As);
             m
         })
     }
@@ -324,6 +326,8 @@ pub enum TokenType {
     True,
     Var,
     While,
+    Import,
+    As,
     Error,
     EOF,
 }

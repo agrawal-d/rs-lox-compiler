@@ -231,6 +231,30 @@ impl Parser {
     }
 }
 
+fn is_native_function(name: &str) -> bool {
+    matches!(
+        name,
+        "clock"
+            | "sleep"
+            | "typeof"
+            | "str"
+            | "int"
+            | "float"
+            | "bool"
+            | "stringat"
+            | "len"
+            | "ceil"
+            | "floor"
+            | "abs"
+            | "sort"
+            | "indexof"
+            | "rand"
+            | "input"
+            | "readnumber"
+            | "errString"
+    )
+}
+
 pub struct Compiler<'src> {
     fun: Fun,
     fun_typ: FunType,
@@ -239,22 +263,50 @@ pub struct Compiler<'src> {
     rules: HashMap<TokenType, ParseRule<'src>>,
     locals: Vec<Local>,
     scope_depth: isize,
-    functions: &'src mut Vec<Fun>,
+    functions: *mut Vec<Fun>,
+    current_dir: Option<std::path::PathBuf>,
+    namespace_prefix: Option<String>,
+    imported_files: *mut std::collections::HashSet<std::path::PathBuf>,
+    import_stack: *mut Vec<std::path::PathBuf>,
 }
 
 impl<'src> Compiler<'src> {
-    pub fn compile(source: Rc<str>, interner: &mut Interner, functions: &'src mut Vec<Fun>, fun_typ: FunType) -> Result<(Fun, bool)> {
+    pub fn compile(
+        source: Rc<str>,
+        current_dir: Option<std::path::PathBuf>,
+        interner: &mut Interner,
+        functions: &'src mut Vec<Fun>,
+        fun_typ: FunType,
+    ) -> Result<(Fun, bool)> {
+        let mut imported_files = std::collections::HashSet::new();
+        let mut import_stack = Vec::new();
+        Self::compile_internal(
+            source,
+            current_dir,
+            None,
+            &mut imported_files,
+            &mut import_stack,
+            interner,
+            functions,
+            fun_typ,
+        )
+    }
+
+    fn compile_internal(
+        source: Rc<str>,
+        current_dir: Option<std::path::PathBuf>,
+        namespace_prefix: Option<String>,
+        imported_files: &mut std::collections::HashSet<std::path::PathBuf>,
+        import_stack: &mut Vec<std::path::PathBuf>,
+        interner: &mut Interner,
+        functions: &mut Vec<Fun>,
+        fun_typ: FunType,
+    ) -> Result<(Fun, bool)> {
         let scanner: Scanner = Scanner::new(source);
         let parser = Parser::new(scanner);
         let rules = get_rules();
 
         let locals = Vec::new();
-
-        // Dummy local for internal use
-        // locals.push(Local {
-        //     name: Token::new(),
-        //     depth: 0,
-        // });
 
         let mut compiler = Compiler {
             fun: Fun::new(),
@@ -264,7 +316,11 @@ impl<'src> Compiler<'src> {
             rules,
             locals,
             scope_depth: 0,
-            functions,
+            functions: functions as *mut _,
+            current_dir,
+            namespace_prefix,
+            imported_files: imported_files as *mut _,
+            import_stack: import_stack as *mut _,
         };
 
         dbgln!("== Parser (Scan on demand) ==");
@@ -397,7 +453,13 @@ impl<'src> Compiler<'src> {
     }
 
     fn function(&mut self, typ: FunType) {
-        let name = Some(self.interner.intern(self.parser.previous.source.as_ref()));
+        let raw_name = self.parser.previous.source.as_ref();
+        let name_str = if let Some(ref prefix) = self.namespace_prefix {
+            format!("{}.{}", prefix, raw_name)
+        } else {
+            raw_name.to_string()
+        };
+        let name = Some(self.interner.intern(&name_str));
         let dummy_parser = Parser::new(Scanner::new(Rc::from("")));
 
         let mut fn_compiler = Compiler {
@@ -409,6 +471,10 @@ impl<'src> Compiler<'src> {
             locals: Vec::new(),
             scope_depth: 0,
             functions: self.functions,
+            current_dir: self.current_dir.clone(),
+            namespace_prefix: self.namespace_prefix.clone(),
+            imported_files: self.imported_files,
+            import_stack: self.import_stack,
         };
 
         let mut min_arity = 0;
@@ -467,9 +533,10 @@ impl<'src> Compiler<'src> {
         fn_compiler.block();
         let fun = fn_compiler.end();
 
-        fn_compiler.functions.push(fun);
+        unsafe { &mut *fn_compiler.functions }.push(fun);
         _ = std::mem::replace(&mut self.parser, fn_compiler.parser);
-        let constant_idx = self.make_constant(Value::Function(self.functions.len() - 1)) as u8;
+        let fun_len = unsafe { &*self.functions }.len();
+        let constant_idx = self.make_constant(Value::Function(fun_len - 1)) as u8;
         self.emit_bytes(Opcode::Constant as u8, constant_idx);
     }
 
@@ -609,6 +676,8 @@ impl<'src> Compiler<'src> {
             self.fun_declaration();
         } else if self.parser.match_tt(TokenType::Var) {
             self.var_declaration();
+        } else if self.parser.match_tt(TokenType::Import) {
+            self.import_declaration();
         } else {
             self.statement();
         }
@@ -616,6 +685,126 @@ impl<'src> Compiler<'src> {
         if self.parser.panic_mode {
             self.parser.synchronize();
         }
+    }
+
+    fn prefix_token(&self, token: Token) -> Token {
+        if let Some(ref prefix) = self.namespace_prefix {
+            if is_native_function(token.source.as_ref()) {
+                token
+            } else {
+                let prefix_dot = format!("{}.", prefix);
+                if token.source.starts_with(&prefix_dot) {
+                    token
+                } else {
+                    let mut new_token = token.clone();
+                    new_token.source = Rc::from(format!("{}.{}", prefix, token.source));
+                    new_token
+                }
+            }
+        } else {
+            token
+        }
+    }
+
+    fn import_declaration(&mut self) {
+        self.parser.consume(TokenType::String, "Expect string literal for import path.");
+        let path_token = self.parser.previous.clone();
+        
+        self.parser.consume(TokenType::As, "Expect 'as' after import path.");
+        self.parser.consume(TokenType::Identifier, "Expect namespace alias after 'as'.");
+        let alias_token = self.parser.previous.clone();
+        
+        self.parser.consume(TokenType::Semicolon, "Expect ';' after import declaration.");
+        
+        let path_str = path_token.source.clone();
+        let path_str = &path_str[1..path_str.len() - 1];
+        let alias_str = alias_token.source.as_ref();
+        
+        #[cfg(target_arch = "wasm32")]
+        {
+            xprintln!("Warning: import is not supported in the WASM environment.");
+            return;
+        }
+        
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if let Err(e) = self.execute_import(path_str, alias_str) {
+                self.parser.error_at_current(&e);
+            }
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn execute_import(&mut self, path_str: &str, alias_str: &str) -> std::result::Result<(), String> {
+        use std::fs;
+
+        let base_dir = self.current_dir.clone().unwrap_or_else(|| {
+            std::env::current_dir().unwrap_or_default()
+        });
+        
+        let import_path = base_dir.join(path_str);
+        let canonical_path = match import_path.canonicalize() {
+            std::result::Result::Ok(p) => p,
+            std::result::Result::Err(_) => return std::result::Result::Err(format!("Could not resolve import path: {}", path_str)),
+        };
+
+        let stack = unsafe { &mut *self.import_stack };
+        if stack.contains(&canonical_path) {
+            return std::result::Result::Err(format!("Circular import detected: {} is already being imported", path_str));
+        }
+
+        let imported = unsafe { &mut *self.imported_files };
+        if imported.contains(&canonical_path) {
+            return std::result::Result::Ok(());
+        }
+
+        let content = match fs::read_to_string(&canonical_path) {
+            std::result::Result::Ok(c) => c,
+            std::result::Result::Err(_) => return std::result::Result::Err(format!("Could not read import file: {}", path_str)),
+        };
+
+        stack.push(canonical_path.clone());
+
+        let source: Rc<str> = Rc::from(content);
+        let new_current_dir = canonical_path.parent().map(|p| p.to_path_buf());
+        
+        let combined_prefix = if let Some(ref parent) = self.namespace_prefix {
+            format!("{}.{}", parent, alias_str)
+        } else {
+            alias_str.to_string()
+        };
+
+        let (fun, had_error) = match Self::compile_internal(
+            source,
+            new_current_dir,
+            Some(combined_prefix),
+            imported,
+            stack,
+            self.interner,
+            unsafe { &mut *self.functions },
+            FunType::Script,
+        ) {
+            std::result::Result::Ok(res) => res,
+            std::result::Result::Err(_) => return std::result::Result::Err(format!("Compilation failed for import: {}", path_str)),
+        };
+
+        stack.pop();
+
+        if had_error {
+            return std::result::Result::Err(format!("Compilation errors in import: {}", path_str));
+        }
+
+        imported.insert(canonical_path);
+
+        unsafe { &mut *self.functions }.push(fun);
+        
+        let fun_len = unsafe { &*self.functions }.len();
+        let fun_const_idx = self.make_constant(Value::Function(fun_len - 1));
+        self.emit_bytes(Opcode::Constant as u8, fun_const_idx as u8);
+        self.emit_bytes(Opcode::Call as u8, 0);
+        self.emit_byte(Opcode::Pop as u8);
+
+        std::result::Result::Ok(())
     }
 
     fn statement(&mut self) {
@@ -656,15 +845,16 @@ impl<'src> Compiler<'src> {
     }
 
     fn named_variable(&mut self, token: &Token, can_assign: bool) {
+        let prefixed_token = self.prefix_token(token.clone());
         let get_op: Opcode;
         let set_op: Opcode;
-        let mut arg: isize = self.resolve_local(token);
+        let mut arg: isize = self.resolve_local(&prefixed_token);
 
         if arg != -1 {
             set_op = Opcode::SetLocal;
             get_op = Opcode::GetLocal;
         } else {
-            arg = self.identifier_constant(token) as isize;
+            arg = self.identifier_constant(&prefixed_token) as isize;
             set_op = Opcode::SetGlobal;
             get_op = Opcode::GetGlobal;
         }
@@ -756,7 +946,15 @@ impl<'src> Compiler<'src> {
     }
 
     fn variable(&mut self, can_assign: bool) {
-        self.named_variable(&self.parser.previous.clone(), can_assign);
+        let mut token = self.parser.previous.clone();
+        
+        while self.parser.match_tt(TokenType::Dot) {
+            self.parser.consume(TokenType::Identifier, "Expect property/method name after '.' in namespace access.");
+            let prop_token = self.parser.previous.clone();
+            token.source = Rc::from(format!("{}.{}", token.source, prop_token.source));
+        }
+
+        self.named_variable(&token, can_assign);
     }
 
     fn unary(&mut self, can_assign: bool) {
@@ -790,7 +988,8 @@ impl<'src> Compiler<'src> {
         }
 
         let previous = if is_array { array_name } else { self.parser.previous.clone() };
-        (self.identifier_constant(&previous), is_array)
+        let prefixed_name = self.prefix_token(previous);
+        (self.identifier_constant(&prefixed_name), is_array)
     }
 
     /// Parse expressions with equal or higher precedence
@@ -875,17 +1074,19 @@ impl<'src> Compiler<'src> {
             None => self.parser.previous.clone(),
         };
 
+        let prefixed_name = self.prefix_token(name);
+
         for local in self.locals.iter().rev() {
             if local.depth != -1 && local.depth < self.scope_depth {
                 break;
             }
 
-            if identifiers_equal(&name, &local.name) {
+            if identifiers_equal(&prefixed_name, &local.name) {
                 self.parser.error_at_current("Already a variable with this name in this scope");
             }
         }
 
-        self.add_local(name);
+        self.add_local(prefixed_name);
     }
 
     fn define_global_if_needed(&mut self, global: usize, _is_array: bool) {

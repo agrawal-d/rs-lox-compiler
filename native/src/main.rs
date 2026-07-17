@@ -1,4 +1,4 @@
-use compiler::{init, run_code};
+use compiler::{init, run_file};
 use compiler::compiler::Compiler;
 use compiler::fun::FunType;
 use compiler::vm::Vm;
@@ -142,7 +142,7 @@ fn run_repl() {
                 if is_potential_expression {
                     // Try compiling as a REPL expression first
                     SUPPRESS_OUTPUT.with(|s| s.set(true));
-                    let spec_res = Compiler::compile(source.clone(), vm.interner, &mut vm.functions, FunType::ReplExpression);
+                    let spec_res = Compiler::compile(source.clone(), None, vm.interner, &mut vm.functions, FunType::ReplExpression);
                     SUPPRESS_OUTPUT.with(|s| s.set(false));
                     
                     if let Ok((fun, false)) = spec_res {
@@ -152,7 +152,7 @@ fn run_repl() {
                 
                 let compile_res = match compile_result {
                     Some(res) => Ok(res),
-                    None => Compiler::compile(source, vm.interner, &mut vm.functions, FunType::Script),
+                    None => Compiler::compile(source, None, vm.interner, &mut vm.functions, FunType::Script),
                 };
 
                 match compile_res {
@@ -201,6 +201,6 @@ fn main() {
         std::process::exit(0);
     }
 
-    let input = std::fs::read_to_string(&args[1]).expect("Failed to read file");
-    executor::block_on(run_code(&input, read_async));
+    let file_path = &args[1];
+    executor::block_on(run_file(file_path, read_async));
 }
