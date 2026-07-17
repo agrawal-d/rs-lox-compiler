@@ -71,7 +71,11 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, Comma, None, None, Precedence::None);
     add_rule!(map, Dot, None, None, Precedence::None);
     add_rule!(map, Minus, Some(Compiler::unary), Some(Compiler::binary), Precedence::Term);
+    add_rule!(map, MinusEqual, None, None, Precedence::None);
+    add_rule!(map, MinusMinus, Some(Compiler::prefix_increment_decrement), None, Precedence::None);
     add_rule!(map, Plus, None, Some(Compiler::binary), Precedence::Term);
+    add_rule!(map, PlusEqual, None, None, Precedence::None);
+    add_rule!(map, PlusPlus, Some(Compiler::prefix_increment_decrement), None, Precedence::None);
     add_rule!(map, Semicolon, None, None, Precedence::None);
     add_rule!(map, Slash, None, Some(Compiler::binary), Precedence::Factor);
     add_rule!(map, Star, None, Some(Compiler::binary), Precedence::Factor);
@@ -635,9 +639,70 @@ impl<'src> Compiler<'src> {
         if can_assign && self.parser.match_tt(TokenType::Equal) {
             self.expression();
             self.emit_bytes(set_op as u8, arg as u8);
+        } else if can_assign && self.parser.match_tt(TokenType::PlusEqual) {
+            self.emit_byte(Opcode::Dup as u8);
+            self.emit_bytes(get_op as u8, arg as u8);
+            self.expression();
+            self.emit_byte(Opcode::Add as u8);
+            self.emit_bytes(set_op as u8, arg as u8);
+        } else if can_assign && self.parser.match_tt(TokenType::MinusEqual) {
+            self.emit_byte(Opcode::Dup as u8);
+            self.emit_bytes(get_op as u8, arg as u8);
+            self.expression();
+            self.emit_byte(Opcode::Subtract as u8);
+            self.emit_bytes(set_op as u8, arg as u8);
+        } else if self.parser.match_tt(TokenType::PlusPlus) {
+            self.emit_byte(Opcode::Dup as u8);
+            self.emit_bytes(get_op as u8, arg as u8);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Add as u8);
+            self.emit_bytes(set_op as u8, arg as u8);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Subtract as u8);
+        } else if self.parser.match_tt(TokenType::MinusMinus) {
+            self.emit_byte(Opcode::Dup as u8);
+            self.emit_bytes(get_op as u8, arg as u8);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Subtract as u8);
+            self.emit_bytes(set_op as u8, arg as u8);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Add as u8);
         } else {
             self.emit_bytes(get_op as u8, arg as u8);
         }
+    }
+
+    fn prefix_increment_decrement(&mut self, _can_assign: bool) {
+        let is_increment = self.parser.previous.typ == TokenType::PlusPlus;
+        self.parser.consume(TokenType::Identifier, "Expect variable name.");
+        let token = self.parser.previous.clone();
+
+        let get_op: Opcode;
+        let set_op: Opcode;
+        let mut arg: isize = self.resolve_local(&token);
+
+        if arg != -1 {
+            set_op = Opcode::SetLocal;
+            get_op = Opcode::GetLocal;
+        } else {
+            arg = self.identifier_constant(&token) as isize;
+            set_op = Opcode::SetGlobal;
+            get_op = Opcode::GetGlobal;
+        }
+
+        if self.array_access_index() {
+            dbgln!("{} is array access", token.source);
+        }
+
+        self.emit_byte(Opcode::Dup as u8);
+        self.emit_bytes(get_op as u8, arg as u8);
+        self.emit_constant(Value::Number(1.0));
+        if is_increment {
+            self.emit_byte(Opcode::Add as u8);
+        } else {
+            self.emit_byte(Opcode::Subtract as u8);
+        }
+        self.emit_bytes(set_op as u8, arg as u8);
     }
 
     // Array index (or max value if not an array index)

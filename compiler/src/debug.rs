@@ -30,6 +30,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         | Opcode::Print
         | Opcode::DeclareArray
         | Opcode::Pop
+        | Opcode::Dup
         | Opcode::Not => simple_instruction(chunk, instruction, offset),
 
         Opcode::Jump | Opcode::JumpIfFalse => jump_instruction(chunk, instruction, 1, offset),

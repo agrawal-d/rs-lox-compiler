@@ -97,16 +97,21 @@ callable_struct!(ReadNumber, 1, interner: &mut Interner, globals: &mut Globals, 
     }
 });
 
-callable_struct!(ReadBool, 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
-    let mut input = String::new();
-    std::io::stdin().read_line(&mut input).unwrap();
-    let len = input.len();
-    input.truncate(len - 1);
-    match input.as_str() {
-        "true" => Value::Bool(true),
-        "false" => Value::Bool(false),
+callable_struct!(ReadBool, 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    match &args[0] {
+        Value::Str(user_input) => {
+            let input = interner.lookup(user_input);
+            match input {
+                "true" => Value::Bool(true),
+                "false" => Value::Bool(false),
+                _ => {
+                    set_global_error(interner, globals, "Expected 'true' or 'false'");
+                    Value::Nil
+                }
+            }
+        }
         _ => {
-            set_global_error(interner, globals, "Expected 'true' or 'false'");
+            set_global_error(interner, globals, "Expected string as argument to read");
             Value::Nil
         }
     }

@@ -118,7 +118,7 @@ where
     F: Fn(String) -> Fut,
     Fut: Future<Output = String>,
 {
-    pub fn new(interner: &'src mut Interner, functions: Vec<Fun>, read_async: F) -> Vm<F, Fut> {
+    pub fn new(interner: &'src mut Interner, functions: Vec<Fun>, read_async: F) -> Vm<'src, F, Fut> {
         let global_error_id = interner.intern(ERR_STRING);
 
         let mut frames: Vec<CallFrame> = Vec::with_capacity(10240);
@@ -356,6 +356,10 @@ where
                 Opcode::False => self.stack.push(Bool(false)),
                 Opcode::Pop => {
                     self.pop_unchecked();
+                }
+                Opcode::Dup => {
+                    let val = self.peek(0).clone();
+                    self.stack.push(val);
                 }
                 Opcode::GetLocal => {
                     let array_index = self.pop_unchecked();

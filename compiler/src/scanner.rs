@@ -82,18 +82,18 @@ impl Scanner {
             '.' => self.make_token(TokenType::Dot),
             '-' => {
                 if self.match_char('=') {
-                    self.error_token("-= is not supported".to_string())
+                    self.make_token(TokenType::MinusEqual)
                 } else if self.match_char('-') {
-                    self.error_token("-- is not supported".to_string())
+                    self.make_token(TokenType::MinusMinus)
                 } else {
                     self.make_token(TokenType::Minus)
                 }
             }
             '+' => {
                 if self.match_char('=') {
-                    self.error_token("+= is not supported".to_string())
+                    self.make_token(TokenType::PlusEqual)
                 } else if self.match_char('+') {
-                    self.error_token("++ is not supported".to_string())
+                    self.make_token(TokenType::PlusPlus)
                 } else {
                     self.make_token(TokenType::Plus)
                 }
@@ -283,8 +283,10 @@ pub enum TokenType {
     Dot,
     Minus,
     MinusEqual,
+    MinusMinus,
     Plus,
     PlusEqual,
+    PlusPlus,
     Semicolon,
     Slash,
     Star,

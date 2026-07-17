@@ -31,6 +31,7 @@ pub enum Opcode {
     Loop,
     Call,
     Return,
+    Dup,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {
