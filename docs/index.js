@@ -5,12 +5,98 @@ console.log("Setting up Monaco Editor");
 
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.48.0/min/vs' } });
 require(["vs/editor/editor.main"], function () {
+    // Register Lox language
+    monaco.languages.register({ id: 'lox' });
+
+    // Define syntax rules
+    monaco.languages.setMonarchTokensProvider('lox', {
+        keywords: [
+            'and', 'class', 'else', 'false', 'function', 'for', 'if', 'nil', 'or',
+            'print', 'return', 'super', 'this', 'true', 'var', 'while'
+        ],
+        builtins: [
+            'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
+            'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'readnumber'
+        ],
+        tokenizer: {
+            root: [
+                [/[a-zA-Z_]\w*/, {
+                    cases: {
+                        '@keywords': 'keyword',
+                        '@builtins': 'predefined',
+                        '@default': 'identifier'
+                    }
+                }],
+                { include: '@whitespace' },
+                [/[{}()\[\]]/, '@brackets'],
+                [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+                [/\d+/, 'number'],
+                [/"([^"\\]|\\.)*$/, 'string.invalid'],
+                [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }],
+            ],
+            string: [
+                [/[^\\"]+/, 'string'],
+                [/\\./, 'string.escape.invalid'],
+                [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' }]
+            ],
+            whitespace: [
+                [/[ \t\r\n]+/, 'white'],
+                [/\/\*/, 'comment', '@comment'],
+                [/\/\/.*$/, 'comment'],
+            ],
+            comment: [
+                [/[^\/*]+/, 'comment'],
+                [/\/\*/, 'comment', '@push'],
+                [/\*\//, 'comment', '@pop'],
+                [/[\/*]/, 'comment']
+            ],
+        }
+    });
+
+    // Define autocomplete
+    monaco.languages.registerCompletionItemProvider('lox', {
+        provideCompletionItems: (model, position) => {
+            const word = model.getWordUntilPosition(position);
+            const range = new monaco.Range(
+                position.lineNumber,
+                word.startColumn,
+                position.lineNumber,
+                word.endColumn
+            );
+            
+            const suggestions = [
+                ...[
+                    'and', 'class', 'else', 'false', 'function', 'for', 'if', 'nil', 'or',
+                    'print', 'return', 'super', 'this', 'true', 'var', 'while'
+                ].map(k => ({
+                    label: k,
+                    kind: monaco.languages.CompletionItemKind.Keyword,
+                    insertText: k,
+                    range: range
+                })),
+                ...[
+                    'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
+                    'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'readnumber'
+                ].map(b => ({
+                    label: b,
+                    kind: monaco.languages.CompletionItemKind.Function,
+                    insertText: b + '($1)',
+                    insertTextRules: 4, // CompletionItemInsertRule.InsertAsSnippet
+                    range: range
+                }))
+            ];
+            return { suggestions: suggestions };
+        }
+    });
+
     window.editor = monaco.editor.create(document.getElementById('editor'), {
         value: 'print("Please wait, samples are loading...")',
-        language: 'csharp',
+        language: 'lox',
         scrollBeyondLastLine: false,
         minimap: { enabled: false },
         automaticLayout: true,
+        fontFamily: 'Consolas, "Ubuntu Mono", "Courier New", Courier, monospace',
+        fontSize: 16,
     });
 
     loadSamples();
@@ -103,6 +189,10 @@ function loadSamples() {
         }, {
             name: "Trace Back",
             code: "sample_programs/traceback.lox",
+        },
+        {
+            name: "Write your own",
+            code: "sample_programs/blank.lox",
         }
     ]
 
