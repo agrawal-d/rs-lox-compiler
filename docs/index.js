@@ -111,6 +111,21 @@ const resetButton = document.getElementById('resetButton');
 const statsP = document.getElementById('stats');
 var starts = 0;
 
+const runFn = () => {
+    runButton.disabled = true;
+    resetButton.disabled = true;
+    runButton.innerText = 'Running...';
+    statsP.innerHTML = "<div class='loader'></div>";
+    outputTextarea.value = '';
+    const input = window.editor.getValue();
+    starts = performance.now();
+    myWorker.postMessage({
+        type: 'run',
+        code: input
+    });
+    outputTextarea.focus();
+}
+
 myWorker.onmessage = async function (e) {
     let message = e.data
     if (message.type == "output") {
@@ -137,18 +152,18 @@ myWorker.onmessage = async function (e) {
 };
 
 runButton.addEventListener('click', async () => {
-    runButton.disabled = true;
-    resetButton.disabled = true;
-    runButton.innerText = 'Running...';
-    statsP.innerHTML = "<div class='loader'></div>";
-    outputTextarea.value = '';
-    const input = window.editor.getValue();
-    starts = performance.now();
-    myWorker.postMessage({
-        type: 'run',
-        code: input
-    });
-    outputTextarea.focus();
+    runFn();
+});
+
+document.addEventListener("keydown", (event) => {
+  const isReloadShortcut =
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === "r";
+
+  if (isReloadShortcut) {
+    event.preventDefault();
+    runFn();
+  }
 });
 
 resetButton.addEventListener('click', () => {

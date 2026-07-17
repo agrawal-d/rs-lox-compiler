@@ -162,6 +162,7 @@ where
         register_native!(vm, Sleep);
         register_native!(vm, TypeOf);
         register_native!(vm, Print);
+        register_native!(vm, Printf);
         register_native!(vm, ReadNumber);
         register_native!(vm, ReadString);
         register_native!(vm, StrCast);
@@ -303,7 +304,10 @@ where
 
                 let arg_count_usize = arg_count as usize;
                 if arg_count_usize < fun.min_arity || arg_count_usize > fun.arity {
-                    self.runtime_error(&format!("Expected between {} and {} arguments but got {} instead", fun.min_arity, fun.arity, arg_count));
+                    self.runtime_error(&format!(
+                        "Expected between {} and {} arguments but got {} instead",
+                        fun.min_arity, fun.arity, arg_count
+                    ));
                 }
 
                 // If fewer than fun.arity arguments were passed, push Nil placeholders for the remaining parameters
@@ -326,10 +330,13 @@ where
             NativeFunction(fun) => {
                 let mut arg_count_usize = arg_count as usize;
                 let name = fun.name();
-                
+
                 let is_input = name == "input";
+                let is_printf = name == "printf";
                 let valid_arity = if is_input {
                     arg_count_usize <= 1
+                } else if is_printf {
+                    arg_count_usize >= 1 // printf needs at least format string
                 } else {
                     arg_count_usize == fun.arity()
                 };
@@ -583,6 +590,7 @@ where
         register_native!(vm, Sleep);
         register_native!(vm, TypeOf);
         register_native!(vm, Print);
+        register_native!(vm, Printf);
         register_native!(vm, ReadNumber);
         register_native!(vm, ReadString);
         register_native!(vm, StrCast);

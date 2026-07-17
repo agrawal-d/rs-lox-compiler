@@ -264,3 +264,145 @@ callable_struct!(Rand, "rand", 0, interner: &mut Interner, globals: &mut Globals
     let num: u32 = rand::random();
     Value::Number(num as f64)
 });
+
+// Printf: format string with variable number of arguments
+// Usage: printf("Hello {0} you are {1} years old", name, age)
+// or: printf("Hello {name} you are {age} years old") - requires variables in scope
+#[derive(Debug, Default)]
+pub struct Printf;
+
+impl Callable for Printf {
+    fn arity(&self) -> usize {
+        1 // Minimum arity is 1 (format string)
+    }
+
+    fn call(&self, interner: &mut Interner, globals: &mut Globals, args: &[Value]) -> Value {
+        if args.is_empty() {
+            return Value::Nil;
+        }
+
+        let format_str = match &args[0] {
+            Value::Str(id) => interner.lookup(id).to_string(),
+            _ => {
+                set_global_error(interner, globals, "First argument to printf must be a format string");
+                return Value::Nil;
+            }
+        };
+
+        let mut result = String::new();
+        let mut chars = format_str.chars().peekable();
+        let mut arg_index = 1;
+        let mut in_brace = false;
+        let mut brace_content = String::new();
+
+        while let Some(ch) = chars.next() {
+            match ch {
+                '{' => {
+                    if in_brace {
+                        // Double brace {{ inside expression - treat as literal {
+                        brace_content.push(ch);
+                    } else {
+                        // Check for double opening brace
+                        if chars.peek() == Some(&'{') {
+                            // This is {{ - output a literal {
+                            result.push('{');
+                            chars.next(); // consume the second {
+                        } else {
+                            // Single { - start of expression
+                            in_brace = true;
+                            brace_content.clear();
+                        }
+                    }
+                }
+                '}' => {
+                    if in_brace {
+                        // Check for double closing brace
+                        if brace_content.is_empty() && chars.peek() == Some(&'}') {
+                            // This would be }}, but only if brace_content is empty
+                            result.push('}');
+                            chars.next(); // consume second }
+                            in_brace = false;
+                        } else {
+                            // End of expression
+                            let trimmed = brace_content.trim();
+
+                            // Try as numeric index first
+                            if let Ok(idx) = trimmed.parse::<usize>() {
+                                let arg_pos = idx + 1; // +1 because first arg is format string
+                                if arg_pos < args.len() {
+                                    result.push_str(&value_as_string(&args[arg_pos], interner));
+                                } else {
+                                    result.push_str(&format!("{{index {}: out of bounds}}", idx));
+                                }
+                            } else if !trimmed.is_empty() {
+                                // Try as variable name
+                                let var_id = interner.intern(trimmed);
+                                if let Some(var_value) = globals.get(&var_id) {
+                                    result.push_str(&value_as_string(var_value, interner));
+                                } else if arg_index < args.len() {
+                                    // Fallback to positional argument
+                                    result.push_str(&value_as_string(&args[arg_index], interner));
+                                    arg_index += 1;
+                                } else {
+                                    result.push_str(&format!("{{undefined: {}}}", trimmed));
+                                }
+                            }
+                            in_brace = false;
+                            brace_content.clear();
+                        }
+                    } else {
+                        // Closing brace without opening
+                        if chars.peek() == Some(&'}') {
+                            // This is }} - output a literal }
+                            result.push('}');
+                            chars.next(); // consume the second }
+                        } else {
+                            // Single } treated as literal
+                            result.push(ch);
+                        }
+                    }
+                }
+                '\\' => {
+                    // Handle escape sequences
+                    if in_brace {
+                        brace_content.push(ch);
+                    } else {
+                        if let Some(next_ch) = chars.next() {
+                            match next_ch {
+                                'n' => result.push('\n'),
+                                't' => result.push('\t'),
+                                'r' => result.push('\r'),
+                                '\\' => result.push('\\'),
+                                '"' => result.push('"'),
+                                _ => {
+                                    result.push('\\');
+                                    result.push(next_ch);
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    if in_brace {
+                        brace_content.push(ch);
+                    } else {
+                        result.push(ch);
+                    }
+                }
+            }
+        }
+
+        // Handle unclosed brace
+        if in_brace {
+            result.push('{');
+            result.push_str(&brace_content);
+        }
+
+        xprintln!("{}", result);
+        Value::Nil
+    }
+
+    fn name(&self) -> &str {
+        "printf"
+    }
+}

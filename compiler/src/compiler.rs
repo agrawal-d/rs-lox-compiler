@@ -249,6 +249,7 @@ fn is_native_function(name: &str) -> bool {
             | "sort"
             | "indexof"
             | "rand"
+            | "printf"
             | "input"
             | "readnumber"
             | "errString"
@@ -501,18 +502,18 @@ impl<'src> Compiler<'src> {
 
                 if fn_compiler.parser.match_tt(TokenType::Equal) {
                     has_defaults = true;
-                    
+
                     fn_compiler.emit_byte(Opcode::DefaultArg as u8);
                     fn_compiler.emit_byte(arity as u8);
                     fn_compiler.emit_bytes(0xff, 0xff);
                     let jump_offset = fn_compiler.fun.chunk.code.len() - 2;
-                    
+
                     fn_compiler.emit_constant(Value::Nil);
                     fn_compiler.expression();
-                    
+
                     fn_compiler.emit_bytes(Opcode::SetLocal as u8, (arity - 1) as u8);
                     fn_compiler.emit_byte(Opcode::Pop as u8);
-                    
+
                     fn_compiler.patch_jump(jump_offset);
                 } else {
                     if has_defaults {
@@ -709,23 +710,23 @@ impl<'src> Compiler<'src> {
     fn import_declaration(&mut self) {
         self.parser.consume(TokenType::String, "Expect string literal for import path.");
         let path_token = self.parser.previous.clone();
-        
+
         self.parser.consume(TokenType::As, "Expect 'as' after import path.");
         self.parser.consume(TokenType::Identifier, "Expect namespace alias after 'as'.");
         let alias_token = self.parser.previous.clone();
-        
+
         self.parser.consume(TokenType::Semicolon, "Expect ';' after import declaration.");
-        
+
         let path_str = path_token.source.clone();
         let path_str = &path_str[1..path_str.len() - 1];
         let alias_str = alias_token.source.as_ref();
-        
+
         #[cfg(target_arch = "wasm32")]
         {
             xprintln!("Warning: import is not supported in the WASM environment.");
             return;
         }
-        
+
         #[cfg(not(target_arch = "wasm32"))]
         {
             if let Err(e) = self.execute_import(path_str, alias_str) {
@@ -738,10 +739,11 @@ impl<'src> Compiler<'src> {
     fn execute_import(&mut self, path_str: &str, alias_str: &str) -> std::result::Result<(), String> {
         use std::fs;
 
-        let base_dir = self.current_dir.clone().unwrap_or_else(|| {
-            std::env::current_dir().unwrap_or_default()
-        });
-        
+        let base_dir = self
+            .current_dir
+            .clone()
+            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+
         let import_path = base_dir.join(path_str);
         let canonical_path = match import_path.canonicalize() {
             std::result::Result::Ok(p) => p,
@@ -767,7 +769,7 @@ impl<'src> Compiler<'src> {
 
         let source: Rc<str> = Rc::from(content);
         let new_current_dir = canonical_path.parent().map(|p| p.to_path_buf());
-        
+
         let combined_prefix = if let Some(ref parent) = self.namespace_prefix {
             format!("{}.{}", parent, alias_str)
         } else {
@@ -797,7 +799,7 @@ impl<'src> Compiler<'src> {
         imported.insert(canonical_path);
 
         unsafe { &mut *self.functions }.push(fun);
-        
+
         let fun_len = unsafe { &*self.functions }.len();
         let fun_const_idx = self.make_constant(Value::Function(fun_len - 1));
         self.emit_bytes(Opcode::Constant as u8, fun_const_idx as u8);
@@ -947,9 +949,10 @@ impl<'src> Compiler<'src> {
 
     fn variable(&mut self, can_assign: bool) {
         let mut token = self.parser.previous.clone();
-        
+
         while self.parser.match_tt(TokenType::Dot) {
-            self.parser.consume(TokenType::Identifier, "Expect property/method name after '.' in namespace access.");
+            self.parser
+                .consume(TokenType::Identifier, "Expect property/method name after '.' in namespace access.");
             let prop_token = self.parser.previous.clone();
             token.source = Rc::from(format!("{}.{}", token.source, prop_token.source));
         }

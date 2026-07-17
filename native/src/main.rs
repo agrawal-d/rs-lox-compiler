@@ -1,11 +1,11 @@
-use compiler::{init, run_file};
 use compiler::compiler::Compiler;
 use compiler::fun::FunType;
 use compiler::vm::Vm;
+use compiler::{init, run_file};
 use futures::executor;
 use futures::FutureExt;
-use std::panic::AssertUnwindSafe;
 use std::io::{self, Write};
+use std::panic::AssertUnwindSafe;
 use std::rc::Rc;
 
 use std::cell::Cell;
@@ -138,18 +138,18 @@ fn run_repl() {
                 let source: Rc<str> = Rc::from(code);
                 let mut compile_result = None;
                 let is_potential_expression = !code.ends_with(';') && !code.ends_with('}');
-                
+
                 if is_potential_expression {
                     // Try compiling as a REPL expression first
                     SUPPRESS_OUTPUT.with(|s| s.set(true));
                     let spec_res = Compiler::compile(source.clone(), None, vm.interner, &mut vm.functions, FunType::ReplExpression);
                     SUPPRESS_OUTPUT.with(|s| s.set(false));
-                    
+
                     if let Ok((fun, false)) = spec_res {
                         compile_result = Some((fun, false));
                     }
                 }
-                
+
                 let compile_res = match compile_result {
                     Some(res) => Ok(res),
                     None => Compiler::compile(source, None, vm.interner, &mut vm.functions, FunType::Script),
@@ -158,9 +158,7 @@ fn run_repl() {
                 match compile_res {
                     Ok((fun, had_error)) => {
                         if !had_error {
-                            let result = executor::block_on(async {
-                                AssertUnwindSafe(vm.run_repl_chunk(fun)).catch_unwind().await
-                            });
+                            let result = executor::block_on(async { AssertUnwindSafe(vm.run_repl_chunk(fun)).catch_unwind().await });
                             match result {
                                 Ok(Ok(())) => {}
                                 Ok(Err(e)) => {
