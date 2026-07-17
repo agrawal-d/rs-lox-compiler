@@ -8,6 +8,12 @@ use std::panic::AssertUnwindSafe;
 use std::io::{self, Write};
 use std::rc::Rc;
 
+use std::cell::Cell;
+
+thread_local! {
+    static SUPPRESS_OUTPUT: Cell<bool> = Cell::new(false);
+}
+
 #[cfg(debug_assertions)]
 fn flush_if_debug() {
     use std::io::Write;
@@ -18,13 +24,17 @@ fn flush_if_debug() {
 fn flush_if_debug() {}
 
 fn print(output: String) {
-    print!("{}", output);
-    flush_if_debug();
+    if !SUPPRESS_OUTPUT.with(|s| s.get()) {
+        print!("{}", output);
+        flush_if_debug();
+    }
 }
 
 fn println(output: String) {
-    println!("{}", output);
-    flush_if_debug();
+    if !SUPPRESS_OUTPUT.with(|s| s.get()) {
+        println!("{}", output);
+        flush_if_debug();
+    }
 }
 
 fn help(args: &[String]) {
@@ -126,7 +136,26 @@ fn run_repl() {
             let code = accumulated_input.trim();
             if !code.is_empty() {
                 let source: Rc<str> = Rc::from(code);
-                match Compiler::compile(source, vm.interner, &mut vm.functions, FunType::Script) {
+                let mut compile_result = None;
+                let is_potential_expression = !code.ends_with(';') && !code.ends_with('}');
+                
+                if is_potential_expression {
+                    // Try compiling as a REPL expression first
+                    SUPPRESS_OUTPUT.with(|s| s.set(true));
+                    let spec_res = Compiler::compile(source.clone(), vm.interner, &mut vm.functions, FunType::ReplExpression);
+                    SUPPRESS_OUTPUT.with(|s| s.set(false));
+                    
+                    if let Ok((fun, false)) = spec_res {
+                        compile_result = Some((fun, false));
+                    }
+                }
+                
+                let compile_res = match compile_result {
+                    Some(res) => Ok(res),
+                    None => Compiler::compile(source, vm.interner, &mut vm.functions, FunType::Script),
+                };
+
+                match compile_res {
                     Ok((fun, had_error)) => {
                         if !had_error {
                             let result = executor::block_on(async {
@@ -137,10 +166,7 @@ fn run_repl() {
                                 Ok(Err(e)) => {
                                     println!("Runtime error: {}", e);
                                 }
-                                Err(_) => {
-                                    // VM panicked due to runtime error, which it already printed.
-                                    // We just catch it and continue the REPL.
-                                }
+                                Err(_) => {}
                             }
                         }
                     }

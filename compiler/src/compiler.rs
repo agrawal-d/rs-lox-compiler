@@ -270,8 +270,13 @@ impl<'src> Compiler<'src> {
         dbgln!("== Parser (Scan on demand) ==");
 
         compiler.parser.advance();
-        while !compiler.parser.match_tt(TokenType::EOF) {
-            compiler.declaration();
+        if compiler.fun_typ == FunType::ReplExpression {
+            compiler.expression();
+            compiler.parser.consume(TokenType::EOF, "Expect end of expression.");
+        } else {
+            while !compiler.parser.match_tt(TokenType::EOF) {
+                compiler.declaration();
+            }
         }
 
         let had_error = compiler.parser.had_error;
@@ -283,6 +288,9 @@ impl<'src> Compiler<'src> {
     }
 
     fn end(&mut self) -> Fun {
+        if self.fun_typ == FunType::ReplExpression {
+            self.emit_byte(Opcode::Print as u8);
+        }
         self.emit_return();
 
         #[cfg(feature = "print_code")]

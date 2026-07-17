@@ -29,4 +29,5 @@ impl Fun {
 pub enum FunType {
     Function,
     Script,
+    ReplExpression,
 }
