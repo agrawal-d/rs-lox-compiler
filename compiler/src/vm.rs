@@ -4,7 +4,6 @@ use std::{cell::RefCell, future::Future};
 use crate::{
     common::Opcode,
     dbgln,
-    debug::disassemble_instruction,
     fun::Fun,
     interner::{Interner, StrId},
     native::*,
@@ -13,6 +12,9 @@ use crate::{
         Value::{self, *},
     },
 };
+
+#[cfg(feature = "tracing")]
+use crate::debug::disassemble_instruction;
 use anyhow::*;
 use rustc_hash::FxHashMap;
 
@@ -385,8 +387,11 @@ where
 
     async fn run(&mut self) -> Result<()> {
         loop {
-            self.stack_trace();
-            disassemble_instruction(&self.functions[frame!(self).fun_idx].chunk, frame!(self).ip, self.interner);
+            #[cfg(feature = "tracing")]
+            {
+                self.stack_trace();
+                disassemble_instruction(&self.functions[frame!(self).fun_idx].chunk, frame!(self).ip, self.interner);
+            }
             let instruction = unsafe { Opcode::try_from(self.read_byte()).unwrap_unchecked() };
             match instruction {
                 Opcode::Print => {

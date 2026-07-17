@@ -1,0 +1,36 @@
+// bench.lox
+// A small interpreter benchmark designed to exercise loops, math, strings,
+// arrays, sorting, and built-in primitives.
+
+var start = clock();
+var sum = 0;
+var text = "The quick brown fox jumps over the lazy dog";
+var text_len = len(text);
+
+for (var i = 0; i < 160000; i = i + 1) {
+    var n = rand() % 1234;
+    sum = sum + abs(float(n) - float(i % 7));
+    sum = sum + len(str(i));
+    sum = sum + len(text);
+    sum = sum + len(stringat(text, i % text_len));
+    if (bool(i % 2)) {
+        sum = sum + float(i);
+    } else {
+        sum = sum + int(float(i) / 3.0);
+    }
+}
+
+var M = 8000;
+var bucket[M];
+
+for (var j = 0; j < 300; j = j + 1) {
+    for (var k = 0; k < M; k = k + 1) {
+        bucket[k] = float(rand() % 1000);
+    }
+    sort(bucket);
+    sum = sum + len(bucket);
+    sum = sum + indexof(bucket, float(rand() % 1000));
+}
+
+var elapsed = clock() - start;
+printf("benchmark: {0} ms, checksum: {1}", elapsed, sum);

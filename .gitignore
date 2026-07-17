@@ -7,3 +7,4 @@
 /native/code.cs
 /native/launcher.sh
 code.txt
+*__pycache__
