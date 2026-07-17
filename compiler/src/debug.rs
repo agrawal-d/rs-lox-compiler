@@ -38,6 +38,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         Opcode::Loop => jump_instruction(chunk, instruction, -1, offset),
 
         Opcode::GetLocal | Opcode::SetLocal | Opcode::Call => byte_instruction(chunk, instruction, offset),
+        Opcode::DefaultArg => default_arg_instruction(chunk, instruction, offset),
     };
 
     dbgln!("");
@@ -99,6 +100,22 @@ fn byte_instruction(chunk: &Chunk, instruction: Opcode, offset: usize) -> usize 
 #[cfg(not(feature = "tracing"))]
 fn byte_instruction(_chunk: &Chunk, _instruction: Opcode, offset: usize) -> usize {
     offset + 2
+}
+
+///////////////////////////
+
+#[cfg(feature = "tracing")]
+fn default_arg_instruction(chunk: &Chunk, instruction: Opcode, offset: usize) -> usize {
+    let arg_index = chunk.code[offset + 1];
+    let jump = chunk.code[offset + 2] as u16 | (chunk.code[offset + 3] as u16) << 8;
+    let target = offset + 4 + jump as usize;
+    dbg!("{instruction} ArgIndex {arg_index} Jump {jump} -> {target}");
+    offset + 4
+}
+
+#[cfg(not(feature = "tracing"))]
+fn default_arg_instruction(_chunk: &Chunk, _instruction: Opcode, offset: usize) -> usize {
+    offset + 4
 }
 
 ///////////////////////////

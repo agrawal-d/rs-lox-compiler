@@ -3,6 +3,7 @@ use crate::{chunk::Chunk, interner::StrId};
 #[derive(Debug)]
 pub struct Fun {
     pub arity: usize,
+    pub min_arity: usize,
     pub chunk: Chunk,
     pub name: Option<StrId>,
 }
@@ -17,6 +18,7 @@ impl Fun {
     pub fn new() -> Fun {
         Fun {
             arity: 0,
+            min_arity: 0,
             chunk: Chunk::default(),
             name: None,
         }

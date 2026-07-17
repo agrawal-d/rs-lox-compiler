@@ -17,7 +17,7 @@ function fib(n) {
     return c;
 }
 
-var start = Clock();
+var start = clock();
 print("fib(30) = " + fib(30));
-var dur = Clock() - start;
+var dur = clock() - start;
 print("Time: " + dur + "ms");

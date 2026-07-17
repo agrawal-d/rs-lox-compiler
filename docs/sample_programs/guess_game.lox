@@ -1,7 +1,7 @@
 // A fun game where you guess the number!
 
 function GuessGame() {
-    var secret = 1 + Rand() % 10;
+    var secret = 1 + rand() % 10;
     var userGuess;
 
     while(userGuess != secret) {
@@ -19,11 +19,11 @@ function GuessGame() {
 // Take a valid guess from the user
 function ReadValidGuess(prompt) {
     var number;
-    number = ReadNumber(prompt);
+    number = readnumber(prompt);
 
     while (number == nil or number > 10 or number < 1) {
         print("You made an invalid guess.");
-        number = ReadNumber("Not a valid guess. Please guess a number between 1 and 10");
+        number = readnumber("Not a valid guess. Please guess a number between 1 and 10");
     }
 
     return number;

@@ -47,7 +47,7 @@ function merge(arr, low, mid, high) {
 // Sort subarray arr[low..high]
 function sortRange(arr, low, high) {
     if (low < high) {
-        var mid = Floor((low + high) / 2);
+        var mid = floor((low + high) / 2);
         sortRange(arr, low, mid);
         sortRange(arr, mid + 1, high);
         merge(arr, low, mid, high);
@@ -55,19 +55,19 @@ function sortRange(arr, low, high) {
 }
 
 // Sort array arr using merge sort algorithm
-function sort(arr) {
-    sortRange(arr, 0, ArrLen(arr) - 1);
+function sortArr(arr) {
+    sortRange(arr, 0, len(arr) - 1);
 }
 
 // Driver
 var arr[10];
 for(var i = 0; i < 10; i = i + 1) {
-    arr[i] = Rand() % 10;
+    arr[i] = rand() % 10;
 }
 
-Print("Original array:");
-Print(arr);
+print("Original array:");
+print(arr);
 
-Print("Sorted array:");
-sort(arr);
-Print(arr);
+print("Sorted array:");
+sortArr(arr);
+print(arr);

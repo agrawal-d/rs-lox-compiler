@@ -35,8 +35,12 @@ async fn read_async(prompt: String) -> String {
     println(prompt);
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
-    let len = input.len();
-    input.truncate(len - 1);
+    if input.ends_with('\n') {
+        input.pop();
+    }
+    if input.ends_with('\r') {
+        input.pop();
+    }
     input
 }
 

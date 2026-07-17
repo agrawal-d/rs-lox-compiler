@@ -25,6 +25,7 @@ struct CallFrame {
     pub ip: usize,
     pub start_len: usize,   // Length of the stack before this frame
     pub slot_offset: usize, // Offset of this call-frame from the base of the stack
+    pub arg_count: usize,
 }
 
 pub const ERR_STRING: &str = "errString";
@@ -74,9 +75,11 @@ macro_rules! frame_mut {
 
 macro_rules! register_native {
     ($vm: ident, $name: ident) => {
-        let name = $vm.interner.intern(stringify!($name));
-        dbgln!("Registering native function {}", stringify!($name));
-        $vm.globals.insert(name, Value::NativeFunction(Rc::new($name)));
+        let func = Rc::new($name);
+        let name_str = func.name();
+        let name = $vm.interner.intern(name_str);
+        dbgln!("Registering native function {}", name_str);
+        $vm.globals.insert(name, Value::NativeFunction(func));
     };
 }
 
@@ -127,6 +130,7 @@ where
             ip: 0,
             start_len: 0,
             slot_offset: 0,
+            arg_count: 0,
         });
 
         let vm = Vm {
@@ -160,14 +164,15 @@ where
         register_native!(vm, Print);
         register_native!(vm, ReadNumber);
         register_native!(vm, ReadString);
-        register_native!(vm, ReadBool);
-        register_native!(vm, ToString);
-        register_native!(vm, ToNumber);
+        register_native!(vm, StrCast);
+        register_native!(vm, IntCast);
+        register_native!(vm, FloatCast);
+        register_native!(vm, BoolCast);
         register_native!(vm, StringAt);
-        register_native!(vm, StrLen);
-        register_native!(vm, ArrLen);
+        register_native!(vm, Len);
         register_native!(vm, Ceil);
         register_native!(vm, Floor);
+        register_native!(vm, Abs);
         register_native!(vm, Sort);
         register_native!(vm, IndexOf);
         register_native!(vm, Rand);
@@ -187,6 +192,7 @@ where
             ip: 0,
             start_len: 0,
             slot_offset: 0,
+            arg_count: 0,
         });
 
         self.reset_err_string();
@@ -290,37 +296,60 @@ where
     }
 
     async fn call_value(&mut self, arg_count: u8) -> bool {
-        let callee = self.peek(arg_count as usize);
-        match callee {
+        let callee = self.peek(arg_count as usize).clone();
+        match &callee {
             Function(idx) => {
                 let fun = &self.functions[*idx];
 
-                if arg_count as usize != fun.arity {
-                    self.runtime_error(&format!("Expected {} arguments but got {} instead", fun.arity, arg_count));
+                let arg_count_usize = arg_count as usize;
+                if arg_count_usize < fun.min_arity || arg_count_usize > fun.arity {
+                    self.runtime_error(&format!("Expected between {} and {} arguments but got {} instead", fun.min_arity, fun.arity, arg_count));
                 }
 
-                let new_frame_offset = self.stack.len() - arg_count as usize;
+                // If fewer than fun.arity arguments were passed, push Nil placeholders for the remaining parameters
+                for _ in arg_count_usize..fun.arity {
+                    self.stack.push(Value::Nil);
+                }
+
+                let new_frame_offset = self.stack.len() - fun.arity;
                 let orig_len = self.stack.len() - 1 - fun.arity;
                 let frame: CallFrame = CallFrame {
                     fun_idx: *idx,
                     ip: 0,
                     start_len: orig_len,
-                    slot_offset: new_frame_offset, // -1 here in book ?
+                    slot_offset: new_frame_offset,
+                    arg_count: arg_count_usize,
                 };
                 self.frames.push(frame);
                 true
             }
             NativeFunction(fun) => {
-                if arg_count as usize != fun.arity() {
+                let mut arg_count_usize = arg_count as usize;
+                let name = fun.name();
+                
+                let is_input = name == "input";
+                let valid_arity = if is_input {
+                    arg_count_usize <= 1
+                } else {
+                    arg_count_usize == fun.arity()
+                };
+
+                if !valid_arity {
                     self.runtime_error(&format!("Expected {} arguments but got {} instead", fun.arity(), arg_count));
+                }
+
+                if is_input && arg_count_usize == 0 {
+                    let default_prompt = Value::Str(self.interner.intern(""));
+                    self.stack.push(default_prompt);
+                    arg_count_usize = 1;
                 }
 
                 let function = fun.clone();
 
-                // Speacial read input functions - take the prompt, and convert it the the user response
-                if function.name() == "ReadString" || function.name() == "ReadNumber" || function.name() == "ReadBool" {
+                // Special read input functions - take the prompt, and convert it to the user response
+                if function.name() == "input" || function.name() == "readnumber" {
                     let len = self.stack.len();
-                    let first_arg = &mut self.stack[len - arg_count as usize];
+                    let first_arg = &mut self.stack[len - arg_count_usize];
                     match first_arg {
                         Value::Str(id) => {
                             let prompt = self.interner.lookup(id);
@@ -331,13 +360,12 @@ where
                     }
                 };
 
-                let args = &self.stack[self.stack.len() - arg_count as usize..];
+                let args = &self.stack[self.stack.len() - arg_count_usize..];
                 self.globals.insert(self.global_error_id, Value::Nil); // Reset error string
 
                 let result = function.call(self.interner, &mut self.globals, args);
 
-                dbgln!("Truncating to length {}", self.stack.len() - 1 - arg_count as usize);
-                self.stack.truncate(self.stack.len() - 1 - arg_count as usize);
+                self.stack.truncate(self.stack.len() - 1 - arg_count_usize);
                 self.stack.push(result);
 
                 true
@@ -362,6 +390,13 @@ where
                     let offset: u16 = self.read_u16();
                     if self.is_falsey(self.peek(0)) {
                         frame_mut!(self).ip += offset as usize;
+                    }
+                }
+                Opcode::DefaultArg => {
+                    let arg_index = self.read_byte() as usize;
+                    let offset = self.read_u16() as usize;
+                    if frame!(self).arg_count >= arg_index {
+                        frame_mut!(self).ip += offset;
                     }
                 }
                 Opcode::Loop => {
@@ -550,14 +585,15 @@ where
         register_native!(vm, Print);
         register_native!(vm, ReadNumber);
         register_native!(vm, ReadString);
-        register_native!(vm, ReadBool);
-        register_native!(vm, ToString);
-        register_native!(vm, ToNumber);
+        register_native!(vm, StrCast);
+        register_native!(vm, IntCast);
+        register_native!(vm, FloatCast);
+        register_native!(vm, BoolCast);
         register_native!(vm, StringAt);
-        register_native!(vm, StrLen);
-        register_native!(vm, ArrLen);
+        register_native!(vm, Len);
         register_native!(vm, Ceil);
         register_native!(vm, Floor);
+        register_native!(vm, Abs);
         register_native!(vm, Sort);
         register_native!(vm, IndexOf);
         register_native!(vm, Rand);

@@ -403,13 +403,17 @@ impl<'src> Compiler<'src> {
             functions: self.functions,
         };
 
+        let mut min_arity = 0;
+        let mut has_defaults = false;
+
         fn_compiler.fun.name = name;
         fn_compiler.begin_scope();
         fn_compiler.parser.consume(TokenType::LeftParen, "Expect '(' after function name");
         if !fn_compiler.parser.check_tt(TokenType::RightParen) {
             loop {
                 fn_compiler.fun.arity += 1;
-                if fn_compiler.fun.arity > 255 {
+                let arity = fn_compiler.fun.arity;
+                if arity > 255 {
                     fn_compiler.parser.error_at_current("Can't have more than 255 parameters");
                 }
 
@@ -421,11 +425,35 @@ impl<'src> Compiler<'src> {
 
                 fn_compiler.define_global_if_needed(constant, is_array);
 
+                if fn_compiler.parser.match_tt(TokenType::Equal) {
+                    has_defaults = true;
+                    
+                    fn_compiler.emit_byte(Opcode::DefaultArg as u8);
+                    fn_compiler.emit_byte(arity as u8);
+                    fn_compiler.emit_bytes(0xff, 0xff);
+                    let jump_offset = fn_compiler.fun.chunk.code.len() - 2;
+                    
+                    fn_compiler.emit_constant(Value::Nil);
+                    fn_compiler.expression();
+                    
+                    fn_compiler.emit_bytes(Opcode::SetLocal as u8, (arity - 1) as u8);
+                    fn_compiler.emit_byte(Opcode::Pop as u8);
+                    
+                    fn_compiler.patch_jump(jump_offset);
+                } else {
+                    if has_defaults {
+                        fn_compiler.parser.error_at_current("Non-default argument follows default argument");
+                    }
+                    min_arity += 1;
+                }
+
                 if !fn_compiler.parser.match_tt(TokenType::Comma) {
                     break;
                 }
             }
         }
+        fn_compiler.fun.min_arity = min_arity;
+
         fn_compiler.parser.consume(TokenType::RightParen, "Expect ')' after parameters");
         fn_compiler.parser.consume(TokenType::LeftBrace, "Expect '{' before function body");
         fn_compiler.block();

@@ -1,8 +1,8 @@
-// Demo of built in functions like ReadString. For reference, refer to the blue box "Reference" on top right.
+// Demo of built in functions like input. For reference, refer to the blue box "Reference" on top right.
 
 function makeStory() {
-    var name = ReadString("Enter a name: ");
-    var age = ReadNumber("Enter an age: ");
+    var name = input("Enter a name: ");
+    var age = readnumber("Enter an age: ");
 
     // Built in functions return nil on error, and set a global variable `errString` with the error message.
     if (age == nil) {
@@ -10,10 +10,10 @@ function makeStory() {
         return;
     }
 
-    var favNumber = Rand() % 10;
-    var color = ReadString("Enter a color: ");
-    var animal = ReadString("Enter an animal: ");
-    var food = ReadString("Enter a food: ");
+    var favNumber = rand() % 10;
+    var color = input("Enter a color: ");
+    var animal = input("Enter an animal: ");
+    var food = input("Enter a food: ");
 
     var story = "Once upon a time, there was a person named " + name + ". ";
     story = story + name + " was " + age + " years old. ";

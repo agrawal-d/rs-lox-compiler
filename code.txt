@@ -1,6 +1,5 @@
-var x = 1;
-x+= 1;
-x--;
-x--;
-x--;
-print(x);
+function greet(first, age=10) {
+    print("Hi! " + first + " " + age +"!");
+}
+
+greet("Divyanshu", 20);
