@@ -122,11 +122,24 @@ fn run_repl() {
         io::stdout().flush().unwrap();
 
         let mut line = String::new();
-        let bytes_read = stdin.read_line(&mut line).unwrap();
-        if bytes_read == 0 {
-            // EOF (Ctrl+D)
-            println!("");
-            break;
+        match stdin.read_line(&mut line) {
+            Ok(bytes_read) => {
+                if bytes_read == 0 {
+                    // EOF (Ctrl+D)
+                    println!("");
+                    break;
+                }
+            }
+            Err(e) if e.kind() == io::ErrorKind::Interrupted => {
+                // Ctrl+C was pressed
+                println!("");
+                break;
+            }
+            Err(e) => {
+                // Other IO errors
+                println!("Error reading input: {}", e);
+                break;
+            }
         }
 
         checker.feed(&line);
