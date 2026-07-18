@@ -542,10 +542,7 @@ impl<'src> Compiler<'src> {
                 source: Rc::from("this"),
                 line: line_num,
             };
-            fn_compiler.locals.push(Local {
-                name: token,
-                depth: 0,
-            });
+            fn_compiler.locals.push(Local { name: token, depth: 0 });
             fn_compiler.emit_byte(Opcode::GetReceiver as u8);
         }
 
@@ -795,7 +792,7 @@ impl<'src> Compiler<'src> {
         self.parser.consume(TokenType::Identifier, "Expect namespace alias after 'as'.");
         #[allow(unused)]
         let alias_token = self.parser.previous.clone();
-        
+
         let alias_str = alias_token.source.as_ref();
         unsafe { &mut *self.namespaces }.insert(alias_str.to_string());
 

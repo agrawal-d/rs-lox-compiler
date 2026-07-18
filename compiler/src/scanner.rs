@@ -173,10 +173,7 @@ impl Scanner {
             return '\0';
         }
 
-        self.source[self.current..]
-            .chars()
-            .next()
-            .unwrap_or('\0')
+        self.source[self.current..].chars().next().unwrap_or('\0')
     }
 
     fn peek2(&self) -> char {

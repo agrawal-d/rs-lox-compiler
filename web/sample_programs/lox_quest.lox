@@ -290,215 +290,271 @@ class GameState {
         }
     }
 
-    printOptions() {
-        if (this.menuState == 0) { // Explore
-            print("Options:");
-            if (this.location == 0) {
-                print(" [1] 🛌 Examine lumpy bed");
-                print(" [2] 🗄️ Search cluttered desk");
-                print(" [3] 🚪 Open door to exit");
-                if (!this.floorboardSearched) {
-                    print(" [4] 🪵 Examine loose floorboard");
+    printExploreOptions() {
+        print("Options:");
+        if (this.location == 0) {
+            print(" [1] 🛌 Examine lumpy bed");
+            print(" [2] 🗄️ Search cluttered desk");
+            print(" [3] 🚪 Open door to exit");
+            if (!this.floorboardSearched) {
+                print(" [4] 🪵 Examine loose floorboard");
+            }
+            print(" [5] 💀 Talk to the Soot Stain");
+        } else if (this.location == 1) {
+            print(" [1] 🧔 Talk to Barkeep Barnaby");
+            print(" [2] 🛋️ Search sticky couch");
+            print(" [3] 🛌 Walk upstairs to Bedroom");
+            print(" [4] 🚪 Exit to Village Square");
+            print(" [5] 🪰 Talk to the Depressed Fly");
+        } else if (this.location == 2) {
+            print(" [1] 👔 Talk to Mayor Higgins");
+            print(" [2] 👩 Talk to Baroness von Snoot");
+            print(" [3] 🚪 Enter the Tavern");
+            print(" [4] 🌲 Follow tracks to the Grove");
+        } else if (this.location == 3) {
+            print(" [1] 🐕 Talk to Sir Fluffington (Pomeranian)");
+            print(" [2] 🐈 Talk to Shadow the Cat");
+            print(" [3] 🐎 Talk to Existential Horse");
+            print(" [4] 🚪 Path back to Square");
+            if (this.hasScroll) {
+                print(" [5] 📜 Use Scroll of De-Sentience");
+            }
+        }
+    }
+
+    printBarnabyDialogue() {
+        if (this.dialogueNode == 0) {
+            if (this.questCounter == 0) {
+                print(" [1] Ask about the disappearing pets.");
+                print(" [2] Buy Healing Cabbage Soup (3 Gold)");
+                print(" [3] Ask why the counter is so sticky. (Side Quest)");
+                print(" [4] Insult his glorious mustache.");
+                print(" [5] Ask: 'What is the weight of a pint poured to a man who has lost everything?'");
+                print(" [6] 🔙 Back");
+            } else if (this.questCounter == 1) {
+                print(" [1] Ask about the disappearing pets.");
+                print(" [2] Buy Healing Cabbage Soup (3 Gold)");
+                if (this.hasSolvent) {
+                    print(" [3] Clean the counter using the SOLVENT.");
+                } else {
+                    print(" [3] Burn off the stickiness with LESSER SPARK.");
                 }
-                print(" [5] 💀 Talk to the Soot Stain");
-            } else if (this.location == 1) {
-                print(" [1] 🧔 Talk to Barkeep Barnaby");
-                print(" [2] 🛋️ Search sticky couch");
-                print(" [3] 🛌 Walk upstairs to Bedroom");
-                print(" [4] 🚪 Exit to Village Square");
-                print(" [5] 🪰 Talk to the Depressed Fly");
-            } else if (this.location == 2) {
-                print(" [1] 👔 Talk to Mayor Higgins");
-                print(" [2] 👩 Talk to Baroness von Snoot");
-                print(" [3] 🚪 Enter the Tavern");
-                print(" [4] 🌲 Follow tracks to the Grove");
-            } else if (this.location == 3) {
-                print(" [1] 🐕 Talk to Sir Fluffington (Pomeranian)");
-                print(" [2] 🐈 Talk to Shadow the Cat");
-                print(" [3] 🐎 Talk to Existential Horse");
-                print(" [4] 🚪 Path back to Square");
-                if (this.hasScroll) {
-                    print(" [5] 📜 Use Scroll of De-Sentience");
+                print(" [4] Insult his glorious mustache.");
+                print(" [5] Ask: 'What is the weight of a pint poured to a man who has lost everything?'");
+                print(" [6] 🔙 Back");
+            } else {
+                print(" [1] Ask about the disappearing pets.");
+                print(" [2] Buy Healing Cabbage Soup (3 Gold)");
+                print(" [3] Insult his glorious mustache.");
+                print(" [4] Ask: 'What is the weight of a pint poured to a man who has lost everything?'");
+                print(" [5] 🔙 Back");
+            }
+        } else if (this.dialogueNode == 1) {
+            print(" [1] 'Do you think the animals are right to protest?'");
+            print(" [2] 'I just want my gold. Ideology is for people who aren't behind on rent.'");
+            print(" [3] 'Tell me about the magic leak in the valley.'");
+            print(" [4] 🔙 Back");
+        } else if (this.dialogueNode == 2) {
+            print(" [1] 'A profound parallel, Barnaby.'");
+            print(" [2] 'That is the dumbest thing I have ever heard.'");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 3) {
+            print(" [1] 'I will find a peaceful treaty.'");
+            print(" [2] 'I am going to turn them back into simple beasts.'");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 4) {
+            print(" [1] 'How do we stabilize it?'");
+            print(" [2] 'Sounds dangerous. I'll stick to basic charms.'");
+            print(" [3] 🔙 Back");
+        }
+    }
+
+    printHigginsDialogue() {
+        if (this.dialogueNode == 0) {
+            if (!this.questActive) {
+                print(" [1] I accept this glorious contract.");
+                print(" [2] Waive my rent and double the gold! (30 Gold)");
+            } else {
+                if (this.hasSack) {
+                    print(" [1] Here is the Baroness's dog in this wriggling sack. (Complete - Evil)");
+                    print(" [2] No, just some laundry. (Keep him)");
+                } else if (this.hasTreaty) {
+                    print(" [1] Here is the treaty. They demand meat and rubs. (Complete - Good)");
+                    print(" [2] 🔙 Back");
+                } else {
+                    print(" [1] 'Tell me about the history of this village.'");
+                    print(" [2] 'Why do you hate Sir Fluffington so much?'");
+                    print(" [3] 'Let's discuss the philosophical burden of leadership.'");
+                    print(" [4] Try to pickpocket his pockets for the scroll");
+                    print(" [5] 🔙 Back");
                 }
             }
+        } else if (this.dialogueNode == 1) {
+            print(" [1] 'Cabbage and tax. Truly, the zenith of human civilization.' (Sarcastic)");
+            print(" [2] 'Order is the shield against chaos.' (Praise)");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 2) {
+            print(" [1] 'He sounds like a very smart Pomeranian.' (Sarcastic)");
+            print(" [2] 'A horse with a mid-life crisis. Hilarious.' (Agree)");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 3) {
+            print(" [1] 'I am an investment in the town's security.'");
+            print(" [2] 'I will keep my magic explosions to a minimum.'");
+            print(" [3] 🔙 Back");
+        }
+    }
+
+    printBaronessDialogue() {
+        if (this.dialogueNode == 0) {
+            if (this.questRing == 0) {
+                print(" [1] Ask if she lost anything else besides her dog. (Side Quest)");
+            }
+            if (this.hasSack) {
+                print(" [2] I found Sir Fluffington! (Hand him over - Complete)");
+            }
+            if (this.hasRing) {
+                print(" [3] I found your diamond wedding ring! (Hand over - Solve)");
+            }
+            print(" [4] 'Tell me about your deceased third husband.'");
+            print(" [5] 'Was Sir Fluffington always this... rebellious?'");
+            print(" [6] 🔙 Back");
+        } else if (this.dialogueNode == 1) {
+            print(" [1] 'He sounds like he died doing what he loved: spending your gold.'");
+            print(" [2] 'My condolences, Baroness. What a tragic loss.'");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 2) {
+            print(" [1] 'Perhaps your love was a velvet cage for him.'");
+            print(" [2] 'Dogs are beasts. They do not comprehend liberty.'");
+            print(" [3] 🔙 Back");
+        }
+    }
+
+    printFluffingtonDialogue() {
+        if (this.dialogueNode == 0) {
+            print(" [1] What is your main grievance?");
+            print(" [2] What can change the nature of a pet?");
+            print(" [3] I will take your treaty to the Mayor.");
+            print(" [4] 'Why do you think sentience is a gift rather than a curse?'");
+            if (this.chaos > 1) {
+                print(" [5] Bluff: Tell him the Baroness has steak waiting at home! (Evasion)");
+            }
+            print(" [6] Side with you to raid the town cellar! (Evil/Chaotic)");
+            print(" [7] 🔙 Back");
+        } else if (this.dialogueNode == 1) {
+            print(" [1] 'Dry kibble is indeed an ethical atrocity.' (Sympathize)");
+            print(" [2] 'You are a dog. Eat your kibble.' (Mock)");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 2) {
+            print(" [1] 'A materialist philosophy. Karl Marx would be proud.'");
+            print(" [2] 'You are overthinking it. You just want table scraps.'");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 3) {
+            print(" [1] 'A noble sentiment. I will support your independence.'");
+            print(" [2] 'Freedom is cold. Higgins has a warm hearth.'");
+            print(" [3] 🔙 Back");
+        }
+    }
+
+    printShadowDialogue() {
+        if (this.dialogueNode == 0) {
+            print(" [1] Why are you scratching tree bark?");
+            print(" [2] Shh, pretty kitty. (Try to pet him)");
+            print(" [3] 'How do you view the domestic contract between cats and humans?'");
+            print(" [4] 🔙 Back");
+        } else if (this.dialogueNode == 1) {
+            print(" [1] 'The revolution requires claws. I respect your theory.'");
+            print(" [2] 'You're just a parasite who gets free rent for sleeping 18 hours.'");
+            print(" [3] 🔙 Back");
+        }
+    }
+
+    printHorseDialogue() {
+        if (this.dialogueNode == 0) {
+            print(" [1] Do you want to pull a carriage again?");
+            print(" [2] What is your purpose in life?");
+            print(" [3] Neigh.");
+            print(" [4] 'Is the fence real, or is it merely in your mind?'");
+            print(" [5] 🔙 Back");
+        } else if (this.dialogueNode == 1) {
+            print(" [1] 'Your vector is currently standing in a swamp, eating moss.'");
+            print(" [2] 'May your path be unburdened by reins.'");
+            print(" [3] 🔙 Back");
+        } else if (this.dialogueNode == 2) {
+            print(" [1] 'The fence represents the boundaries we build for our own safety.'");
+            print(" [2] 'Then leap it, brother. The grass is greener on the other side.'");
+            print(" [3] 🔙 Back");
+        }
+    }
+
+    printSootDialogue() {
+        if (this.dialogueNode == 0) {
+            print(" [1] 'Who created you?'");
+            print(" [2] 'I should wash you off.'");
+            print(" [3] 'Are there secrets hidden in this room?'");
+            print(" [4] 🔙 Back");
+        }
+    }
+
+    printFlyDialogue() {
+        if (this.dialogueNode == 0) {
+            print(" [1] 'Why are you so depressed, little fly?'");
+            print(" [2] 'I could squish you with my finger.'");
+            print(" [3] 'Do you want some sugar-liquid?'");
+            print(" [4] 🔙 Back");
+        } else if (this.dialogueNode == 1) {
+            print(" [1] 'It is never too late to start flying higher.'");
+            print(" [2] 'Yes, your life is indeed brief and meaningless.'");
+            print(" [3] 🔙 Back");
+        }
+    }
+
+    printDialogueOptions() {
+        print("Dialogue Choices:");
+        if (this.npcName == "Barnaby") {
+            this.printBarnabyDialogue();
+        } else if (this.npcName == "Higgins") {
+            this.printHigginsDialogue();
+        } else if (this.npcName == "Baroness") {
+            this.printBaronessDialogue();
+        } else if (this.npcName == "Fluffington") {
+            this.printFluffingtonDialogue();
+        } else if (this.npcName == "Shadow") {
+            this.printShadowDialogue();
+        } else if (this.npcName == "Horse") {
+            this.printHorseDialogue();
+        } else if (this.npcName == "Soot") {
+            this.printSootDialogue();
+        } else if (this.npcName == "Fly") {
+            this.printFlyDialogue();
+        }
+    }
+
+    printEncounterOptions() {
+        print("Choices:");
+        if (this.encounterType == 0) { // Guard
+            print(" [1] 'I am searching for the missing pets.' (Tell Truth)");
+            print(" [2] 'Mind your own business, tin-can.' (Sarcastic)");
+            print(" [3] 'I am on secret royal business.' (Bluff)");
+        } else if (this.encounterType == 1) { // Bluebird
+            print(" [1] Reach out and touch the moss.");
+        } else if (this.encounterType == 2) { // Shady Peddler
+            print(" [1] Buy the Focus Ring (15 Gold)");
+            print(" [2] Walk away.");
+        } else if (this.encounterType == 3) { // Static
+            print(" [1] Rub your leg and move on.");
+        }
+    }
+
+    printOptions() {
+        if (this.menuState == 0) { // Explore
+            this.printExploreOptions();
         } else if (this.menuState == 1) { // NPC Menu
             print("Actions:");
             print(" [1] 💬 Talk");
             print(" [2] ⚔️ Attack");
             print(" [3] 🔙 Back");
         } else if (this.menuState == 2) { // Dialogue
-            print("Dialogue Choices:");
-            if (this.npcName == "Barnaby") {
-                if (this.dialogueNode == 0) {
-                    if (this.questCounter == 0) {
-                        print(" [1] Ask about the disappearing pets.");
-                        print(" [2] Buy Healing Cabbage Soup (3 Gold)");
-                        print(" [3] Ask why the counter is so sticky. (Side Quest)");
-                        print(" [4] Insult his glorious mustache.");
-                        print(" [5] Ask: 'What is the weight of a pint poured to a man who has lost everything?'");
-                        print(" [6] 🔙 Back");
-                    } else if (this.questCounter == 1) {
-                        print(" [1] Ask about the disappearing pets.");
-                        print(" [2] Buy Healing Cabbage Soup (3 Gold)");
-                        if (this.hasSolvent) {
-                            print(" [3] Clean the counter using the SOLVENT.");
-                        } else {
-                            print(" [3] Burn off the stickiness with LESSER SPARK.");
-                        }
-                        print(" [4] Insult his glorious mustache.");
-                        print(" [5] Ask: 'What is the weight of a pint poured to a man who has lost everything?'");
-                        print(" [6] 🔙 Back");
-                    } else {
-                        print(" [1] Ask about the disappearing pets.");
-                        print(" [2] Buy Healing Cabbage Soup (3 Gold)");
-                        print(" [3] Insult his glorious mustache.");
-                        print(" [4] Ask: 'What is the weight of a pint poured to a man who has lost everything?'");
-                        print(" [5] 🔙 Back");
-                    }
-                } else if (this.dialogueNode == 1) {
-                    print(" [1] 'Do you think the animals are right to protest?'");
-                    print(" [2] 'I just want my gold. Ideology is for people who aren't behind on rent.'");
-                    print(" [3] 'Tell me about the magic leak in the valley.'");
-                    print(" [4] 🔙 Back");
-                } else if (this.dialogueNode == 2) {
-                    print(" [1] 'A profound parallel, Barnaby.'");
-                    print(" [2] 'That is the dumbest thing I have ever heard.'");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 3) {
-                    print(" [1] 'I will find a peaceful treaty.'");
-                    print(" [2] 'I am going to turn them back into simple beasts.'");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 4) {
-                    print(" [1] 'How do we stabilize it?'");
-                    print(" [2] 'Sounds dangerous. I'll stick to basic charms.'");
-                    print(" [3] 🔙 Back");
-                }
-            } else if (this.npcName == "Higgins") {
-                if (this.dialogueNode == 0) {
-                    if (!this.questActive) {
-                        print(" [1] I accept this glorious contract.");
-                        print(" [2] Waive my rent and double the gold! (30 Gold)");
-                    } else {
-                        if (this.hasSack) {
-                            print(" [1] Here is the Baroness's dog in this wriggling sack. (Complete - Evil)");
-                            print(" [2] No, just some laundry. (Keep him)");
-                        } else if (this.hasTreaty) {
-                            print(" [1] Here is the treaty. They demand meat and rubs. (Complete - Good)");
-                            print(" [2] 🔙 Back");
-                        } else {
-                            print(" [1] 'Tell me about the history of this village.'");
-                            print(" [2] 'Why do you hate Sir Fluffington so much?'");
-                            print(" [3] 'Let's discuss the philosophical burden of leadership.'");
-                            print(" [4] Try to pickpocket his pockets for the scroll");
-                            print(" [5] 🔙 Back");
-                        }
-                    }
-                } else if (this.dialogueNode == 1) {
-                    print(" [1] 'Cabbage and tax. Truly, the zenith of human civilization.' (Sarcastic)");
-                    print(" [2] 'Order is the shield against chaos.' (Praise)");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 2) {
-                    print(" [1] 'He sounds like a very smart Pomeranian.' (Sarcastic)");
-                    print(" [2] 'A horse with a mid-life crisis. Hilarious.' (Agree)");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 3) {
-                    print(" [1] 'I am an investment in the town's security.'");
-                    print(" [2] 'I will keep my magic explosions to a minimum.'");
-                    print(" [3] 🔙 Back");
-                }
-            } else if (this.npcName == "Baroness") {
-                if (this.dialogueNode == 0) {
-                    if (this.questRing == 0) {
-                        print(" [1] Ask if she lost anything else besides her dog. (Side Quest)");
-                    }
-                    if (this.hasSack) {
-                        print(" [2] I found Sir Fluffington! (Hand him over - Complete)");
-                    }
-                    if (this.hasRing) {
-                        print(" [3] I found your diamond wedding ring! (Hand over - Solve)");
-                    }
-                    print(" [4] 'Tell me about your deceased third husband.'");
-                    print(" [5] 'Was Sir Fluffington always this... rebellious?'");
-                    print(" [6] 🔙 Back");
-                } else if (this.dialogueNode == 1) {
-                    print(" [1] 'He sounds like he died doing what he loved: spending your gold.'");
-                    print(" [2] 'My condolences, Baroness. What a tragic loss.'");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 2) {
-                    print(" [1] 'Perhaps your love was a velvet cage for him.'");
-                    print(" [2] 'Dogs are beasts. They do not comprehend liberty.'");
-                    print(" [3] 🔙 Back");
-                }
-            } else if (this.npcName == "Fluffington") {
-                if (this.dialogueNode == 0) {
-                    print(" [1] What is your main grievance?");
-                    print(" [2] What can change the nature of a pet?");
-                    print(" [3] I will take your treaty to the Mayor.");
-                    print(" [4] 'Why do you think sentience is a gift rather than a curse?'");
-                    if (this.chaos > 1) {
-                        print(" [5] Bluff: Tell him the Baroness has steak waiting at home! (Evasion)");
-                    }
-                    print(" [6] Side with you to raid the town cellar! (Evil/Chaotic)");
-                    print(" [7] 🔙 Back");
-                } else if (this.dialogueNode == 1) {
-                    print(" [1] 'Dry kibble is indeed an ethical atrocity.' (Sympathize)");
-                    print(" [2] 'You are a dog. Eat your kibble.' (Mock)");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 2) {
-                    print(" [1] 'A materialist philosophy. Karl Marx would be proud.'");
-                    print(" [2] 'You are overthinking it. You just want table scraps.'");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 3) {
-                    print(" [1] 'A noble sentiment. I will support your independence.'");
-                    print(" [2] 'Freedom is cold. Higgins has a warm hearth.'");
-                    print(" [3] 🔙 Back");
-                }
-            } else if (this.npcName == "Shadow") {
-                if (this.dialogueNode == 0) {
-                    print(" [1] Why are you scratching tree bark?");
-                    print(" [2] Shh, pretty kitty. (Try to pet him)");
-                    print(" [3] 'How do you view the domestic contract between cats and humans?'");
-                    print(" [4] 🔙 Back");
-                } else if (this.dialogueNode == 1) {
-                    print(" [1] 'The revolution requires claws. I respect your theory.'");
-                    print(" [2] 'You're just a parasite who gets free rent for sleeping 18 hours.'");
-                    print(" [3] 🔙 Back");
-                }
-            } else if (this.npcName == "Horse") {
-                if (this.dialogueNode == 0) {
-                    print(" [1] Do you want to pull a carriage again?");
-                    print(" [2] What is your purpose in life?");
-                    print(" [3] Neigh.");
-                    print(" [4] 'Is the fence real, or is it merely in your mind?'");
-                    print(" [5] 🔙 Back");
-                } else if (this.dialogueNode == 1) {
-                    print(" [1] 'Your vector is currently standing in a swamp, eating moss.'");
-                    print(" [2] 'May your path be unburdened by reins.'");
-                    print(" [3] 🔙 Back");
-                } else if (this.dialogueNode == 2) {
-                    print(" [1] 'The fence represents the boundaries we build for our own safety.'");
-                    print(" [2] 'Then leap it, brother. The grass is greener on the other side.'");
-                    print(" [3] 🔙 Back");
-                }
-            } else if (this.npcName == "Soot") {
-                if (this.dialogueNode == 0) {
-                    print(" [1] 'Who created you?'");
-                    print(" [2] 'I should wash you off.'");
-                    print(" [3] 'Are there secrets hidden in this room?'");
-                    print(" [4] 🔙 Back");
-                }
-            } else if (this.npcName == "Fly") {
-                if (this.dialogueNode == 0) {
-                    print(" [1] 'Why are you so depressed, little fly?'");
-                    print(" [2] 'I could squish you with my finger.'");
-                    print(" [3] 'Do you want some sugar-liquid?'");
-                    print(" [4] 🔙 Back");
-                } else if (this.dialogueNode == 1) {
-                    print(" [1] 'It is never too late to start flying higher.'");
-                    print(" [2] 'Yes, your life is indeed brief and meaningless.'");
-                    print(" [3] 🔙 Back");
-                }
-            }
+            this.printDialogueOptions();
         } else if (this.menuState == 3) { // Combat
             print("Combat Actions:");
             print(" [1] ⚔️ Staff Attack (deals 2 damage)");
@@ -510,19 +566,7 @@ class GameState {
             print(" [3] 🍞 Summon Bread (heals 6 HP, costs 3 MP)");
             print(" [4] 🏃 Run Away");
         } else if (this.menuState == 4) { // Encounter
-            print("Choices:");
-            if (this.encounterType == 0) { // Guard
-                print(" [1] 'I am searching for the missing pets.' (Tell Truth)");
-                print(" [2] 'Mind your own business, tin-can.' (Sarcastic)");
-                print(" [3] 'I am on secret royal business.' (Bluff)");
-            } else if (this.encounterType == 1) { // Bluebird
-                print(" [1] Reach out and touch the moss.");
-            } else if (this.encounterType == 2) { // Shady Peddler
-                print(" [1] Buy the Focus Ring (15 Gold)");
-                print(" [2] Walk away.");
-            } else if (this.encounterType == 3) { // Static
-                print(" [1] Rub your leg and move on.");
-            }
+            this.printEncounterOptions();
         }
         print("--------------------------------------------------");
     }

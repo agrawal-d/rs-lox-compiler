@@ -8,9 +8,8 @@ use crate::{
     interner::{Interner, StrId},
     native::*,
     value::{
-        print_value,
+        print_value, ClassData, InstanceData,
         Value::{self, *},
-        InstanceData, ClassData,
     },
 };
 

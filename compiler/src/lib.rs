@@ -41,7 +41,7 @@ macro_rules! xprintln {
 macro_rules! xclear {
     () => {
         ($crate::WRITERS.get().expect("Compiler not initialized").clear_fn)()
-    }
+    };
 }
 
 #[macro_export]
@@ -75,7 +75,11 @@ macro_rules! dbgln {
 }
 
 pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> (), clear_fn: fn() -> ()) {
-    let res = WRITERS.set(Imports { print_fn, println_fn, clear_fn });
+    let res = WRITERS.set(Imports {
+        print_fn,
+        println_fn,
+        clear_fn,
+    });
 
     if res.is_err() {
         panic!("Compiler already initialized");

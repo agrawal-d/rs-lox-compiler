@@ -81,7 +81,11 @@ pub fn value_as_string(value: &Value, interner: &Interner) -> String {
             format!("<Instance of {}>", interner.lookup(&instance.borrow().class.name))
         }
         Value::BoundMethod { instance, method_idx } => {
-            format!("<Bound Method {} of {}>", method_idx, interner.lookup(&instance.borrow().class.name))
+            format!(
+                "<Bound Method {} of {}>",
+                method_idx,
+                interner.lookup(&instance.borrow().class.name)
+            )
         }
     }
 }
@@ -98,9 +102,16 @@ impl PartialEq<Value> for Value {
             (Array(a), Array(b)) => Rc::ptr_eq(a, b),
             (Class(a), Class(b)) => Rc::ptr_eq(a, b),
             (Instance(a), Instance(b)) => Rc::ptr_eq(a, b),
-            (BoundMethod { instance: a_inst, method_idx: a_idx }, BoundMethod { instance: b_inst, method_idx: b_idx }) => {
-                Rc::ptr_eq(a_inst, b_inst) && a_idx == b_idx
-            }
+            (
+                BoundMethod {
+                    instance: a_inst,
+                    method_idx: a_idx,
+                },
+                BoundMethod {
+                    instance: b_inst,
+                    method_idx: b_idx,
+                },
+            ) => Rc::ptr_eq(a_inst, b_inst) && a_idx == b_idx,
             _ => false,
         }
     }
