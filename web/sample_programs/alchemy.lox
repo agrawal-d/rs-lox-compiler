@@ -1,0 +1,221 @@
+// Alchemy - The Element Combiner Game
+// Goal: Combine elements to discover Gold!
+// Input two elements separated by a space (e.g. "fire water").
+
+var MAX_ELEMENTS = 16;
+
+// Elements definition arrays
+var names[16];
+var emojis[16];
+var unlocked[16];
+
+names[0] = "fire";       emojis[0] = "🔥";
+names[1] = "water";      emojis[1] = "💧";
+names[2] = "earth";      emojis[2] = "🪨";
+names[3] = "air";        emojis[3] = "💨";
+names[4] = "steam";      emojis[4] = "💨";
+names[5] = "mud";        emojis[5] = "💩";
+names[6] = "lava";       emojis[6] = "🌋";
+names[7] = "stone";      emojis[7] = "🪨";
+names[8] = "metal";      emojis[8] = "🔩";
+names[9] = "rust";       emojis[9] = "⚙️";
+names[10] = "ore";       emojis[10] = "💎";
+names[11] = "gold";      emojis[11] = "👑";
+names[12] = "rain";      emojis[12] = "🌧️";
+names[13] = "dust";      emojis[13] = "🌪️";
+names[14] = "gunpowder"; emojis[14] = "💣";
+names[15] = "explosion"; emojis[15] = "💥";
+
+// Initialize baseline elements as unlocked
+var idx = 0;
+while (idx < MAX_ELEMENTS) {
+    if (idx < 4) {
+        unlocked[idx] = true;
+    } else {
+        unlocked[idx] = false;
+    }
+    idx = idx + 1;
+}
+
+// Global parsed words
+var word1 = "";
+var word2 = "";
+
+// Robust input parser to extract two words
+function parseInput(inputStr) {
+    word1 = "";
+    word2 = "";
+    
+    var i = 0;
+    var lenStr = len(inputStr);
+    
+    // Trim leading spaces
+    while (i < lenStr and stringat(inputStr, i) == " ") {
+        i = i + 1;
+    }
+    
+    // Read first word
+    while (i < lenStr and stringat(inputStr, i) != " ") {
+        word1 = word1 + stringat(inputStr, i);
+        i = i + 1;
+    }
+    
+    // Trim middle spaces
+    while (i < lenStr and stringat(inputStr, i) == " ") {
+        i = i + 1;
+    }
+    
+    // Read second word
+    while (i < lenStr and stringat(inputStr, i) != " ") {
+        word2 = word2 + stringat(inputStr, i);
+        i = i + 1;
+    }
+}
+
+// Get element index by name
+function getElementIdx(name) {
+    var i = 0;
+    while (i < MAX_ELEMENTS) {
+        if (names[i] == name) {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+// Returns the output element index for a pair of input indexes
+// Order-insensitive recipe table
+function getRecipeResult(idx1, idx2) {
+    var a = idx1;
+    var b = idx2;
+    // Ensure a <= b to simplify checks (order-insensitivity)
+    if (a > b) {
+        var temp = a;
+        a = b;
+        b = temp;
+    }
+
+    // Recipes definitions
+    // fire (0) + water (1) = steam (4)
+    if (a == 0 and b == 1) return 4;
+    // water (1) + earth (2) = mud (5)
+    if (a == 1 and b == 2) return 5;
+    // fire (0) + earth (2) = lava (6)
+    if (a == 0 and b == 2) return 6;
+    // air (3) + lava (6) = stone (7)
+    if (a == 3 and b == 6) return 7;
+    // fire (0) + stone (7) = metal (8)
+    if (a == 0 and b == 7) return 8;
+    // water (1) + metal (8) = rust (9)
+    if (a == 1 and b == 8) return 9;
+    // earth (2) + metal (8) = ore (10)
+    if (a == 2 and b == 8) return 10;
+    // fire (0) + ore (10) = gold (11)
+    if (a == 0 and b == 10) return 11;
+    // water (1) + air (3) = rain (12)
+    if (a == 1 and b == 3) return 12;
+    // earth (2) + air (3) = dust (13)
+    if (a == 2 and b == 3) return 13;
+    // fire (0) + dust (13) = gunpowder (14)
+    if (a == 0 and b == 13) return 14;
+    // metal (8) + gunpowder (14) = explosion (15)
+    if (a == 8 and b == 14) return 15;
+
+    return -1;
+}
+
+function countUnlocked() {
+    var count = 0;
+    var i = 0;
+    while (i < MAX_ELEMENTS) {
+        if (unlocked[i]) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+function printInventory() {
+    print("--------------------------------------------------");
+    print("               🔮 Lox Alchemy 🔮                  ");
+    print("--------------------------------------------------");
+    print("Score: " + str(countUnlocked()) + " / " + str(MAX_ELEMENTS) + " discovered");
+    print("");
+    print("Your Elements:");
+    
+    var line = "  ";
+    var i = 0;
+    while (i < MAX_ELEMENTS) {
+        if (unlocked[i]) {
+            // Append formatted name with emoji
+            line = line + emojis[i] + " " + names[i] + "   ";
+            // Wrap line if it gets too long
+            if (len(line) > 40) {
+                print(line);
+                line = "  ";
+            }
+        }
+        i = i + 1;
+    }
+    if (len(line) > 2) {
+        print(line);
+    }
+    print("");
+    print("--------------------------------------------------");
+}
+
+function main() {
+    var playing = true;
+    var last_msg = "Type two elements to combine them!";
+
+    while (playing) {
+        clear();
+        printInventory();
+        print(last_msg);
+        print("");
+
+        // Check victory
+        if (unlocked[11]) { // Gold is index 11
+            print("✨ CONGRATULATIONS! You have synthesized GOLD (👑)!");
+            print("You are a master alchemist! Thanks for playing.");
+            playing = false;
+        } else {
+            var usr_input = input("Combine elements (or 'quit'):");
+            if (usr_input == "quit" or usr_input == "exit") {
+                playing = false;
+                last_msg = "Goodbye!";
+            } else {
+                parseInput(usr_input);
+                if (word1 == "" or word2 == "") {
+                    last_msg = "Please enter two elements separated by a space (e.g. 'fire water').";
+                } else {
+                    var idx1 = getElementIdx(word1);
+                    var idx2 = getElementIdx(word2);
+
+                    if (idx1 == -1 or !unlocked[idx1]) {
+                        last_msg = "You don't have or know of an element named: '" + word1 + "'";
+                    } else if (idx2 == -1 or !unlocked[idx2]) {
+                        last_msg = "You don't have or know of an element named: '" + word2 + "'";
+                    } else {
+                        // Attempt combination
+                        var res = getRecipeResult(idx1, idx2);
+                        if (res == -1) {
+                            last_msg = "Combining " + emojis[idx1] + " and " + emojis[idx2] + " yielded nothing.";
+                        } else {
+                            if (unlocked[res]) {
+                                last_msg = "You combined " + emojis[idx1] + " + " + emojis[idx2] + " and got " + emojis[res] + " " + names[res] + " (already discovered).";
+                            } else {
+                                unlocked[res] = true;
+                                last_msg = "✨ Success! " + emojis[idx1] + " + " + emojis[idx2] + " = " + emojis[res] + " " + names[res] + " (NEW!).";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+main();
