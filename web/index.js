@@ -214,6 +214,10 @@ function loadSamples() {
             code: "sample_programs/donut.lox",
         },
         {
+            name: "Othello Game",
+            code: "sample_programs/othello.lox",
+        },
+        {
             name: "Write your own",
             code: "sample_programs/blank.lox",
         }

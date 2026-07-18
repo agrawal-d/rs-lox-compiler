@@ -1,0 +1,355 @@
+// Othello (Reversi)
+// Features: Local play against AI (Easy/Medium/Hard), clean ASCII board, Undo function
+
+// Constants
+var BOARD_SIZE = 8;
+var EMPTY = 0;
+var BLACK = 1; // Player (X)
+var WHITE = 2; // AI (O)
+
+function getDirX(i) {
+    if (i == 0 or i == 1 or i == 2) return -1;
+    if (i == 3 or i == 4) return 0;
+    return 1;
+}
+
+function getDirY(i) {
+    if (i == 0 or i == 3 or i == 5) return -1;
+    if (i == 1 or i == 6) return 0;
+    return 1;
+}
+
+function getWeight(r, c) {
+    // Map to top-left quadrant
+    if (r >= 4) r = 7 - r;
+    if (c >= 4) c = 7 - c;
+
+    if (r == 0) {
+        if (c == 0) return 120;
+        if (c == 1) return -20;
+        if (c == 2) return 20;
+        return 5;
+    }
+    if (r == 1) {
+        if (c == 0) return -20;
+        if (c == 1) return -40;
+        return -5;
+    }
+    if (r == 2) {
+        if (c == 0) return 20;
+        if (c == 1) return -5;
+        if (c == 2) return 15;
+        return 3;
+    }
+    // r == 3
+    if (c == 0) return 5;
+    if (c == 1) return -5;
+    return 3;
+}
+
+// Game State buffers
+var board[64];
+var undoStack[640]; // Up to 10 moves history, each is a copy of the board (64 cells)
+var undoCount = 0;
+
+// Helper variables for coordinates and inputs
+var col_chars = "abcdefgh";
+
+function initBoard() {
+    var i = 0;
+    while (i < 64) {
+        board[i] = EMPTY;
+        i = i + 1;
+    }
+    board[3 * 8 + 3] = WHITE;
+    board[3 * 8 + 4] = BLACK;
+    board[4 * 8 + 3] = BLACK;
+    board[4 * 8 + 4] = WHITE;
+}
+
+function saveState() {
+    if (undoCount < 10) {
+        var base = undoCount * 64;
+        var i = 0;
+        while (i < 64) {
+            undoStack[base + i] = board[i];
+            i = i + 1;
+        }
+        undoCount = undoCount + 1;
+    }
+}
+
+function loadState() {
+    if (undoCount > 0) {
+        undoCount = undoCount - 1;
+        var base = undoCount * 64;
+        var i = 0;
+        while (i < 64) {
+            board[i] = undoStack[base + i];
+            i = i + 1;
+        }
+        return true;
+    }
+    return false;
+}
+
+function printBoard() {
+    clear();
+    print("  +-----------------+");
+    print("  | a b c d e f g h |");
+    print("  +-----------------+");
+    var r = 0;
+    while (r < 8) {
+        var line = str(r + 1) + " | ";
+        var c = 0;
+        while (c < 8) {
+            var piece = board[r * 8 + c];
+            if (piece == EMPTY) {
+                line = line + ". ";
+            } else if (piece == BLACK) {
+                line = line + "X ";
+            } else if (piece == WHITE) {
+                line = line + "O ";
+            }
+            c = c + 1;
+        }
+        line = line + "| " + str(r + 1);
+        print(line);
+        r = r + 1;
+    }
+    print("  +-----------------+");
+    print("  | a b c d e f g h |");
+    print("  +-----------------+");
+}
+
+function isValidCoord(r, c) {
+    return r >= 0 and r < 8 and c >= 0 and c < 8;
+}
+
+// Check if placing a piece of player at (r, c) is valid and optionally flips
+function checkMove(r, c, player, doFlips) {
+    if (board[r * 8 + c] != EMPTY) {
+        return false;
+    }
+    var opponent = BLACK;
+    if (player == BLACK) {
+        opponent = WHITE;
+    }
+
+    var moveValid = false;
+    var i = 0;
+    while (i < 8) {
+        var dx = getDirX(i);
+        var dy = getDirY(i);
+        var currR = r + dy;
+        var currC = c + dx;
+        var count = 0;
+
+        while (isValidCoord(currR, currC) and board[currR * 8 + currC] == opponent) {
+            currR = currR + dy;
+            currC = currC + dx;
+            count = count + 1;
+        }
+
+        if (count > 0 and isValidCoord(currR, currC) and board[currR * 8 + currC] == player) {
+            moveValid = true;
+            if (doFlips) {
+                var flipR = r + dy;
+                var flipC = c + dx;
+                while (flipR != currR or flipC != currC) {
+                    board[flipR * 8 + flipC] = player;
+                    flipR = flipR + dy;
+                    flipC = flipC + dx;
+                }
+            }
+        }
+        i = i + 1;
+    }
+
+    if (moveValid and doFlips) {
+        board[r * 8 + c] = player;
+    }
+    return moveValid;
+}
+
+function hasValidMoves(player) {
+    var r = 0;
+    while (r < 8) {
+        var c = 0;
+        while (c < 8) {
+            if (checkMove(r, c, player, false)) {
+                return true;
+            }
+            c = c + 1;
+        }
+        r = r + 1;
+    }
+    return false;
+}
+
+// Get AI's move depending on difficulty
+function getAIMove(difficulty) {
+    var bestMove = -1;
+    var bestScore = -99999;
+    var moves[64];
+    var scores[64];
+    var moveCount = 0;
+
+    var r = 0;
+    while (r < 8) {
+        var c = 0;
+        while (c < 8) {
+            if (checkMove(r, c, WHITE, false)) {
+                moves[moveCount] = r * 8 + c;
+                
+                // Evaluate move
+                var score = 0;
+                if (difficulty == 1) { // Easy: Random moves or simple flip counts
+                    score = rand() % 100;
+                } else if (difficulty == 2) { // Medium: Positional weights
+                    score = getWeight(r, c);
+                } else { // Hard: Positional weights + lookahead flip potential
+                    score = getWeight(r, c);
+                    // Prefer corners and stable moves
+                    if ((r == 0 or r == 7) and (c == 0 or c == 7)) {
+                        score = score + 50;
+                    }
+                }
+                
+                scores[moveCount] = score;
+                moveCount = moveCount + 1;
+            }
+            c = c + 1;
+        }
+        r = r + 1;
+    }
+
+    if (moveCount == 0) {
+        return -1;
+    }
+
+    var i = 0;
+    while (i < moveCount) {
+        if (scores[i] > bestScore) {
+            bestScore = scores[i];
+            bestMove = moves[i];
+        }
+        i = i + 1;
+    }
+    return bestMove;
+}
+
+function countPieces(player) {
+    var count = 0;
+    var i = 0;
+    while (i < 64) {
+        if (board[i] == player) {
+            count = count + 1;
+        }
+        i = i + 1;
+    }
+    return count;
+}
+
+function getColIdx(char) {
+    var i = 0;
+    while (i < 8) {
+        if (stringat(col_chars, i) == char) {
+            return i;
+        }
+        i = i + 1;
+    }
+    return -1;
+}
+
+function main() {
+    print("Welcome to Othello!");
+    print("You are the player X");
+    var diff_str = input("Select difficulty (1 = Easy, 2 = Medium, 3 = Hard):");
+    var difficulty = int(diff_str);
+    if (difficulty == nil or difficulty < 1 or difficulty > 3) {
+        difficulty = 2; // Default to medium
+    }
+
+    initBoard();
+
+    var gameRunning = true;
+    while (gameRunning) {
+        printBoard();
+
+        var playerCanMove = hasValidMoves(BLACK);
+        var aiCanMove = hasValidMoves(WHITE);
+
+        if (!playerCanMove and !aiCanMove) {
+            gameRunning = false;
+        } else {
+            if (playerCanMove) {
+                var validTurn = false;
+                while (!validTurn) {
+                    var userInput = input("Enter move (e.g. d3) or 'undo':");
+                    if (userInput == "undo") {
+                        if (loadState()) {
+                            printBoard();
+                            validTurn = true;
+                        } else {
+                            print("No history to undo!");
+                        }
+                    } else if (len(userInput) == 2) {
+                        var col_char = stringat(userInput, 0);
+                        var row_char = stringat(userInput, 1);
+                        var c = getColIdx(col_char);
+                        var r = int(row_char) - 1;
+
+                        if (isValidCoord(r, c) and checkMove(r, c, BLACK, false)) {
+                            saveState();
+                            checkMove(r, c, BLACK, true); // Do the actual move and flip
+                            validTurn = true;
+                        } else {
+                            print("Invalid move! Try again.");
+                        }
+                    } else {
+                        print("Invalid command syntax.");
+                    }
+                }
+            } else {
+                print("You have no valid moves. Passing to AI.");
+                sleep(1500);
+            }
+
+            // AI's turn
+            if (gameRunning and hasValidMoves(WHITE)) {
+                printBoard();
+                print("AI thinking...");
+                sleep(1000);
+                var aiMove = getAIMove(difficulty);
+                if (aiMove != -1) {
+                    var aiR = floor(aiMove / 8);
+                    var aiC = aiMove % 8;
+                    checkMove(aiR, aiC, WHITE, true);
+                }
+            } else if (gameRunning) {
+                print("AI has no valid moves. Passing to you.");
+                sleep(1500);
+            }
+        }
+    }
+
+    // End Game
+    printBoard();
+    print("Game Over!");
+    var blackScore = countPieces(BLACK);
+    var whiteScore = countPieces(WHITE);
+    print("Final Score:");
+    print("Player (X): " + str(blackScore));
+    print("AI (O): " + str(whiteScore));
+
+    if (blackScore > whiteScore) {
+        print("Congratulations! You won!");
+    } else if (whiteScore > blackScore) {
+        print("AI won. Better luck next time!");
+    } else {
+        print("It is a draw!");
+    }
+}
+
+main();
