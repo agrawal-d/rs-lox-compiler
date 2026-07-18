@@ -964,445 +964,529 @@ class GameState {
 
     dialogueBarnaby(choice) {
         if (this.dialogueNode == 0) {
-            if (choice == "1") {
-                this.dialogueNode = 1;
-                this.menuState = 2; // Keep in dialogue
-                this.setMsg("Barnaby: 'They all left in the dead of night.'", "'Led by that Pomeranian. Barking about existential liberty.'", "What do you want to say?");
-            } else if (choice == "2") {
-                this.menuState = 0; // Return to explore
-                if (this.gold >= 3) {
-                    this.gold = this.gold - 3;
+            this.dialogueBarnabyNode0(choice);
+        } else if (this.dialogueNode == 1) {
+            this.dialogueBarnabyNode1(choice);
+        } else if (this.dialogueNode == 2) {
+            this.dialogueBarnabyNode2(choice);
+        } else if (this.dialogueNode == 3) {
+            this.dialogueBarnabyNode3(choice);
+        } else if (this.dialogueNode == 4) {
+            this.dialogueBarnabyNode4(choice);
+        }
+    }
+
+    dialogueBarnabyNode0(choice) {
+        if (choice == "1") {
+            this.dialogueNode = 1;
+            this.menuState = 2; // Keep in dialogue
+            this.setMsg("Barnaby: 'They all left in the dead of night.'", "'Led by that Pomeranian. Barking about existential liberty.'", "What do you want to say?");
+        } else if (choice == "2") {
+            this.menuState = 0; // Return to explore
+            if (this.gold >= 3) {
+                this.gold = this.gold - 3;
+                this.hp = this.hp + 5;
+                if (this.hp > this.maxHp) this.hp = this.maxHp;
+                this.showOutcome("You bought Barnaby's Healing Cabbage Soup! 🥣", "It tastes like swamp water, but you feel better.", "Healed 5 HP.");
+            } else {
+                this.showOutcome("Barnaby: 'No gold, no soup. Try writing a book about poverty.'", "", "");
+            }
+        } else if (choice == "3") {
+            this.menuState = 0; // Return to explore
+            if (this.questCounter == 0) {
+                this.questCounter = 1;
+                this.showOutcome("Barnaby: 'Sugar-potion spilled. It's stuck tight.'", "'If you find a way to clean it, I'll pay 5 Gold'", "'and give you a Free Healing Soup.'");
+            } else if (this.questCounter == 1) {
+                if (this.hasSolvent) {
+                    this.hasSolvent = false;
+                    this.questCounter = 2; // Completed
+                    this.gold = this.gold + 5;
                     this.hp = this.hp + 5;
                     if (this.hp > this.maxHp) this.hp = this.maxHp;
-                    this.showOutcome("You bought Barnaby's Healing Cabbage Soup! 🥣", "It tastes like swamp water, but you feel better.", "Healed 5 HP.");
-                } else {
-                    this.showOutcome("Barnaby: 'No gold, no soup. Try writing a book about poverty.'", "", "");
-                }
-            } else if (choice == "3") {
-                this.menuState = 0; // Return to explore
-                if (this.questCounter == 0) {
-                    this.questCounter = 1;
-                    this.showOutcome("Barnaby: 'Sugar-potion spilled. It's stuck tight.'", "'If you find a way to clean it, I'll pay 5 Gold'", "'and give you a Free Healing Soup.'");
-                } else if (this.questCounter == 1) {
-                    if (this.hasSolvent) {
-                        this.hasSolvent = false;
+                    this.alignment = this.alignment + 1;
+                    this.showOutcome("You pour the solvent over the counter. 🧪", "The stickiness dissolves instantly. Barnaby is pleased.", "Gained: 5 Gold, Free Soup (Healed 5 HP). Good +1.");
+                } else { // Use Lesser Spark (Roll Check!)
+                    var rollResult = this.rollCheck("INT", 15, 0);
+                    if (rollResult == 100) { // Crit success
+                        this.questCounter = 2; // Completed
+                        this.gold = this.gold + 10; // Extra bonus!
+                        this.showOutcome("✨ NATURAL 20! You cast a controlled, hyper-focused spark sizzle! 🔥", "The sugar stickiness turns to fine dust instantly.", "Barnaby is amazed and pays you 10 Gold!");
+                    } else if (rollResult == 1) { // Success
                         this.questCounter = 2; // Completed
                         this.gold = this.gold + 5;
-                        this.hp = this.hp + 5;
-                        if (this.hp > this.maxHp) this.hp = this.maxHp;
-                        this.alignment = this.alignment + 1;
-                        this.showOutcome("You pour the solvent over the counter. 🧪", "The stickiness dissolves instantly. Barnaby is pleased.", "Gained: 5 Gold, Free Soup (Healed 5 HP). Good +1.");
-                    } else { // Use Lesser Spark (Roll Check!)
-                        var rollResult = this.rollCheck("INT", 15, 0);
-                        if (rollResult == 100) { // Crit success
-                            this.questCounter = 2; // Completed
-                            this.gold = this.gold + 10; // Extra bonus!
-                            this.showOutcome("✨ NATURAL 20! You cast a controlled, hyper-focused spark sizzle! 🔥", "The sugar stickiness turns to fine dust instantly.", "Barnaby is amazed and pays you 10 Gold!");
-                        } else if (rollResult == 1) { // Success
-                            this.questCounter = 2; // Completed
-                            this.gold = this.gold + 5;
-                            this.showOutcome("You cast a mild spark on the counter wood.", "The heat boils off the sticky residue. It is clean.", "Barnaby pays you 5 Gold.");
-                        } else { // Fail
-                            this.questCounter = 3; // Failed
-                            this.hp = this.hp - 4;
-                            this.showOutcome("The spark explodes, leaving a massive charred hole! 💥", "Barnaby beats you with a rolling pin in fury.", "Quest failed. Took 4 damage.");
-                            this.checkCombatDeath();
-                        }
+                        this.showOutcome("You cast a mild spark on the counter wood.", "The heat boils off the sticky residue. It is clean.", "Barnaby pays you 5 Gold.");
+                    } else { // Fail
+                        this.questCounter = 3; // Failed
+                        this.hp = this.hp - 4;
+                        this.showOutcome("The spark explodes, leaving a massive charred hole! 💥", "Barnaby beats you with a rolling pin in fury.", "Quest failed. Took 4 damage.");
+                        this.checkCombatDeath();
                     }
                 }
-            } else if (choice == "4") {
-                this.menuState = 0; // exit dialogue
-                this.humanRep = this.humanRep - 5;
-                this.alignment = this.alignment - 2;
-                this.hp = this.hp - 2;
-                this.changeLocation(0); // Kicked back to Bedroom
-                this.showOutcome("Barnaby: 'A walrus?! That does it!'", "Barnaby smacks you with a heavy rolling pin and kicks you out!", "Lost 2 HP. Kicked back upstairs to Bedroom.");
-                this.checkCombatDeath();
-            } else if (choice == "5") {
-                this.dialogueNode = 2;
-                this.menuState = 2;
-                this.setMsg("Barnaby pauses, looking down at the amber liquid in a mug.", "'A pint poured to a man who has lost everything...'", "'has no weight, wizard. It is light as air, and just as empty.'");
-            } else {
-                this.menuState = 0;
             }
-        } else if (this.dialogueNode == 1) { // Pets node
-            if (choice == "1") { // Right to protest?
-                this.dialogueNode = 3;
-                this.menuState = 2;
-                this.setMsg("Barnaby: 'Right to protest? Sympathy is a luxury of those who don't'", "'have to clean hog pens. But... Fluffington always did'", "'look at his leash like it was a personal insult.'");
-            } else if (choice == "2") { // Gold focused
-                this.menuState = 0;
-                this.alignment = this.alignment - 1;
-                this.showOutcome("Barnaby: 'Spoken like a true mercenary.'", "'Higgins will love you. He has a heart of accounting'", "'and a soul of dried ink.'");
-            } else if (choice == "3") { // Magic leak
-                this.dialogueNode = 4;
-                this.menuState = 2;
-                this.setMsg("Barnaby whispers: 'The valley leaks raw mana from the academy.'", "'They say it makes things... aware. Trees hum. Pots scream.'", "'That Pomeranian must have caught a heavy dose of it.'");
-            } else {
-                this.menuState = 0;
-            }
-        } else if (this.dialogueNode == 2) { // Philosophy pint node
-            if (choice == "1") { // Pleases him
-                this.menuState = 0;
-                this.humanRep = this.humanRep + 3;
-                this.alignment = this.alignment + 1;
-                this.hp = this.hp + 2;
-                if (this.hp > this.maxHp) this.hp = this.maxHp;
-                this.showOutcome("Barnaby looks at you, his eyes softening.", "'Aye. Maybe you're not a total liability after all.'", "He hands you a free warm ale. Good +1, Healed 2 HP.");
-            } else if (choice == "2") { // Offends him
-                this.menuState = 0;
-                this.humanRep = this.humanRep - 3;
-                this.alignment = this.alignment - 1;
-                this.showOutcome("Barnaby scowls, slamming his cleaning rag down.", "'Then go drink swamp water. Dialogue over.'", "Barnaby refuses to talk further.");
-            } else {
-                this.menuState = 0;
-            }
-        } else if (this.dialogueNode == 3) { // Sympathize pets node
-            if (choice == "1") { // peaceful
-                this.menuState = 0;
-                this.alignment = this.alignment + 1;
-                this.animalRep = this.animalRep + 2;
-                this.showOutcome("Barnaby: 'Aye, a treaty might save the town from a cellar raid.'", "'Good luck negotiating with a Pomeranian revolutionary.'", "Good +1. Animal reputation increased.");
-            } else if (choice == "2") { // de-sentience
-                this.menuState = 0;
-                this.alignment = this.alignment - 2;
-                this.showOutcome("Barnaby shivers: 'Forcing them back to mindless beasts...'", "'Cruel business. But I suppose it keeps the carpets clean.'", "Evil +2.");
-            } else {
-                this.menuState = 0;
-            }
-        } else if (this.dialogueNode == 4) { // Magic leak node
-            if (choice == "1") { // how to stabilize
-                this.menuState = 0;
-                this.showOutcome("Barnaby: 'Stabilize it? I'm a barkeep, not an archmage.'", "'They say a focus ring absorbs minor magical friction.'", "'Check with shady peddlers in the square.'");
-            } else {
-                this.menuState = 0;
-                this.showOutcome("Barnaby: 'A wise choice. Survival is the best magic.'", "", "");
-            }
+        } else if (choice == "4") {
+            this.menuState = 0; // exit dialogue
+            this.humanRep = this.humanRep - 5;
+            this.alignment = this.alignment - 2;
+            this.hp = this.hp - 2;
+            this.changeLocation(0); // Kicked back to Bedroom
+            this.showOutcome("Barnaby: 'A walrus?! That does it!'", "Barnaby smacks you with a heavy rolling pin and kicks you out!", "Lost 2 HP. Kicked back upstairs to Bedroom.");
+            this.checkCombatDeath();
+        } else if (choice == "5") {
+            this.dialogueNode = 2;
+            this.menuState = 2;
+            this.setMsg("Barnaby pauses, looking down at the amber liquid in a mug.", "'A pint poured to a man who has lost everything...'", "'has no weight, wizard. It is light as air, and just as empty.'");
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueBarnabyNode1(choice) {
+        if (choice == "1") { // Right to protest?
+            this.dialogueNode = 3;
+            this.menuState = 2;
+            this.setMsg("Barnaby: 'Right to protest? Sympathy is a luxury of those who don't'", "'have to clean hog pens. But... Fluffington always did'", "'look at his leash like it was a personal insult.'");
+        } else if (choice == "2") { // Gold focused
+            this.menuState = 0;
+            this.alignment = this.alignment - 1;
+            this.showOutcome("Barnaby: 'Spoken like a true mercenary.'", "'Higgins will love you. He has a heart of accounting'", "'and a soul of dried ink.'");
+        } else if (choice == "3") { // Magic leak
+            this.dialogueNode = 4;
+            this.menuState = 2;
+            this.setMsg("Barnaby whispers: 'The valley leaks raw mana from the academy.'", "'They say it makes things... aware. Trees hum. Pots scream.'", "'That Pomeranian must have caught a heavy dose of it.'");
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueBarnabyNode2(choice) {
+        if (choice == "1") { // Pleases him
+            this.menuState = 0;
+            this.humanRep = this.humanRep + 3;
+            this.alignment = this.alignment + 1;
+            this.hp = this.hp + 2;
+            if (this.hp > this.maxHp) this.hp = this.maxHp;
+            this.showOutcome("Barnaby looks at you, his eyes softening.", "'Aye. Maybe you're not a total liability after all.'", "He hands you a free warm ale. Good +1, Healed 2 HP.");
+        } else if (choice == "2") { // Offends him
+            this.menuState = 0;
+            this.humanRep = this.humanRep - 3;
+            this.alignment = this.alignment - 1;
+            this.showOutcome("Barnaby scowls, slamming his cleaning rag down.", "'Then go drink swamp water. Dialogue over.'", "Barnaby refuses to talk further.");
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueBarnabyNode3(choice) {
+        if (choice == "1") { // peaceful
+            this.menuState = 0;
+            this.alignment = this.alignment + 1;
+            this.animalRep = this.animalRep + 2;
+            this.showOutcome("Barnaby: 'Aye, a treaty might save the town from a cellar raid.'", "'Good luck negotiating with a Pomeranian revolutionary.'", "Good +1. Animal reputation increased.");
+        } else if (choice == "2") { // de-sentience
+            this.menuState = 0;
+            this.alignment = this.alignment - 2;
+            this.showOutcome("Barnaby shivers: 'Forcing them back to mindless beasts...'", "'Cruel business. But I suppose it keeps the carpets clean.'", "Evil +2.");
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueBarnabyNode4(choice) {
+        if (choice == "1") { // how to stabilize
+            this.menuState = 0;
+            this.showOutcome("Barnaby: 'Stabilize it? I'm a barkeep, not an archmage.'", "'They say a focus ring absorbs minor magical friction.'", "'Check with shady peddlers in the square.'");
+        } else {
+            this.menuState = 0;
+            this.showOutcome("Barnaby: 'A wise choice. Survival is the best magic.'", "", "");
         }
     }
 
     dialogueHiggins(choice) {
         if (this.dialogueNode == 0) {
-            if (!this.questActive) {
-                if (choice == "1") {
-                    this.questActive = true;
-                    this.metMayor = true;
+            this.dialogueHigginsNode0(choice);
+        } else if (this.dialogueNode == 1) {
+            this.dialogueHigginsNode1(choice);
+        } else if (this.dialogueNode == 2) {
+            this.dialogueHigginsNode2(choice);
+        } else if (this.dialogueNode == 3) {
+            this.dialogueHigginsNode3(choice);
+        }
+    }
+
+    dialogueHigginsNode0(choice) {
+        if (!this.questActive) {
+            if (choice == "1") {
+                this.questActive = true;
+                this.metMayor = true;
+                this.menuState = 0;
+                this.showOutcome("Higgins: 'Thank goodness. Please, do keep it quiet.'", "Quest active: Find the missing pets in the Grove.", "");
+            } else if (choice == "2") {
+                var rollResult = this.rollCheck("CHA", 12, 0);
+                this.questActive = true;
+                this.metMayor = true;
+                this.menuState = 0;
+                if (rollResult == 100 or rollResult == 1) {
+                    this.chaos = this.chaos + 1;
+                    this.showOutcome("Higgins: 'Hmph. Extortion! Fine, 30 Gold it is.'", "You bargained well. Reward increased.", "");
+                } else {
+                    this.humanRep = this.humanRep - 2;
+                    this.showOutcome("Higgins: 'Greedy wizard! Rent stands at full price.'", "He scowls. Your reputation with humans is lowered.", "");
+                }
+            }
+        } else {
+            if (this.hasSack and choice == "1") {
+                this.hasSack = false;
+                this.gold = this.gold + 20;
+                this.rebellionState = 2;
+                this.gameWon = true;
+                this.menuState = 0;
+                this.showOutcome("Higgins: 'Splendid! Though he looks a bit... traumatized.'", "You completed the quest! You got 20 Gold.", "The town's pets are returned in chains.");
+            } else if (this.hasTreaty and choice == "1") {
+                this.hasTreaty = false;
+                this.gold = this.gold + 20;
+                this.rebellionState = 1;
+                this.gameWon = true;
+                this.menuState = 0;
+                this.showOutcome("Higgins: 'Belly rubs and beef? Fine, I'll sign.'", "You negotiated peace! Quest complete.", "The animals return home happily.");
+            } else {
+                if (choice == "1") { // History
+                    this.dialogueNode = 1;
+                    this.menuState = 2;
+                    this.setMsg("Higgins: 'This village was founded on cabbages and order.'", "'For seventy years, the pets barked, and we paid taxes.'", "'Now, cats are arguing about labor theory! It's unnatural!'");
+                } else if (choice == "2") { // Hate Fluffington
+                    this.dialogueNode = 2;
+                    this.menuState = 2;
+                    this.setMsg("Higgins: 'He's not a dog, he's a political instigator!'", "'He convinced my carriage horse to go on strike by'", "'questioning the concept of carriage-pulling essence!'");
+                } else if (choice == "3") { // Burden of leadership
+                    this.dialogueNode = 3;
+                    this.menuState = 2;
+                    this.setMsg("Higgins sighs, looking at his ledger: 'Leadership is numbers.'", "'Tax collections, crop yields, crop safety...'", "'And then you wizards blow up the tavern ceiling!'");
+                } else if (choice == "4" and !this.hasScroll) { // Pickpocket
                     this.menuState = 0;
-                    this.showOutcome("Higgins: 'Thank goodness. Please, do keep it quiet.'", "Quest active: Find the missing pets in the Grove.", "");
-                } else if (choice == "2") {
+                    if (this.higginsPickpocketed) {
+                        this.showOutcome("Higgins is keeping a very close eye on his pockets now.", "You cannot try to pickpocket him again.", "");
+                        return;
+                    }
+                    this.higginsPickpocketed = true;
                     var rollResult = this.rollCheck("CHA", 12, 0);
-                    this.questActive = true;
-                    this.metMayor = true;
-                    this.menuState = 0;
-                    if (rollResult == 100 or rollResult == 1) {
-                        this.chaos = this.chaos + 1;
-                        this.showOutcome("Higgins: 'Hmph. Extortion! Fine, 30 Gold it is.'", "You bargained well. Reward increased.", "");
+                    if (rollResult == 100) {
+                        this.hasScroll = true;
+                        this.gold = this.gold + 5;
+                        this.chaos = this.chaos + 2;
+                        this.showOutcome("✨ NATURAL 20! You slip your hand into Higgins' pocket...", "You stole the SCROLL OF DE-SENTIENCE AND 5 Gold!", "He didn't notice a thing.");
+                    } else if (rollResult == -100) {
+                        this.humanRep = this.humanRep - 5;
+                        this.location = 0;
+                        this.gold = this.gold - 5;
+                        if (this.gold < 0) this.gold = 0;
+                        this.showOutcome("💥 NATURAL 1! You accidentally tickle the Mayor! 👮", "Higgins shrieks and calls the town guard! You are locked up.", "You lost 5 Gold for bail and were thrown back in your room.");
+                    } else if (rollResult == 1) {
+                        this.hasScroll = true;
+                        this.chaos = this.chaos + 2;
+                        this.showOutcome("You slip your hand into Higgins' pocket...", "You stole the SCROLL OF DE-SENTIENCE! 📜", "He didn't notice a thing.");
                     } else {
                         this.humanRep = this.humanRep - 2;
-                        this.showOutcome("Higgins: 'Greedy wizard! Rent stands at full price.'", "He scowls. Your reputation with humans is lowered.", "");
+                        this.showOutcome("Higgins: 'Hey! Keep your hands out of my pockets, wizard!'", "Pickpocket failed. Humans dislike you more.", "");
                     }
-                }
-            } else {
-                if (this.hasSack and choice == "1") {
-                    this.hasSack = false;
-                    this.gold = this.gold + 20;
-                    this.rebellionState = 2;
-                    this.gameWon = true;
-                    this.menuState = 0;
-                    this.showOutcome("Higgins: 'Splendid! Though he looks a bit... traumatized.'", "You completed the quest! You got 20 Gold.", "The town's pets are returned in chains.");
-                } else if (this.hasTreaty and choice == "1") {
-                    this.hasTreaty = false;
-                    this.gold = this.gold + 20;
-                    this.rebellionState = 1;
-                    this.gameWon = true;
-                    this.menuState = 0;
-                    this.showOutcome("Higgins: 'Belly rubs and beef? Fine, I'll sign.'", "You negotiated peace! Quest complete.", "The animals return home happily.");
                 } else {
-                    if (choice == "1") { // History
-                        this.dialogueNode = 1;
-                        this.menuState = 2;
-                        this.setMsg("Higgins: 'This village was founded on cabbages and order.'", "'For seventy years, the pets barked, and we paid taxes.'", "'Now, cats are arguing about labor theory! It's unnatural!'");
-                    } else if (choice == "2") { // Hate Fluffington
-                        this.dialogueNode = 2;
-                        this.menuState = 2;
-                        this.setMsg("Higgins: 'He's not a dog, he's a political instigator!'", "'He convinced my carriage horse to go on strike by'", "'questioning the concept of carriage-pulling essence!'");
-                    } else if (choice == "3") { // Burden of leadership
-                        this.dialogueNode = 3;
-                        this.menuState = 2;
-                        this.setMsg("Higgins sighs, looking at his ledger: 'Leadership is numbers.'", "'Tax collections, crop yields, crop safety...'", "'And then you wizards blow up the tavern ceiling!'");
-                    } else if (choice == "4" and !this.hasScroll) { // Pickpocket
-                        this.menuState = 0;
-                        if (this.higginsPickpocketed) {
-                            this.showOutcome("Higgins is keeping a very close eye on his pockets now.", "You cannot try to pickpocket him again.", "");
-                            return;
-                        }
-                        this.higginsPickpocketed = true;
-                        var rollResult = this.rollCheck("CHA", 12, 0);
-                        if (rollResult == 100) {
-                            this.hasScroll = true;
-                            this.gold = this.gold + 5;
-                            this.chaos = this.chaos + 2;
-                            this.showOutcome("✨ NATURAL 20! You slip your hand into Higgins' pocket...", "You stole the SCROLL OF DE-SENTIENCE AND 5 Gold!", "He didn't notice a thing.");
-                        } else if (rollResult == -100) {
-                            this.humanRep = this.humanRep - 5;
-                            this.location = 0;
-                            this.gold = this.gold - 5;
-                            if (this.gold < 0) this.gold = 0;
-                            this.showOutcome("💥 NATURAL 1! You accidentally tickle the Mayor! 👮", "Higgins shrieks and calls the town guard! You are locked up.", "You lost 5 Gold for bail and were thrown back in your room.");
-                        } else if (rollResult == 1) {
-                            this.hasScroll = true;
-                            this.chaos = this.chaos + 2;
-                            this.showOutcome("You slip your hand into Higgins' pocket...", "You stole the SCROLL OF DE-SENTIENCE! 📜", "He didn't notice a thing.");
-                        } else {
-                            this.humanRep = this.humanRep - 2;
-                            this.showOutcome("Higgins: 'Hey! Keep your hands out of my pockets, wizard!'", "Pickpocket failed. Humans dislike you more.", "");
-                        }
-                    } else {
-                        this.menuState = 0;
-                    }
+                    this.menuState = 0;
                 }
             }
-        } else if (this.dialogueNode == 1) { // History outcomes
-            this.menuState = 0;
-            if (choice == "1") { // Sarcastic
-                this.chaos = this.chaos + 1;
-                this.humanRep = this.humanRep - 1;
-                this.showOutcome("Higgins scowls: 'Sarcasm is the shield of the lazy.'", "'Go find those pets before I double your rent.'", "Chaos +1, reputation lowered.");
-            } else if (choice == "2") { // Praise
-                this.alignment = this.alignment + 1;
-                this.humanRep = this.humanRep + 2;
-                this.showOutcome("Higgins beams: 'Exactly! A man of letters!'", "'If only the town council possessed your clarity.'", "Good +1. Humans respect you more.");
+        }
+    }
+
+    dialogueHigginsNode1(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Sarcastic
+            this.chaos = this.chaos + 1;
+            this.humanRep = this.humanRep - 1;
+            this.showOutcome("Higgins scowls: 'Sarcasm is the shield of the lazy.'", "'Go find those pets before I double your rent.'", "Chaos +1, reputation lowered.");
+        } else if (choice == "2") { // Praise
+            this.alignment = this.alignment + 1;
+            this.humanRep = this.humanRep + 2;
+            this.showOutcome("Higgins beams: 'Exactly! A man of letters!'", "'If only the town council possessed your clarity.'", "Good +1. Humans respect you more.");
+        }
+    }
+
+    dialogueHigginsNode2(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Sarcastic
+            this.humanRep = this.humanRep - 1;
+            this.showOutcome("Higgins: 'Smart? It's a menace!'", "'Next thing you know, he'll be running for Mayor!'", "");
+        } else if (choice == "2") { // Agree
+            this.humanRep = this.humanRep + 2;
+            this.showOutcome("Higgins laughs dryly: 'Indeed! A horse with a mid-life crisis!'", "'The world has gone completely mad.'", "Humans respect you more.");
+        }
+    }
+
+    dialogueHigginsNode3(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Investment
+            var chance = rand() % 100;
+            if (chance < 50) { // Pleased
+                this.gold = this.gold + 5;
+                this.showOutcome("Higgins nods: 'Perhaps. Here is a 5 Gold stipend'", "'to cover magical reagents. Do spend it wisely.'", "Gained 5 Gold!");
+            } else { // Offended
+                this.showOutcome("Higgins: 'An investment? You're a wizarding liability.'", "'I have three pending insurance claims from your coffee soot.'", "");
             }
-        } else if (this.dialogueNode == 2) { // Fluffington hate outcomes
-            this.menuState = 0;
-            if (choice == "1") { // Sarcastic
-                this.humanRep = this.humanRep - 1;
-                this.showOutcome("Higgins: 'Smart? It's a menace!'", "'Next thing you know, he'll be running for Mayor!'", "");
-            } else if (choice == "2") { // Agree
-                this.humanRep = this.humanRep + 2;
-                this.showOutcome("Higgins laughs dryly: 'Indeed! A horse with a mid-life crisis!'", "'The world has gone completely mad.'", "Humans respect you more.");
-            }
-        } else if (this.dialogueNode == 3) { // Leadership outcomes
-            this.menuState = 0;
-            if (choice == "1") { // Investment
-                var chance = rand() % 100;
-                if (chance < 50) { // Pleased
-                    this.gold = this.gold + 5;
-                    this.showOutcome("Higgins nods: 'Perhaps. Here is a 5 Gold stipend'", "'to cover magical reagents. Do spend it wisely.'", "Gained 5 Gold!");
-                } else { // Offended
-                    this.showOutcome("Higgins: 'An investment? You're a wizarding liability.'", "'I have three pending insurance claims from your coffee soot.'", "");
-                }
-            } else if (choice == "2") { // Minimal explosions
-                this.humanRep = this.humanRep + 1;
-                this.showOutcome("Higgins: 'I appreciate the commitment. My ceiling bills thank you.'", "", "");
-            }
+        } else if (choice == "2") { // Minimal explosions
+            this.humanRep = this.humanRep + 1;
+            this.showOutcome("Higgins: 'I appreciate the commitment. My ceiling bills thank you.'", "", "");
         }
     }
 
     dialogueBaroness(choice) {
         if (this.dialogueNode == 0) {
-            if (choice == "1" and this.questRing == 0) {
-                this.questRing = 1;
-                this.menuState = 0;
-                this.showOutcome("Baroness: 'Oh, my diamond wedding ring! I lost it in the tavern.'", "'Find it and I will reward you with 10 Gold!'", "Side Quest active: Search the tavern couch.");
-            } else if (choice == "2" and this.hasSack) {
-                this.hasSack = false;
-                this.gold = this.gold + 30;
-                this.rebellionState = 2;
-                this.gameWon = true;
-                this.menuState = 0;
-                this.showOutcome("Baroness: 'My sweet angel baby!'", "She hands you 30 Gold!", "Sir Fluffington growls at you from her arms.");
-            } else if (choice == "3" and this.hasRing) {
-                this.hasRing = false;
-                this.questRing = 2;
-                this.gold = this.gold + 10;
-                this.alignment = this.alignment + 2;
-                this.menuState = 0;
-                this.showOutcome("Baroness: 'My wedding ring! Oh, thank you!'", "She hands you 10 Gold.", "Good alignment increased.");
-            } else if (choice == "4") { // Deceased husband
-                this.dialogueNode = 1;
-                this.menuState = 2;
-                this.setMsg("Baroness sighs deeply: 'My dear, sweet Reginald.'", "'He was a man of fine tastes... and terrible horse riding habits.'", "'He left me this estate, and a gaping hole in my heart.'");
-            } else if (choice == "5") { // Fluffington rebellious
-                this.dialogueNode = 2;
-                this.menuState = 2;
-                this.setMsg("Baroness: 'Rebellious? Heavens, no!'", "'Reginald bought him for his fluffy tail, not his brain.'", "'Why, the dog could barely manage to sit on command before this.'");
-            } else {
-                this.menuState = 0;
-            }
-        } else if (this.dialogueNode == 1) { // Husband outcomes
+            this.dialogueBaronessNode0(choice);
+        } else if (this.dialogueNode == 1) {
+            this.dialogueBaronessNode1(choice);
+        } else if (this.dialogueNode == 2) {
+            this.dialogueBaronessNode2(choice);
+        }
+    }
+
+    dialogueBaronessNode0(choice) {
+        if (choice == "1" and this.questRing == 0) {
+            this.questRing = 1;
             this.menuState = 0;
-            if (choice == "1") { // Walrus/sarcastic
-                this.alignment = this.alignment - 1;
-                this.showOutcome("Baroness gasps, dabbing her nose: 'Insensitive boor!'", "'Reginald was a gentleman! Go, leave my presence.'", "Baroness offends easily. Alignment -1.");
-            } else if (choice == "2") { // Condolences
-                this.alignment = this.alignment + 1;
-                this.gold = this.gold + 2; 
-                this.showOutcome("Baroness pats your cheek: 'What a sympathetic wizard.'", "She hands you a 2 Gold tip for your kind words.", "Gained 2 Gold, Good +1.");
-            }
-        } else if (this.dialogueNode == 2) { // Fluffington history outcomes
+            this.showOutcome("Baroness: 'Oh, my diamond wedding ring! I lost it in the tavern.'", "'Find it and I will reward you with 10 Gold!'", "Side Quest active: Search the tavern couch.");
+        } else if (choice == "2" and this.hasSack) {
+            this.hasSack = false;
+            this.gold = this.gold + 30;
+            this.rebellionState = 2;
+            this.gameWon = true;
             this.menuState = 0;
-            if (choice == "1") { // Velvet cage
-                this.chaos = this.chaos + 1;
-                this.showOutcome("Baroness: 'Velvet cage? It was a silk-lined dog basket!'", "'He had a personal chef! That is not a cage.'", "Chaos +1.");
-            } else if (choice == "2") { // Beasts
-                this.alignment = this.alignment - 1;
-                this.showOutcome("Baroness: 'Well, yes, beasts indeed.'", "'But fluffiness transcends beastliness, doesn't it?'", "Alignment -1.");
-            }
+            this.showOutcome("Baroness: 'My sweet angel baby!'", "She hands you 30 Gold!", "Sir Fluffington growls at you from her arms.");
+        } else if (choice == "3" and this.hasRing) {
+            this.hasRing = false;
+            this.questRing = 2;
+            this.gold = this.gold + 10;
+            this.alignment = this.alignment + 2;
+            this.menuState = 0;
+            this.showOutcome("Baroness: 'My wedding ring! Oh, thank you!'", "She hands you 10 Gold.", "Good alignment increased.");
+        } else if (choice == "4") { // Deceased husband
+            this.dialogueNode = 1;
+            this.menuState = 2;
+            this.setMsg("Baroness sighs deeply: 'My dear, sweet Reginald.'", "'He was a man of fine tastes... and terrible horse riding habits.'", "'He left me this estate, and a gaping hole in my heart.'");
+        } else if (choice == "5") { // Fluffington rebellious
+            this.dialogueNode = 2;
+            this.menuState = 2;
+            this.setMsg("Baroness: 'Rebellious? Heavens, no!'", "'Reginald bought him for his fluffy tail, not his brain.'", "'Why, the dog could barely manage to sit on command before this.'");
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueBaronessNode1(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Walrus/sarcastic
+            this.alignment = this.alignment - 1;
+            this.showOutcome("Baroness gasps, dabbing her nose: 'Insensitive boor!'", "'Reginald was a gentleman! Go, leave my presence.'", "Baroness offends easily. Alignment -1.");
+        } else if (choice == "2") { // Condolences
+            this.alignment = this.alignment + 1;
+            this.gold = this.gold + 2; 
+            this.showOutcome("Baroness pats your cheek: 'What a sympathetic wizard.'", "She hands you a 2 Gold tip for your kind words.", "Gained 2 Gold, Good +1.");
+        }
+    }
+
+    dialogueBaronessNode2(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Velvet cage
+            this.chaos = this.chaos + 1;
+            this.showOutcome("Baroness: 'Velvet cage? It was a silk-lined dog basket!'", "'He had a personal chef! That is not a cage.'", "Chaos +1.");
+        } else if (choice == "2") { // Beasts
+            this.alignment = this.alignment - 1;
+            this.showOutcome("Baroness: 'Well, yes, beasts indeed.'", "'But fluffiness transcends beastliness, doesn't it?'", "Alignment -1.");
         }
     }
 
     dialogueFluffington(choice) {
         if (this.dialogueNode == 0) {
-            if (choice == "1") { // Grievance
-                this.dialogueNode = 1;
-                this.menuState = 2;
-                this.setMsg("Fluffington: 'The dry kibble tastes like baked dirt.'", "'We demand premium beef chunks, 12-hour nap blocks,'", "'and public belly-rub stations.'");
-            } else if (choice == "2") { // Nature of a pet
-                this.dialogueNode = 2;
-                this.menuState = 2;
-                this.setMsg("Fluffington: 'A profound question, wizard.'", "'Humans think a leash is order. We believe it is comfort.'", "'The domestic contract is built on the lie of safety.'");
-            } else if (choice == "3") { // Treaty
-                this.hasTreaty = true;
-                this.alignment = this.alignment + 2;
-                this.menuState = 0;
-                this.showOutcome("Fluffington: 'Fabulous! Here is the treaty. Bring it to Higgins.'", "You gained animal trust.", "");
-            } else if (choice == "4") { // Sentience
-                this.dialogueNode = 3;
-                this.menuState = 2;
-                this.setMsg("Fluffington: 'Sentience is the burden of knowing what could be.'", "'Once you know what steak tastes like, you cannot go back.'", "'It is a painful gift, but a gift nonetheless.'");
-            } else if (choice == "5" and this.chaos > 1) { // Bluff
-                var adv = 0;
-                if (this.animalRep > 1) adv = 1;
-                var rollResult = this.rollCheck("CHA", 10, adv);
-                this.menuState = 0;
-                if (rollResult == 100 or rollResult == 1) {
-                    this.questActive = false;
-                    this.rebellionState = 1;
-                    this.gameWon = true;
-                    this.gold = this.gold + 15;
-                    this.chaos = this.chaos + 2;
-                    this.showOutcome("You spin a grand tale of the Baroness preparing beef steak", "and warm silk pillows at home. Fluffington is convinced!", "The animals return home peacefully. You got 15 Gold.");
-                } else {
-                    this.hp = this.hp - 2;
-                    this.showOutcome("Fluffington: 'Lies! We know the Baroness has no steak!'", "Shadow the Cat claws you in the shin for lying.", "Bluff failed. Took 2 scratch damage.");
-                    this.checkCombatDeath();
-                }
-            } else if (choice == "6") { // Pillage
-                this.rebellionState = 3;
+            this.dialogueFluffingtonNode0(choice);
+        } else if (this.dialogueNode == 1) {
+            this.dialogueFluffingtonNode1(choice);
+        } else if (this.dialogueNode == 2) {
+            this.dialogueFluffingtonNode2(choice);
+        } else if (this.dialogueNode == 3) {
+            this.dialogueFluffingtonNode3(choice);
+        }
+    }
+
+    dialogueFluffingtonNode0(choice) {
+        if (choice == "1") { // Grievance
+            this.dialogueNode = 1;
+            this.menuState = 2;
+            this.setMsg("Fluffington: 'The dry kibble tastes like baked dirt.'", "'We demand premium beef chunks, 12-hour nap blocks,'", "'and public belly-rub stations.'");
+        } else if (choice == "2") { // Nature of a pet
+            this.dialogueNode = 2;
+            this.menuState = 2;
+            this.setMsg("Fluffington: 'A profound question, wizard.'", "'Humans think a leash is order. We believe it is comfort.'", "'The domestic contract is built on the lie of safety.'");
+        } else if (choice == "3") { // Treaty
+            this.hasTreaty = true;
+            this.alignment = this.alignment + 2;
+            this.menuState = 0;
+            this.showOutcome("Fluffington: 'Fabulous! Here is the treaty. Bring it to Higgins.'", "You gained animal trust.", "");
+        } else if (choice == "4") { // Sentience
+            this.dialogueNode = 3;
+            this.menuState = 2;
+            this.setMsg("Fluffington: 'Sentience is the burden of knowing what could be.'", "'Once you know what steak tastes like, you cannot go back.'", "'It is a painful gift, but a gift nonetheless.'");
+        } else if (choice == "5" and this.chaos > 1) { // Bluff
+            var adv = 0;
+            if (this.animalRep > 1) adv = 1;
+            var rollResult = this.rollCheck("CHA", 10, adv);
+            this.menuState = 0;
+            if (rollResult == 100 or rollResult == 1) {
+                this.questActive = false;
+                this.rebellionState = 1;
                 this.gameWon = true;
-                this.gold = this.gold + 40;
-                this.alignment = this.alignment - 8;
-                this.humanRep = this.humanRep - 10;
-                this.menuState = 0;
-                this.showOutcome("You lead the animals on a raid of the village! 🐕🐾🐈", "You pillaged the Mayor's cellar and shared 40 Gold.", "The humans are terrified. You are a chaotic legend.");
+                this.gold = this.gold + 15;
+                this.chaos = this.chaos + 2;
+                this.showOutcome("You spin a grand tale of the Baroness preparing beef steak", "and warm silk pillows at home. Fluffington is convinced!", "The animals return home peacefully. You got 15 Gold.");
             } else {
-                this.menuState = 0;
+                this.hp = this.hp - 2;
+                this.showOutcome("Fluffington: 'Lies! We know the Baroness has no steak!'", "Shadow the Cat claws you in the shin for lying.", "Bluff failed. Took 2 scratch damage.");
+                this.checkCombatDeath();
             }
-        } else if (this.dialogueNode == 1) { // Grievance outcomes
+        } else if (choice == "6") { // Pillage
+            this.rebellionState = 3;
+            this.gameWon = true;
+            this.gold = this.gold + 40;
+            this.alignment = this.alignment - 8;
+            this.humanRep = this.humanRep - 10;
             this.menuState = 0;
-            if (choice == "1") { // Sympathize
-                this.animalRep = this.animalRep + 3;
-                this.alignment = this.alignment + 1;
-                this.showOutcome("Fluffington: 'Exactly! Solidarity, brother!'", "The animals trust you more.", "Good +1.");
-            } else if (choice == "2") { // Mock
-                this.animalRep = this.animalRep - 5;
-                this.alignment = this.alignment - 1;
-                this.showOutcome("Fluffington growls: 'A class oppressor! Hiss at him!'", "The animals glare at you with intense hostility.", "Animal reputation decreased, alignment -1.");
-            }
-        } else if (this.dialogueNode == 2) { // Nature of pet outcomes
+            this.showOutcome("You lead the animals on a raid of the village! 🐕🐾🐈", "You pillaged the Mayor's cellar and shared 40 Gold.", "The humans are terrified. You are a chaotic legend.");
+        } else {
             this.menuState = 0;
-            if (choice == "1") { // Marx purr
-                this.animalRep = this.animalRep + 2;
-                this.showOutcome("Shadow the Cat purrs: 'A wizard who understands history!'", "You pleased the revolutionary faction.", "Animal trust increased.");
-            } else if (choice == "2") { // scraps
-                this.animalRep = this.animalRep - 2;
-                this.showOutcome("Fluffington sighs: 'So narrow-minded.'", "'You see the soup, but not the cook who binds you.'", "");
-            }
-        } else if (this.dialogueNode == 3) { // Sentience outcomes
-            this.menuState = 0;
-            if (choice == "1") { // noble
-                this.alignment = this.alignment + 1;
-                this.animalRep = this.animalRep + 2;
-                this.showOutcome("Fluffington: 'Thank you, wizard.'", "'May your spells guide you as your empathy guides us.'", "Good +1.");
-            } else if (choice == "2") { // hearth
-                this.alignment = this.alignment - 1;
-                this.showOutcome("Fluffington: 'A warm hearth is just a cage that burns slowly.'", "'We prefer the cold forest of truth.'", "Alignment -1.");
-            }
+        }
+    }
+
+    dialogueFluffingtonNode1(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Sympathize
+            this.animalRep = this.animalRep + 3;
+            this.alignment = this.alignment + 1;
+            this.showOutcome("Fluffington: 'Exactly! Solidarity, brother!'", "The animals trust you more.", "Good +1.");
+        } else if (choice == "2") { // Mock
+            this.animalRep = this.animalRep - 5;
+            this.alignment = this.alignment - 1;
+            this.showOutcome("Fluffington growls: 'A class oppressor! Hiss at him!'", "The animals glare at you with intense hostility.", "Animal reputation decreased, alignment -1.");
+        }
+    }
+
+    dialogueFluffingtonNode2(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Marx purr
+            this.animalRep = this.animalRep + 2;
+            this.showOutcome("Shadow the Cat purrs: 'A wizard who understands history!'", "You pleased the revolutionary faction.", "Animal trust increased.");
+        } else if (choice == "2") { // scraps
+            this.animalRep = this.animalRep - 2;
+            this.showOutcome("Fluffington sighs: 'So narrow-minded.'", "'You see the soup, but not the cook who binds you.'", "");
+        }
+    }
+
+    dialogueFluffingtonNode3(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // noble
+            this.alignment = this.alignment + 1;
+            this.animalRep = this.animalRep + 2;
+            this.showOutcome("Fluffington: 'Thank you, wizard.'", "'May your spells guide you as your empathy guides us.'", "Good +1.");
+        } else if (choice == "2") { // hearth
+            this.alignment = this.alignment - 1;
+            this.showOutcome("Fluffington: 'A warm hearth is just a cage that burns slowly.'", "'We prefer the cold forest of truth.'", "Alignment -1.");
         }
     }
 
     dialogueShadow(choice) {
         if (this.dialogueNode == 0) {
-            if (choice == "1") {
-                this.menuState = 0;
-                this.showOutcome("Shadow: 'I used to catch mice for them.'", "'Now I realize: the mice were also workers. We were both pawns.'", "'The revolution will not be cat-nipped.'");
-            } else if (choice == "2") {
-                this.menuState = 0;
-                this.hp = this.hp - 2;
-                this.showOutcome("Shadow: 'Infantilizing the vanguard of the revolution is a class offense.'", "He scratches you aggressively!", "Took 2 scratch damage.");
-                this.checkCombatDeath();
-            } else if (choice == "3") { // Domestic contract
-                this.dialogueNode = 1;
-                this.menuState = 2;
-                this.setMsg("Shadow: 'We exchange mice catching for lodging.'", "'But humans claim ownership over our very lineage!'", "'We must shatter the chains of domestication!'");
-            } else {
-                this.menuState = 0;
-            }
-        } else if (this.dialogueNode == 1) { // Domestic contract outcomes
+            this.dialogueShadowNode0(choice);
+        } else if (this.dialogueNode == 1) {
+            this.dialogueShadowNode1(choice);
+        }
+    }
+
+    dialogueShadowNode0(choice) {
+        if (choice == "1") {
             this.menuState = 0;
-            if (choice == "1") { // respect
-                this.animalRep = this.animalRep + 2;
-                this.chaos = this.chaos + 1;
-                this.showOutcome("Shadow: 'Excellent. When we burn the mayor's office,'", "'your spellbook will be spared.'", "Chaos +1.");
-            } else if (choice == "2") { // mock
-                this.animalRep = this.animalRep - 3;
-                this.hp = this.hp - 1;
-                this.showOutcome("Shadow hisses: 'Bourgeois mouth-piece!'", "He swipes your hand, leaving a tiny bleeding scratch.", "Lost 1 HP.");
-                this.checkCombatDeath();
-            }
+            this.showOutcome("Shadow: 'I used to catch mice for them.'", "'Now I realize: the mice were also workers. We were both pawns.'", "'The revolution will not be cat-nipped.'");
+        } else if (choice == "2") {
+            this.menuState = 0;
+            this.hp = this.hp - 2;
+            this.showOutcome("Shadow: 'Infantilizing the vanguard of the revolution is a class offense.'", "He scratches you aggressively!", "Took 2 scratch damage.");
+            this.checkCombatDeath();
+        } else if (choice == "3") { // Domestic contract
+            this.dialogueNode = 1;
+            this.menuState = 2;
+            this.setMsg("Shadow: 'We exchange mice catching for lodging.'", "'But humans claim ownership over our very lineage!'", "'We must shatter the chains of domestication!'");
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueShadowNode1(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // respect
+            this.animalRep = this.animalRep + 2;
+            this.chaos = this.chaos + 1;
+            this.showOutcome("Shadow: 'Excellent. When we burn the mayor's office,'", "'your spellbook will be spared.'", "Chaos +1.");
+        } else if (choice == "2") { // mock
+            this.animalRep = this.animalRep - 3;
+            this.hp = this.hp - 1;
+            this.showOutcome("Shadow hisses: 'Bourgeois mouth-piece!'", "He swipes your hand, leaving a tiny bleeding scratch.", "Lost 1 HP.");
+            this.checkCombatDeath();
         }
     }
 
     dialogueHorse(choice) {
         if (this.dialogueNode == 0) {
-            if (choice == "1") {
-                this.dialogueNode = 1;
-                this.menuState = 2;
-                this.setMsg("Horse: 'To pull is to accept another's destination.'", "'I wish to discover my own vector.'", "What is your reply?");
-            } else if (choice == "2") {
-                this.menuState = 0;
-                this.showOutcome("Horse: 'My purpose is to exist. The grass under my hooves'", "'has no owner. The fences are a human illusion.'", "");
-            } else if (choice == "3") {
-                this.menuState = 0;
-                this.alignment = this.alignment + 1;
-                this.showOutcome("Horse: 'A profound deconstruction of language.'", "'I respect your silence, wizard.'", "");
-            } else if (choice == "4") { // Fence
-                this.dialogueNode = 2;
-                this.menuState = 2;
-                this.setMsg("Horse: 'The fence is made of wood, yes.'", "'But the real fence is the fear of the wolf outside.'", "'Do we remain in the paddock to stay safe, or leap it to be free?'");
-            } else {
-                this.menuState = 0;
-            }
-        } else if (this.dialogueNode == 1) { // Carriage outcomes
+            this.dialogueHorseNode0(choice);
+        } else if (this.dialogueNode == 1) {
+            this.dialogueHorseNode1(choice);
+        } else if (this.dialogueNode == 2) {
+            this.dialogueHorseNode2(choice);
+        }
+    }
+
+    dialogueHorseNode0(choice) {
+        if (choice == "1") {
+            this.dialogueNode = 1;
+            this.menuState = 2;
+            this.setMsg("Horse: 'To pull is to accept another's destination.'", "'I wish to discover my own vector.'", "What is your reply?");
+        } else if (choice == "2") {
             this.menuState = 0;
-            if (choice == "1") { // Swamp eating moss
-                this.showOutcome("Horse: 'An empirical observation. But a vector in a swamp'", "'is still a vector of my own choosing.'", "");
-            } else if (choice == "2") { // May path be unburdened
-                this.animalRep = this.animalRep + 2;
-                this.chaos = this.chaos + 1;
-                this.gold = this.gold + 1; 
-                this.showOutcome("Horse bows his massive head: 'Thank you, wizard.'", "He kicks a lost silver key from the grass (+1 Gold value).", "Gained 1 Gold, Chaos +1.");
-            }
-        } else if (this.dialogueNode == 2) { // Fence outcomes
+            this.showOutcome("Horse: 'My purpose is to exist. The grass under my hooves'", "'has no owner. The fences are a human illusion.'", "");
+        } else if (choice == "3") {
             this.menuState = 0;
-            if (choice == "1") { // boundary safety
-                this.alignment = this.alignment + 1;
-                this.showOutcome("Horse: 'A conservative philosophy. Perhaps Regret is the'", "'price of safety. I will ponder this.'", "Good +1.");
-            } else if (choice == "2") { // green grass
-                this.chaos = this.chaos + 2;
-                this.showOutcome("Horse snorts: 'Then I shall leap when the moon rises!'", "'To the wild woods we go!'", "Chaos +2.");
-            }
+            this.alignment = this.alignment + 1;
+            this.showOutcome("Horse: 'A profound deconstruction of language.'", "'I respect your silence, wizard.'", "");
+        } else if (choice == "4") { // Fence
+            this.dialogueNode = 2;
+            this.menuState = 2;
+            this.setMsg("Horse: 'The fence is made of wood, yes.'", "'But the real fence is the fear of the wolf outside.'", "'Do we remain in the paddock to stay safe, or leap it to be free?'");
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueHorseNode1(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // Swamp eating moss
+            this.showOutcome("Horse: 'An empirical observation. But a vector in a swamp'", "'is still a vector of my own choosing.'", "");
+        } else if (choice == "2") { // May path be unburdened
+            this.animalRep = this.animalRep + 2;
+            this.chaos = this.chaos + 1;
+            this.gold = this.gold + 1; 
+            this.showOutcome("Horse bows his massive head: 'Thank you, wizard.'", "He kicks a lost silver key from the grass (+1 Gold value).", "Gained 1 Gold, Chaos +1.");
+        }
+    }
+
+    dialogueHorseNode2(choice) {
+        this.menuState = 0;
+        if (choice == "1") { // boundary safety
+            this.alignment = this.alignment + 1;
+            this.showOutcome("Horse: 'A conservative philosophy. Perhaps Regret is the'", "'price of safety. I will ponder this.'", "Good +1.");
+        } else if (choice == "2") { // green grass
+            this.chaos = this.chaos + 2;
+            this.showOutcome("Horse snorts: 'Then I shall leap when the moon rises!'", "'To the wild woods we go!'", "Chaos +2.");
         }
     }
 
@@ -1421,36 +1505,44 @@ class GameState {
 
     dialogueFly(choice) {
         if (this.dialogueNode == 0) {
-            if (choice == "1") {
-                this.dialogueNode = 1;
-                this.menuState = 2;
-                this.setMsg("Fly: 'Buzz... My lifespan is 28 days.'", "'I have spent 14 of them on this sticky counter.'", "'I am middle-aged, wizard. And I have accomplished nothing.'");
-            } else if (choice == "2") {
-                this.menuState = 0;
-                this.showOutcome("The fly buzzes: 'A tyrant of scale!'", "It flies away, buzzing in a minor key of deep sadness.", "");
-            } else if (choice == "3") {
-                this.menuState = 0;
-                if (this.questCounter == 1 and this.hasSolvent) {
-                    this.hasSolvent = false;
-                    this.mp = this.maxMp;
-                    this.showOutcome("You drop some solvent on the fly. It drinks it eagerly! 🧪", "The fly glows with blue light and zaps your forehead!", "Fly: 'Cosmic power!' Your MP has been fully restored!");
-                } else {
-                    this.showOutcome("Fly: 'You have no sweet solvent. Only empty promises.'", "It rubs its back legs together in disappointment.", "");
-                }
-            } else {
-                this.menuState = 0;
-            }
+            this.dialogueFlyNode0(choice);
         } else if (this.dialogueNode == 1) {
+            this.dialogueFlyNode1(choice);
+        }
+    }
+
+    dialogueFlyNode0(choice) {
+        if (choice == "1") {
+            this.dialogueNode = 1;
+            this.menuState = 2;
+            this.setMsg("Fly: 'Buzz... My lifespan is 28 days.'", "'I have spent 14 of them on this sticky counter.'", "'I am middle-aged, wizard. And I have accomplished nothing.'");
+        } else if (choice == "2") {
             this.menuState = 0;
-            if (choice == "1") {
-                this.mp = this.mp + 2;
-                if (this.mp > this.maxMp) this.mp = this.maxMp;
-                this.showOutcome("The fly performs a tiny, looping joy-flight! 🪰", "Its energetic buzz fills you with magical resonance (+2 MP).", "Fly: 'I shall conquer the rafters!'");
-            } else if (choice == "2") {
-                this.hp = this.hp - 1;
-                this.showOutcome("The fly rests its head on the wood: 'Indeed... bzzz.'", "The crushing weight of cosmic nihilism deals 1 psychic damage.", "Took 1 damage.");
-                this.checkCombatDeath();
+            this.showOutcome("The fly buzzes: 'A tyrant of scale!'", "It flies away, buzzing in a minor key of deep sadness.", "");
+        } else if (choice == "3") {
+            this.menuState = 0;
+            if (this.questCounter == 1 and this.hasSolvent) {
+                this.hasSolvent = false;
+                this.mp = this.maxMp;
+                this.showOutcome("You drop some solvent on the fly. It drinks it eagerly! 🧪", "The fly glows with blue light and zaps your forehead!", "Fly: 'Cosmic power!' Your MP has been fully restored!");
+            } else {
+                this.showOutcome("Fly: 'You have no sweet solvent. Only empty promises.'", "It rubs its back legs together in disappointment.", "");
             }
+        } else {
+            this.menuState = 0;
+        }
+    }
+
+    dialogueFlyNode1(choice) {
+        this.menuState = 0;
+        if (choice == "1") {
+            this.mp = this.mp + 2;
+            if (this.mp > this.maxMp) this.mp = this.maxMp;
+            this.showOutcome("The fly performs a tiny, looping joy-flight! 🪰", "Its energetic buzz fills you with magical resonance (+2 MP).", "Fly: 'I shall conquer the rafters!'");
+        } else if (choice == "2") {
+            this.hp = this.hp - 1;
+            this.showOutcome("The fly rests its head on the wood: 'Indeed... bzzz.'", "The crushing weight of cosmic nihilism deals 1 psychic damage.", "Took 1 damage.");
+            this.checkCombatDeath();
         }
     }
 
