@@ -63,6 +63,10 @@ async fn read_async(prompt: String) -> String {
     input
 }
 
+async fn sleep_async(ms: u64) {
+    std::thread::sleep(std::time::Duration::from_millis(ms));
+}
+
 struct InputChecker {
     in_string: bool,
     brace_depth: i32,
@@ -116,7 +120,7 @@ fn run_repl() {
     println!("Lox REPL. Press Ctrl+C or Ctrl+D to exit.");
 
     let mut interner = compiler::interner::Interner::with_capacity(1024);
-    let mut vm = Vm::new_repl(&mut interner, read_async);
+    let mut vm = Vm::new_repl(&mut interner, read_async, sleep_async);
 
     let stdin = io::stdin();
     let mut accumulated_input = String::new();
@@ -222,5 +226,5 @@ fn main() {
     }
 
     let file_path = &args[1];
-    executor::block_on(run_file(file_path, read_async));
+    executor::block_on(run_file(file_path, read_async, sleep_async));
 }

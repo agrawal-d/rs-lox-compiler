@@ -49,8 +49,10 @@ callable_struct!(Clock, "clock", 0, interner: &mut Interner, globals: &mut Globa
 });
 
 callable_struct!(Sleep, "sleep", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
-    if let Some(Value::Number(n)) = args.first() {
-        std::thread::sleep(std::time::Duration::from_millis(*n as u64));
+    // The VM intercepts the "sleep" call and awaits the async sleep hook before
+    // this Callable::call is ever reached. This body is therefore unreachable in
+    // normal execution, but we keep it valid as a fallback.
+    if let Some(Value::Number(_)) = args.first() {
         Value::Nil
     } else {
         set_global_error(interner, globals, "Expected number as argument to sleep");

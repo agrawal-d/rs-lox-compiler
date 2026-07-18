@@ -1,6 +1,6 @@
 console.log("Snippets init inside worker");
 
-async function sleep(ms) {
+export async function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 

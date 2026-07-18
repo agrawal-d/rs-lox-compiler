@@ -31,6 +31,10 @@ async fn read_async(text: String) -> String {
     readAsync(text).await.as_string().unwrap_or_default()
 }
 
+async fn sleep_async(ms: u64) {
+    sleep(ms as u32).await;
+}
+
 #[wasm_bindgen]
 pub async fn run(code: &str) {
     if !COMPILER_INITIALIZED.load(std::sync::atomic::Ordering::Relaxed) {
@@ -38,5 +42,5 @@ pub async fn run(code: &str) {
         init(print, println, clear);
     }
 
-    run_code(code, read_async).await;
+    run_code(code, read_async, sleep_async).await;
 }

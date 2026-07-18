@@ -82,10 +82,12 @@ pub fn init(print_fn: fn(String) -> (), println_fn: fn(String) -> (), clear_fn: 
     }
 }
 
-pub async fn run_code<F, Fut>(code: &str, read_async: F)
+pub async fn run_code<F, Fut, SF, SFut>(code: &str, read_async: F, sleep_async: SF)
 where
     F: Fn(String) -> Fut,
     Fut: Future<Output = String>,
+    SF: Fn(u64) -> SFut,
+    SFut: Future<Output = ()>,
 {
     let source: Rc<str> = Rc::from(code);
     let mut interner = interner::Interner::with_capacity(INTERNER_DEFAULT_CAP);
@@ -93,14 +95,16 @@ where
     let (fun, had_error) = compiler::Compiler::compile(source, None, &mut interner, &mut functions, fun::FunType::Script).unwrap();
     if !had_error {
         functions.push(fun);
-        Vm::interpret(functions, &mut interner, read_async).await.unwrap();
+        Vm::interpret(functions, &mut interner, read_async, sleep_async).await.unwrap();
     }
 }
 
-pub async fn run_file<F, Fut>(file_path: &str, read_async: F)
+pub async fn run_file<F, Fut, SF, SFut>(file_path: &str, read_async: F, sleep_async: SF)
 where
     F: Fn(String) -> Fut,
     Fut: Future<Output = String>,
+    SF: Fn(u64) -> SFut,
+    SFut: Future<Output = ()>,
 {
     use std::fs;
     use std::path::Path;
@@ -115,6 +119,6 @@ where
     let (fun, had_error) = compiler::Compiler::compile(source, current_dir, &mut interner, &mut functions, fun::FunType::Script).unwrap();
     if !had_error {
         functions.push(fun);
-        Vm::interpret(functions, &mut interner, read_async).await.unwrap();
+        Vm::interpret(functions, &mut interner, read_async, sleep_async).await.unwrap();
     }
 }

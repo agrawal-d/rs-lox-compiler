@@ -32,10 +32,12 @@ struct CallFrame {
 
 pub const ERR_STRING: &str = "errString";
 
-pub struct Vm<'src, F, Fut>
+pub struct Vm<'src, F, Fut, SF, SFut>
 where
     F: Fn(String) -> Fut,
     Fut: Future<Output = String>,
+    SF: Fn(u64) -> SFut,
+    SFut: Future<Output = ()>,
 {
     frames: Vec<CallFrame>,
     pub functions: Vec<Fun>,
@@ -44,6 +46,7 @@ where
     globals: FxHashMap<StrId, Value>,
     global_error_id: StrId, // StrId of global error variable
     read_async: F,
+    sleep_async: SF,
 }
 
 macro_rules! binop {
@@ -118,12 +121,14 @@ fn set_array(arr: &mut Value, index: &Value, new_value: Value) -> anyhow::Result
     }
 }
 
-impl<'src, F, Fut> Vm<'src, F, Fut>
+impl<'src, F, Fut, SF, SFut> Vm<'src, F, Fut, SF, SFut>
 where
     F: Fn(String) -> Fut,
     Fut: Future<Output = String>,
+    SF: Fn(u64) -> SFut,
+    SFut: Future<Output = ()>,
 {
-    pub fn new(interner: &'src mut Interner, functions: Vec<Fun>, read_async: F) -> Vm<'src, F, Fut> {
+    pub fn new(interner: &'src mut Interner, functions: Vec<Fun>, read_async: F, sleep_async: SF) -> Vm<'src, F, Fut, SF, SFut> {
         let global_error_id = interner.intern(ERR_STRING);
 
         let mut frames: Vec<CallFrame> = Vec::with_capacity(10240);
@@ -143,12 +148,13 @@ where
             globals: FxHashMap::default(),
             global_error_id,
             read_async,
+            sleep_async,
         };
 
         vm
     }
 
-    pub fn new_repl(interner: &'src mut Interner, read_async: F) -> Vm<'src, F, Fut> {
+    pub fn new_repl(interner: &'src mut Interner, read_async: F, sleep_async: SF) -> Vm<'src, F, Fut, SF, SFut> {
         let global_error_id = interner.intern(ERR_STRING);
         let mut vm = Vm {
             frames: Vec::with_capacity(10240),
@@ -158,6 +164,7 @@ where
             globals: FxHashMap::default(),
             global_error_id,
             read_async,
+            sleep_async,
         };
 
         register_native!(vm, Clock);
@@ -368,6 +375,18 @@ where
                         _ => *first_arg = Value::Nil,
                     }
                 };
+
+                // Special sleep function - await the async sleep hook directly
+                if function.name() == "sleep" {
+                    let ms = match self.stack.last() {
+                        Some(Value::Number(n)) => *n as u64,
+                        _ => 0,
+                    };
+                    (self.sleep_async)(ms).await;
+                    self.stack.truncate(self.stack.len() - 1 - arg_count_usize);
+                    self.stack.push(Value::Nil);
+                    return true;
+                }
 
                 let args = &self.stack[self.stack.len() - arg_count_usize..];
                 self.globals.insert(self.global_error_id, Value::Nil); // Reset error string
@@ -591,9 +610,9 @@ where
         }
     }
 
-    pub async fn interpret(functions: Vec<Fun>, interner: &'src mut Interner, read_async: F) -> Result<()> {
+    pub async fn interpret(functions: Vec<Fun>, interner: &'src mut Interner, read_async: F, sleep_async: SF) -> Result<()> {
         dbgln!("== Interpreter VM ==");
-        let mut vm = Vm::new(interner, functions, read_async);
+        let mut vm = Vm::new(interner, functions, read_async, sleep_async);
 
         vm.reset_err_string();
 
