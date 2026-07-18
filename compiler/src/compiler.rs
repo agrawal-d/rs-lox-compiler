@@ -69,7 +69,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, LeftBracket, Some(Compiler::array_literal), None, Precedence::None);
     add_rule!(map, RightBracket, None, None, Precedence::None);
     add_rule!(map, Comma, None, None, Precedence::None);
-    add_rule!(map, Dot, None, None, Precedence::None);
+    add_rule!(map, Dot, None, Some(Compiler::dot), Precedence::Call);
     add_rule!(map, Minus, Some(Compiler::unary), Some(Compiler::binary), Precedence::Term);
     add_rule!(map, MinusEqual, None, None, Precedence::None);
     add_rule!(map, MinusMinus, Some(Compiler::prefix_increment_decrement), None, Precedence::None);
@@ -103,7 +103,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, Print, None, None, Precedence::None);
     add_rule!(map, Return, None, None, Precedence::None);
     add_rule!(map, Super, None, None, Precedence::None);
-    add_rule!(map, This, None, None, Precedence::None);
+    add_rule!(map, This, Some(Compiler::this), None, Precedence::None);
     add_rule!(map, True, Some(Compiler::literal), None, Precedence::None);
     add_rule!(map, Var, None, None, Precedence::None);
     add_rule!(map, While, None, None, Precedence::None);
@@ -269,6 +269,7 @@ pub struct Compiler<'src> {
     namespace_prefix: Option<String>,
     imported_files: *mut std::collections::HashSet<std::path::PathBuf>,
     import_stack: *mut Vec<std::path::PathBuf>,
+    namespaces: *mut std::collections::HashSet<String>,
 }
 
 impl<'src> Compiler<'src> {
@@ -308,6 +309,7 @@ impl<'src> Compiler<'src> {
         let rules = get_rules();
 
         let locals = Vec::new();
+        let mut namespaces = std::collections::HashSet::new();
 
         let mut compiler = Compiler {
             fun: Fun::new(),
@@ -322,6 +324,7 @@ impl<'src> Compiler<'src> {
             namespace_prefix,
             imported_files: imported_files as *mut _,
             import_stack: import_stack as *mut _,
+            namespaces: &mut namespaces as *mut _,
         };
 
         dbgln!("== Parser (Scan on demand) ==");
@@ -454,6 +457,7 @@ impl<'src> Compiler<'src> {
     }
 
     fn function(&mut self, typ: FunType) {
+        let line_num = self.line();
         let raw_name = self.parser.previous.source.as_ref();
         let name_str = if let Some(ref prefix) = self.namespace_prefix {
             format!("{}.{}", prefix, raw_name)
@@ -476,6 +480,7 @@ impl<'src> Compiler<'src> {
             namespace_prefix: self.namespace_prefix.clone(),
             imported_files: self.imported_files,
             import_stack: self.import_stack,
+            namespaces: self.namespaces,
         };
 
         let mut min_arity = 0;
@@ -530,6 +535,20 @@ impl<'src> Compiler<'src> {
         fn_compiler.fun.min_arity = min_arity;
 
         fn_compiler.parser.consume(TokenType::RightParen, "Expect ')' after parameters");
+
+        if typ == FunType::Method || typ == FunType::Initializer {
+            let token = Token {
+                typ: TokenType::This,
+                source: Rc::from("this"),
+                line: line_num,
+            };
+            fn_compiler.locals.push(Local {
+                name: token,
+                depth: 0,
+            });
+            fn_compiler.emit_byte(Opcode::GetReceiver as u8);
+        }
+
         fn_compiler.parser.consume(TokenType::LeftBrace, "Expect '{' before function body");
         fn_compiler.block();
         let fun = fn_compiler.end();
@@ -546,6 +565,61 @@ impl<'src> Compiler<'src> {
         self.mark_initialized();
         self.function(FunType::Function);
         self.define_global_if_needed(global, is_array);
+    }
+
+    fn class_declaration(&mut self) {
+        self.parser.consume(TokenType::Identifier, "Expect class name.");
+        let class_name_token = self.parser.previous.clone();
+        let class_name = self.interner.intern(class_name_token.source.as_ref());
+        let name_constant = self.make_constant(Value::Identifier(class_name)) as u8;
+
+        self.declare_local_variable(None);
+
+        self.emit_bytes(Opcode::Class as u8, name_constant);
+
+        self.parser.consume(TokenType::LeftBrace, "Expect '{' before class body.");
+        while !self.parser.check_tt(TokenType::RightBrace) && !self.parser.check_tt(TokenType::EOF) {
+            let class_name_str = class_name_token.source.clone();
+            self.method(&class_name_str);
+        }
+        self.parser.consume(TokenType::RightBrace, "Expect '}' after class body.");
+
+        self.define_global_if_needed(name_constant as usize, false);
+    }
+
+    fn method(&mut self, class_name: &str) {
+        self.parser.consume(TokenType::Identifier, "Expect method name.");
+        let method_name_token = self.parser.previous.clone();
+        let method_name = self.interner.intern(method_name_token.source.as_ref());
+        let name_constant = self.make_constant(Value::Identifier(method_name)) as u8;
+
+        let is_initializer = method_name_token.source.as_ref() == class_name;
+        let typ = if is_initializer { FunType::Initializer } else { FunType::Method };
+
+        self.function(typ);
+        self.emit_bytes(Opcode::Method as u8, name_constant);
+    }
+
+    fn dot(&mut self, can_assign: bool) {
+        self.parser.consume(TokenType::Identifier, "Expect property name after '.'.");
+        let name_token = self.parser.previous.clone();
+        let name_id = self.interner.intern(name_token.source.as_ref());
+        let name_constant = self.make_constant(Value::Identifier(name_id)) as u8;
+
+        if can_assign && self.parser.match_tt(TokenType::Equal) {
+            self.expression();
+            self.emit_bytes(Opcode::SetProperty as u8, name_constant);
+        } else {
+            self.emit_bytes(Opcode::GetProperty as u8, name_constant);
+        }
+    }
+
+    fn this(&mut self, _can_assign: bool) {
+        if self.fun_typ != FunType::Method && self.fun_typ != FunType::Initializer {
+            self.parser.error_at_previous("Can't use 'this' outside of a class method.");
+            return;
+        }
+        self.variable(false);
     }
 
     fn var_declaration(&mut self) {
@@ -631,6 +705,9 @@ impl<'src> Compiler<'src> {
         if self.parser.match_tt(TokenType::Semicolon) {
             self.emit_return();
         } else {
+            if self.fun_typ == FunType::Initializer {
+                self.parser.error_at_previous("Can't return a value from an initializer.");
+            }
             self.expression();
             self.parser.consume(TokenType::Semicolon, "Expect ';' after return value");
             self.emit_byte(Opcode::Return as u8);
@@ -673,7 +750,9 @@ impl<'src> Compiler<'src> {
     }
 
     fn declaration(&mut self) {
-        if self.parser.match_tt(TokenType::Fun) {
+        if self.parser.match_tt(TokenType::Class) {
+            self.class_declaration();
+        } else if self.parser.match_tt(TokenType::Fun) {
             self.fun_declaration();
         } else if self.parser.match_tt(TokenType::Var) {
             self.var_declaration();
@@ -716,6 +795,9 @@ impl<'src> Compiler<'src> {
         self.parser.consume(TokenType::Identifier, "Expect namespace alias after 'as'.");
         #[allow(unused)]
         let alias_token = self.parser.previous.clone();
+        
+        let alias_str = alias_token.source.as_ref();
+        unsafe { &mut *self.namespaces }.insert(alias_str.to_string());
 
         self.parser.consume(TokenType::Semicolon, "Expect ';' after import declaration.");
 
@@ -972,11 +1054,14 @@ impl<'src> Compiler<'src> {
     fn variable(&mut self, can_assign: bool) {
         let mut token = self.parser.previous.clone();
 
-        while self.parser.match_tt(TokenType::Dot) {
-            self.parser
-                .consume(TokenType::Identifier, "Expect property/method name after '.' in namespace access.");
-            let prop_token = self.parser.previous.clone();
-            token.source = Rc::from(format!("{}.{}", token.source, prop_token.source));
+        let is_namespace = unsafe { &*self.namespaces }.contains(token.source.as_ref());
+        if is_namespace {
+            while self.parser.match_tt(TokenType::Dot) {
+                self.parser
+                    .consume(TokenType::Identifier, "Expect property/method name after '.' in namespace access.");
+                let prop_token = self.parser.previous.clone();
+                token.source = Rc::from(format!("{}.{}", token.source, prop_token.source));
+            }
         }
 
         self.named_variable(&token, can_assign);
@@ -1165,7 +1250,13 @@ impl<'src> Compiler<'src> {
     }
 
     fn emit_return(&mut self) {
-        self.emit_byte(Opcode::Nil as u8);
+        if self.fun_typ == FunType::Initializer {
+            let arity = self.fun.arity;
+            self.emit_constant(Value::Nil);
+            self.emit_bytes(Opcode::GetLocal as u8, arity as u8);
+        } else {
+            self.emit_byte(Opcode::Nil as u8);
+        }
         self.emit_byte(Opcode::Return as u8);
     }
 

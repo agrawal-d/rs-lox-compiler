@@ -34,6 +34,11 @@ pub enum Opcode {
     Return,
     Dup,
     DefaultArg,
+    Class,
+    Method,
+    GetProperty,
+    SetProperty,
+    GetReceiver,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {

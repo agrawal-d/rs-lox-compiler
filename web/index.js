@@ -218,8 +218,12 @@ function loadSamples() {
             code: "sample_programs/othello.lox",
         },
         {
-            name: "Alchemy 🔮",
+            name: "Alchemy",
             code: "sample_programs/alchemy.lox",
+        },
+        {
+            name: "Classes",
+            code: "sample_programs/class_test.lox",
         },
         {
             name: "Write your own",

@@ -25,9 +25,11 @@ impl Fun {
     }
 }
 
-#[derive(Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Eq, PartialEq, PartialOrd, Ord, Debug, Clone, Copy)]
 pub enum FunType {
     Function,
     Script,
     ReplExpression,
+    Method,
+    Initializer,
 }

@@ -11,7 +11,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
     };
 
     let ret: usize = match instruction {
-        Opcode::Constant | Opcode::DefineGlobal | Opcode::GetGlobal | Opcode::SetGlobal => {
+        Opcode::Constant | Opcode::DefineGlobal | Opcode::GetGlobal | Opcode::SetGlobal | Opcode::Class | Opcode::Method | Opcode::GetProperty | Opcode::SetProperty => {
             constant_instruction(chunk, instruction, offset, interner)
         }
         Opcode::Add
@@ -31,6 +31,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
         | Opcode::DeclareArray
         | Opcode::Pop
         | Opcode::Dup
+        | Opcode::GetReceiver
         | Opcode::Not => simple_instruction(chunk, instruction, offset),
 
         Opcode::Jump | Opcode::JumpIfFalse => jump_instruction(chunk, instruction, 1, offset),

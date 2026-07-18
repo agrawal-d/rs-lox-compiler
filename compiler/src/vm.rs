@@ -10,6 +10,7 @@ use crate::{
     value::{
         print_value,
         Value::{self, *},
+        InstanceData, ClassData,
     },
 };
 
@@ -341,6 +342,73 @@ where
                 self.frames.push(frame);
                 true
             }
+            Class(class) => {
+                let instance = Rc::new(RefCell::new(InstanceData {
+                    class: Rc::clone(class),
+                    fields: RefCell::new(rustc_hash::FxHashMap::default()),
+                }));
+
+                let callee_slot = self.stack.len() - 1 - arg_count as usize;
+                self.stack[callee_slot] = Value::Instance(Rc::clone(&instance));
+
+                let constructor_id = class.name;
+                if let Some(method_idx) = class.methods.borrow().get(&constructor_id).copied() {
+                    let fun = &self.functions[method_idx];
+                    let arg_count_usize = arg_count as usize;
+                    if arg_count_usize < fun.min_arity || arg_count_usize > fun.arity {
+                        self.runtime_error(&format!(
+                            "Expected between {} and {} arguments but got {} instead",
+                            fun.min_arity, fun.arity, arg_count
+                        ));
+                    }
+                    for _ in arg_count_usize..fun.arity {
+                        self.stack.push(Value::Nil);
+                    }
+                    let new_frame_offset = self.stack.len() - fun.arity;
+                    let orig_len = self.stack.len() - 1 - fun.arity;
+                    let frame: CallFrame = CallFrame {
+                        fun_idx: method_idx,
+                        ip: 0,
+                        start_len: orig_len,
+                        slot_offset: new_frame_offset,
+                        arg_count: arg_count_usize,
+                    };
+                    self.frames.push(frame);
+                } else {
+                    if arg_count > 0 {
+                        self.runtime_error("Constructor expected 0 arguments but got some");
+                    }
+                    self.stack.truncate(callee_slot + 1);
+                }
+                true
+            }
+            BoundMethod { instance, method_idx } => {
+                let callee_slot = self.stack.len() - 1 - arg_count as usize;
+                self.stack[callee_slot] = Value::Instance(Rc::clone(instance));
+
+                let fun = &self.functions[*method_idx];
+                let arg_count_usize = arg_count as usize;
+                if arg_count_usize < fun.min_arity || arg_count_usize > fun.arity {
+                    self.runtime_error(&format!(
+                        "Expected between {} and {} arguments but got {} instead",
+                        fun.min_arity, fun.arity, arg_count
+                    ));
+                }
+                for _ in arg_count_usize..fun.arity {
+                    self.stack.push(Value::Nil);
+                }
+                let new_frame_offset = self.stack.len() - fun.arity;
+                let orig_len = self.stack.len() - 1 - fun.arity;
+                let frame: CallFrame = CallFrame {
+                    fun_idx: *method_idx,
+                    ip: 0,
+                    start_len: orig_len,
+                    slot_offset: new_frame_offset,
+                    arg_count: arg_count_usize,
+                };
+                self.frames.push(frame);
+                true
+            }
             NativeFunction(fun) => {
                 let mut arg_count_usize = arg_count as usize;
                 let name = fun.name();
@@ -577,6 +645,65 @@ where
                     self.stack.push(Bool(a == b))
                 }
                 Opcode::Nil => self.stack.push(Nil),
+                Opcode::Class => {
+                    let name = self.read_string_or_id();
+                    let class = Rc::new(ClassData {
+                        name,
+                        methods: RefCell::new(rustc_hash::FxHashMap::default()),
+                    });
+                    self.stack.push(Value::Class(class));
+                }
+                Opcode::Method => {
+                    let name = self.read_string_or_id();
+                    let method_val = self.pop_unchecked();
+                    if let Value::Function(idx) = method_val {
+                        if let Some(Value::Class(class)) = self.stack.last() {
+                            class.methods.borrow_mut().insert(name, idx);
+                        }
+                    }
+                }
+                Opcode::GetProperty => {
+                    let name = self.read_string_or_id();
+                    let object = self.pop_unchecked();
+                    match object {
+                        Value::Instance(instance) => {
+                            if let Some(value) = instance.borrow().fields.borrow().get(&name).cloned() {
+                                self.stack.push(value);
+                            } else {
+                                let method_idx = instance.borrow().class.methods.borrow().get(&name).copied();
+                                if let Some(idx) = method_idx {
+                                    self.stack.push(Value::BoundMethod {
+                                        instance: Rc::clone(&instance),
+                                        method_idx: idx,
+                                    });
+                                } else {
+                                    self.stack.push(Value::Nil);
+                                }
+                            }
+                        }
+                        _ => {
+                            self.runtime_error("Only instances have properties.");
+                        }
+                    }
+                }
+                Opcode::SetProperty => {
+                    let name = self.read_string_or_id();
+                    let value = self.pop_unchecked();
+                    let object = self.pop_unchecked();
+                    match object {
+                        Value::Instance(instance) => {
+                            instance.borrow().fields.borrow_mut().insert(name, value.clone());
+                            self.stack.push(value);
+                        }
+                        _ => {
+                            self.runtime_error("Only instances have properties.");
+                        }
+                    }
+                }
+                Opcode::GetReceiver => {
+                    let receiver = self.stack[frame!(self).slot_offset - 1].clone();
+                    self.stack.push(receiver);
+                }
                 Opcode::Add => {
                     let b = self.pop_unchecked();
                     let a = self.pop_unchecked();

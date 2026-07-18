@@ -1,0 +1,43 @@
+class Player {
+    Player(name = "Bob") {
+        this.name = name;
+    }
+
+    die() {
+        this.dead = true;
+    }
+}
+
+class Game {
+    Game(version = 2) {
+        this.version = version;
+        this.player = Player();
+    }
+
+    play() {
+        print(this.player.name);
+    }
+}
+
+print("1. Creating Player with default name...");
+var p1 = Player();
+print("Player name (should be Bob): " + p1.name);
+
+print("2. Creating Player with custom name...");
+var p2 = Player("Alice");
+print("Player name (should be Alice): " + p2.name);
+
+print("3. Calling method (die)...");
+print("Is p2 dead before? " + str(p2.dead)); // Should print Nil
+p2.die();
+print("Is p2 dead after? " + str(p2.dead));  // Should print true
+
+print("4. Accessing nonexistent property (should print Nil):");
+print(str(p2.nonexistent));
+
+print("5. Nested classes and method invocation...");
+var g = Game();
+print("Game version: " + str(g.version)); // Should print 2
+print("Game player name: " + g.player.name); // Should print Bob
+print("Running g.play():");
+g.play(); // Should print Bob
