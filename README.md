@@ -13,6 +13,6 @@ Rust implementation of https://craftinginterpreters.com.
 
 1. Clone the repository and setup the Rust toolchain. Then, `cd` into the repository root.
 1. Run `cargo install cargo-watch`.
-1. Install wasm pack from https://wasm-bindgen.github.io/wasm-pack/.
+1. Install wasm pack from https://wasm-bindgen.github.io/wasm-pack/ (`npm install -g wasm-pack`).
 1. Run `generate_web.py`
 1. Open `docs/index.html` using a web server (like `python3 -m http.server`).
