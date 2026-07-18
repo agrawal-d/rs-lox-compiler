@@ -1,0 +1,172 @@
+{
+    "scopeName": "source.lox",
+    "name": "Lox",
+    "fileTypes": [
+        "lox"
+    ],
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#constants"
+        },
+        {
+            "include": "#import-statements"
+        },
+        {
+            "include": "#function-declarations"
+        },
+        {
+            "include": "#class-declarations"
+        },
+        {
+            "include": "#method-declarations"
+        },
+        {
+            "include": "#variables"
+        },
+        {
+            "include": "#function-calls"
+        },
+        {
+            "include": "#property-access"
+        },
+        {
+            "include": "#operators"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.lox",
+                    "match": "//.*$"
+                },
+                {
+                    "name": "comment.block.lox",
+                    "begin": "/\\*",
+                    "beginCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.comment.begin.lox"
+                        }
+                    },
+                    "end": "\\*/",
+                    "endCaptures": {
+                        "0": {
+                            "name": "punctuation.definition.comment.end.lox"
+                        }
+                    }
+                }
+            ]
+        },
+        "strings": {
+            "name": "string.quoted.double.lox",
+            "begin": "\"",
+            "beginCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.begin.lox"
+                }
+            },
+            "end": "\"",
+            "endCaptures": {
+                "0": {
+                    "name": "punctuation.definition.string.end.lox"
+                }
+            },
+            "patterns": [
+                {
+                    "name": "constant.character.escape.lox",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "numbers": {
+            "name": "constant.numeric.lox",
+            "match": "\\b\\d+(?:\\.\\d+)?\\b"
+        },
+        "keywords": {
+            "name": "keyword.control.lox",
+            "match": "\\b(?:and|class|else|for|fun|if|import|as|or|print|return|super|this|var|while)\\b"
+        },
+        "constants": {
+            "name": "constant.language.lox",
+            "match": "\\b(?:true|false|nil)\\b"
+        },
+        "function-declarations": {
+            "match": "\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)",
+            "captures": {
+                "1": {
+                    "name": "entity.name.function.lox"
+                }
+            }
+        },
+        "class-declarations": {
+            "match": "\\bclass\\s+([A-Za-z_][A-Za-z0-9_]*)",
+            "captures": {
+                "1": {
+                    "name": "entity.name.type.class.lox"
+                }
+            }
+        },
+        "variables": {
+            "match": "\\bvar\\s+([A-Za-z_][A-Za-z0-9_]*)",
+            "captures": {
+                "0": {
+                    "name": "keyword.declaration.lox"
+                },
+                "1": {
+                    "name": "variable.other.lox"
+                }
+            }
+        },
+        "import-statements": {
+            "match": "\\bimport\\s+([A-Za-z_][A-Za-z0-9_]*)(?:\\s+as\\s+([A-Za-z_][A-Za-z0-9_]*))?",
+            "captures": {
+                "1": {
+                    "name": "entity.name.namespace.lox"
+                },
+                "2": {
+                    "name": "entity.name.alias.lox"
+                }
+            }
+        },
+        "method-declarations": {
+            "match": "\\b(?!and\\b|class\\b|else\\b|for\\b|fun\\b|if\\b|import\\b|as\\b|or\\b|return\\b|super\\b|this\\b|var\\b|while\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\([^)]*\\)\\s*\\{)",
+            "captures": {
+                "1": {
+                    "name": "entity.name.function.lox"
+                }
+            }
+        },
+        "function-calls": {
+            "match": "\\b(?!and\\b|class\\b|else\\b|for\\b|fun\\b|if\\b|import\\b|as\\b|or\\b|return\\b|super\\b|this\\b|var\\b|while\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+            "captures": {
+                "1": {
+                    "name": "support.function.lox"
+                }
+            }
+        },
+        "property-access": {
+            "match": "\\.\\s*([A-Za-z_][A-Za-z0-9_]*)",
+            "captures": {
+                "1": {
+                    "name": "variable.other.property.lox"
+                }
+            }
+        },
+        "operators": {
+            "name": "keyword.operator.lox",
+            "match": "(?:\\+\\+|--|\\+=|-=|==|!=|<=|>=|\\+|-|\\*|/|%|=|<|>|\\.|,|;|\\(|\\)|\\{|\\}|\\[|\\])"
+        }
+    }
+}
