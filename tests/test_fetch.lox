@@ -1,0 +1,44 @@
+import "native-modules/build/fetch.dll" as fetch;
+
+print("=== Phase 1: Test Module-level Help ===");
+help(fetch);
+
+print("\n=== Phase 2: Test Function Help ===");
+help(fetch.get);
+help(fetch.request);
+
+print("\n=== Phase 3: Test HTTP GET Request ===");
+var get_url = "https://httpbin.org/get?msg=HelloLox";
+print("Fetching URL: " + get_url);
+var response = fetch.get(get_url);
+if (response != nil) {
+    print("GET Response length: " + str(len(response)));
+    print("GET Response starts with: " + stringat(response, 0) + stringat(response, 1) + stringat(response, 2) + stringat(response, 3) + stringat(response, 4) + stringat(response, 5) + stringat(response, 6) + stringat(response, 7) + stringat(response, 8) + stringat(response, 9) + stringat(response, 10));
+} else {
+    print("Error: GET request failed");
+}
+
+print("\n=== Phase 4: Test HTTP POST Request ===");
+var post_url = "https://httpbin.org/post";
+var body = "hello=world&language=lox";
+print("POSTing to: " + post_url);
+var post_response = fetch.post(post_url, body);
+if (post_response != nil) {
+    print("POST Response length: " + str(len(post_response)));
+} else {
+    print("Error: POST request failed");
+}
+
+print("\n=== Phase 5: Test HTTP Custom Request with Headers ===");
+var custom_url = "https://httpbin.org/anything";
+var headers = ["Content-Type", "application/json", "X-Lox-Header", "Awesome"];
+var custom_body = "{'text':'Hello from Lox FFI in Rust!'}";
+print("Requesting (POST) with custom headers to: " + custom_url);
+var custom_response = fetch.request(custom_url, "POST", headers, custom_body);
+if (custom_response != nil) {
+    print("Custom Response length: " + str(len(custom_response)));
+} else {
+    print("Error: Custom request failed");
+}
+
+print("\n=== Fetch native module tests finished successfully! ===");

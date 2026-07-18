@@ -6,3 +6,4 @@ code.txt
 /lox-lang-support/vsc-extension-quickstart.md
 *.vsix
 *.dll
+tests/play.lox

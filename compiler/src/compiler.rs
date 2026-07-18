@@ -847,17 +847,18 @@ impl<'src> Compiler<'src> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let path_str = path_token.source.clone();
-            let path_str = &path_str[1..path_str.len() - 1];
+            let raw_path = &path_str[1..path_str.len() - 1];
+            let path_str_unescaped = unescape_string(raw_path);
             let alias_str = alias_token.source.as_ref();
 
-            let is_native = path_str.ends_with(".dll")
-                || path_str.ends_with(".so")
-                || path_str.ends_with(".dylib");
+            let is_native = path_str_unescaped.ends_with(".dll")
+                || path_str_unescaped.ends_with(".so")
+                || path_str_unescaped.ends_with(".dylib");
 
             if is_native {
-                self.fun.native_imports.push((path_str.to_string(), alias_str.to_string()));
+                self.fun.native_imports.push((path_str_unescaped, alias_str.to_string()));
             } else {
-                if let Err(e) = self.execute_import(path_str, alias_str) {
+                if let Err(e) = self.execute_import(&path_str_unescaped, alias_str) {
                     self.parser.error_at_current(&e);
                 }
             }
@@ -970,8 +971,9 @@ impl<'src> Compiler<'src> {
 
     fn string(&mut self, _can_assign: bool) {
         let data = self.parser.previous.source.clone();
-        let data = &data[1..data.len() - 1];
-        let id = self.interner.intern(data);
+        let raw_str = &data[1..data.len() - 1];
+        let unescaped = unescape_string(raw_str);
+        let id = self.interner.intern(&unescaped);
         self.emit_constant(Value::Str(id));
     }
 
@@ -1332,4 +1334,45 @@ impl<'src> Compiler<'src> {
         self.emit_byte(((offset >> 8) & 0xff) as u8);
         self.emit_byte((offset & 0xff) as u8);
     }
+}
+
+fn unescape_string(s: &str) -> String {
+    let mut result = String::new();
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            if let Some(&next_c) = chars.peek() {
+                match next_c {
+                    '"' => {
+                        result.push('"');
+                        chars.next();
+                    }
+                    '\\' => {
+                        result.push('\\');
+                        chars.next();
+                    }
+                    'n' => {
+                        result.push('\n');
+                        chars.next();
+                    }
+                    't' => {
+                        result.push('\t');
+                        chars.next();
+                    }
+                    'r' => {
+                        result.push('\r');
+                        chars.next();
+                    }
+                    _ => {
+                        result.push('\\');
+                    }
+                }
+            } else {
+                result.push('\\');
+            }
+        } else {
+            result.push(c);
+        }
+    }
+    result
 }

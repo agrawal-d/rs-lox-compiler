@@ -1,0 +1,55 @@
+import "native-modules/build/json.dll" as json;
+
+print("=== Phase 1: Test JSON Module Help ===");
+help(json);
+help(json.parse);
+
+print("\n=== Phase 2: Test JSON Parsing of Primitives ===");
+var json_primitives = "[true, false, null, 123.45, \"Hello Lox!\"]";
+print("Parsing JSON: " + json_primitives);
+var parsed_array = json.parse(json_primitives);
+print("Result is array of length: " + str(len(parsed_array)));
+print("Index 0 (bool): " + str(parsed_array[0]));
+print("Index 1 (bool): " + str(parsed_array[1]));
+print("Index 2 (nil): " + str(parsed_array[2]));
+print("Index 3 (number): " + str(parsed_array[3]));
+print("Index 4 (string): " + str(parsed_array[4]));
+
+print("\n=== Phase 3: Test JSON Parsing of Objects ===");
+var json_obj_str = "{\"name\":\"Bob\",\"age\":30,\"skills\":[\"Lox\",\"Rust\"]}";
+print("Parsing JSON Object: " + json_obj_str);
+var parsed_obj = json.parse(json_obj_str);
+
+// Iterate and print pairs
+var i = 0;
+while (i < len(parsed_obj)) {
+    var pair = parsed_obj[i];
+    var key = pair[0];
+    var val = pair[1];
+    if (key == "skills") {
+        print("  Key: " + key + " -> Array of length: " + str(len(val)) + " (e.g. " + val[0] + ", " + val[1] + ")");
+    } else {
+        print("  Key: " + key + " -> " + str(val));
+    }
+    i = i + 1;
+}
+
+print("\n=== Phase 4: Test JSON Stringify of Primitives ===");
+print("Stringify nil: " + json.stringify(nil));
+print("Stringify true: " + json.stringify(true));
+print("Stringify 987.6: " + json.stringify(987.6));
+print("Stringify 'hello': " + json.stringify("hello"));
+
+print("\n=== Phase 5: Test JSON Stringify of complex Lox structures ===");
+var lox_array = [1, 2, "three", false];
+print("Stringify Lox Array: " + json.stringify(lox_array));
+
+// Define a Lox object representation (array of pairs)
+var lox_obj = [
+    ["title", "Manager"],
+    ["salary", 85000],
+    ["remote", true]
+];
+print("Stringify Lox Object pairs: " + json.stringify(lox_obj));
+
+print("\n=== JSON native module tests finished successfully! ===");

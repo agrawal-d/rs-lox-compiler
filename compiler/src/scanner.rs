@@ -219,11 +219,22 @@ impl Scanner {
     }
 
     fn string(&mut self) -> Token {
-        while self.peek() != '"' && !self.is_at_end() {
-            if self.peek() == '\n' {
+        while !self.is_at_end() {
+            let c = self.peek();
+            if c == '"' {
+                break;
+            }
+            if c == '\n' {
                 self.line += 1;
             }
-            self.advance();
+            if c == '\\' {
+                self.advance(); // consume '\\'
+                if !self.is_at_end() {
+                    self.advance(); // consume the escaped character
+                }
+            } else {
+                self.advance();
+            }
         }
 
         if self.is_at_end() {

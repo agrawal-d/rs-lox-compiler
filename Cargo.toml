@@ -1,5 +1,5 @@
 [workspace]
 
-members = ["compiler", "native", "wasm"]
+members = ["compiler", "native", "native-modules/fetch", "native-modules/json", "wasm"]
 
 resolver = "2"

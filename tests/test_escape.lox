@@ -1,0 +1,18 @@
+print("=== Testing String Escape Characters ===");
+
+var data = "Hello \"Cool-dude\"";
+print("Escaped Quotes: " + data);
+if (data == "Hello " + chr(34) + "Cool-dude" + chr(34)) {
+    print("Match quotes: true");
+} else {
+    print("Match quotes: false");
+}
+
+var newline = "Line 1\nLine 2";
+print("Escaped Newline:");
+print(newline);
+
+var path = "C:\\Windows\\System32";
+print("Escaped Backslash: " + path);
+
+print("\n=== All string escape tests completed successfully! ===");
