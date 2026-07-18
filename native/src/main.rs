@@ -37,6 +37,15 @@ fn println(output: String) {
     }
 }
 
+fn clear() {
+    if !SUPPRESS_OUTPUT.with(|s| s.get()) {
+        // ESC[2J clears the screen; ESC[H moves cursor to top-left.
+        // This works on all modern terminals (Linux, macOS, Windows Terminal, etc.).
+        print!("\x1B[2J\x1B[H");
+        flush_if_debug();
+    }
+}
+
 fn help(args: &[String]) {
     println(format!("Usage: {} <FILE> \nInterpret the program in FILE", args[0]));
 }
@@ -194,7 +203,7 @@ fn run_repl() {
 }
 
 fn main() {
-    init(print, println);
+    init(print, println, clear);
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 {

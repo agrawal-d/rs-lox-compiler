@@ -4,7 +4,7 @@ use crate::{
     interner::{Interner, StrId},
     value::{print_value, value_as_string, Value},
     vm::ERR_STRING,
-    xprintln,
+    xclear, xprintln,
 };
 use rustc_hash::FxHashMap;
 use std::fmt::Debug;
@@ -386,3 +386,8 @@ impl Callable for Printf {
         "printf"
     }
 }
+
+callable_struct!(Clear, "clear", 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    xclear!();
+    Value::Nil
+});

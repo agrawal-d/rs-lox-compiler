@@ -16,7 +16,7 @@ require(["vs/editor/editor.main"], function () {
         ],
         builtins: [
             'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
-            'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input',
+            'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'clear',
         ],
         tokenizer: {
             root: [
@@ -76,7 +76,7 @@ require(["vs/editor/editor.main"], function () {
                 })),
                 ...[
                     'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
-                    'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input',
+                    'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'clear',
                 ].map(b => ({
                     label: b,
                     kind: monaco.languages.CompletionItemKind.Function,
@@ -138,6 +138,8 @@ myWorker.onmessage = async function (e) {
         runButton.disabled = false;
         resetButton.disabled = false;
         runButton.innerText = 'Run';
+    } else if (message.type == "clear") {
+        outputTextarea.value = '';
     } else if (message.type == "input-request") {
         console.log("Input requested");
         myWorker.postMessage({

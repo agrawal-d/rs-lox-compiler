@@ -34,6 +34,12 @@ export async function readAsync(text) {
     return input;
 }
 
+export function clear() {
+    postMessage({
+        type: "clear"
+    });
+}
+
 export function end() {
     postMessage({
         type: "run-end"

@@ -178,6 +178,7 @@ where
         register_native!(vm, Sort);
         register_native!(vm, IndexOf);
         register_native!(vm, Rand);
+        register_native!(vm, Clear);
 
         vm
     }
@@ -614,6 +615,7 @@ where
         register_native!(vm, Sort);
         register_native!(vm, IndexOf);
         register_native!(vm, Rand);
+        register_native!(vm, Clear);
         dbgln!("Interpreting  code");
         vm.run().await
     }

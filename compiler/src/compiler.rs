@@ -252,6 +252,7 @@ fn is_native_function(name: &str) -> bool {
             | "printf"
             | "input"
             | "errString"
+            | "clear"
     )
 }
 
