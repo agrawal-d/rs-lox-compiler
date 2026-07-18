@@ -17,6 +17,7 @@ require(["vs/editor/editor.main"], function () {
         builtins: [
             'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
             'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'clear',
+            'sin', 'cos', 'sqrt', 'pow', 'pi',
         ],
         tokenizer: {
             root: [
@@ -77,6 +78,7 @@ require(["vs/editor/editor.main"], function () {
                 ...[
                     'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
                     'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'clear',
+                    'sin', 'cos', 'sqrt', 'pow', 'pi',
                 ].map(b => ({
                     label: b,
                     kind: monaco.languages.CompletionItemKind.Function,
@@ -208,12 +210,14 @@ function loadSamples() {
             code: "sample_programs/traceback.lox",
         },
         {
+            name: "ASCII Donut",
+            code: "sample_programs/donut.lox",
+        },
+        {
             name: "Write your own",
             code: "sample_programs/blank.lox",
         }
     ]
-
-    // For each sample, fetch the code and add it to the dropdown, and also update samples with the real code
 
     var promises = [];
     for (let i = 0; i < samples.length; i++) {

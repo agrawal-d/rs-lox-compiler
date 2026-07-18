@@ -1,0 +1,119 @@
+// Rotating ASCII Donut
+// Classic donut.c algorithm ported to Lox
+// Uses sin(), cos(), pi(), sqrt(), clear(), sleep()
+
+var PI = pi();
+var TAU = PI * 2;
+
+// Screen dimensions
+var W = 60;
+var H = 30;
+
+// Donut geometry
+var R1 = 1.0;   // tube radius
+var R2 = 2.5;   // distance from center of tube to center of donut
+var K2 = 8.0;   // distance from viewer to donut
+var K1 = W * K2 * 3 / (8 * (R1 + R2)); // projection scaling
+
+// Luminance characters (darkest to brightest)
+var lum_chars = ".,-~:;=!*#$@";
+
+// Rotation angles
+var A = 0.0;
+var B = 0.0;
+
+// Buffers
+var screen_size = W * H;
+var output[screen_size];
+var zbuf[screen_size];
+
+function render_frame() {
+    // Clear buffers
+    var i = 0;
+    while (i < screen_size) {
+        output[i] = " ";
+        zbuf[i] = 0;
+        i = i + 1;
+    }
+
+    var cosA = cos(A);
+    var sinA = sin(A);
+    var cosB = cos(B);
+    var sinB = sin(B);
+
+    // Theta: around the tube
+    var theta = 0.0;
+    while (theta < TAU) {
+        var costheta = cos(theta);
+        var sintheta = sin(theta);
+
+        // Phi: around the donut
+        var phi = 0.0;
+        while (phi < TAU) {
+            var cosphi = cos(phi);
+            var sinphi = sin(phi);
+
+            // 3D coordinates of point on torus
+            var cx = R2 + R1 * costheta;
+            var cy = R1 * sintheta;
+
+            // Rotate around Y axis by B, then X axis by A
+            var x = cx * (cosB * cosphi + sinA * sinB * sinphi) - cy * cosA * sinB;
+            var y = cx * (sinB * cosphi - sinA * cosB * sinphi) + cy * cosA * cosB;
+            var z = K2 + cosA * cx * sinphi + cy * sinA;
+            var ooz = 1.0 / z; // one over z
+
+            // Project to 2D screen
+            var xp = int(W / 2 + K1 * ooz * x);
+            var yp = int(H / 2 - K1 * ooz * y * 0.5);
+
+            // Compute luminance
+            var L = cosphi * costheta * sinB
+                    - cosA * costheta * sinphi
+                    - sinA * sintheta
+                    + cosB * (cosA * sintheta - costheta * sinA * sinphi);
+
+            if (xp >= 0 and xp < W and yp >= 0 and yp < H) {
+                var idx = xp + W * yp;
+                if (ooz > zbuf[idx]) {
+                    zbuf[idx] = ooz;
+                    var lum_idx = int(L * 8);
+                    if (lum_idx < 0) {
+                        lum_idx = 0;
+                    }
+                    if (lum_idx > 11) {
+                        lum_idx = 11;
+                    }
+                    output[idx] = stringat(lum_chars, lum_idx);
+                }
+            }
+
+            phi = phi + 0.07;
+        }
+        theta = theta + 0.07;
+    }
+
+    // Build and print frame
+    clear();
+    var row = 0;
+    while (row < H) {
+        var line = "";
+        var col = 0;
+        while (col < W) {
+            line = line + output[row * W + col];
+            col = col + 1;
+        }
+        print(line);
+        row = row + 1;
+    }
+}
+
+// Animation loop - run 200 frames
+var frame = 0;
+while (frame < 200) {
+    render_frame();
+    A = A + 0.07;
+    B = B + 0.03;
+    sleep(33);
+    frame = frame + 1;
+}

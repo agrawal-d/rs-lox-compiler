@@ -186,6 +186,11 @@ where
         register_native!(vm, IndexOf);
         register_native!(vm, Rand);
         register_native!(vm, Clear);
+        register_native!(vm, Sin);
+        register_native!(vm, Cos);
+        register_native!(vm, Sqrt);
+        register_native!(vm, Pow);
+        register_native!(vm, Pi);
 
         vm
     }
@@ -635,6 +640,11 @@ where
         register_native!(vm, IndexOf);
         register_native!(vm, Rand);
         register_native!(vm, Clear);
+        register_native!(vm, Sin);
+        register_native!(vm, Cos);
+        register_native!(vm, Sqrt);
+        register_native!(vm, Pow);
+        register_native!(vm, Pi);
         dbgln!("Interpreting  code");
         vm.run().await
     }

@@ -247,6 +247,50 @@ callable_struct!(Rand, "rand", 0, interner: &mut Interner, globals: &mut Globals
     Value::Number(num as f64)
 });
 
+callable_struct!(Sin, "sin", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    match &args[0] {
+        Value::Number(n) => Value::Number(n.sin()),
+        _ => {
+            set_global_error(interner, globals, "Expected number as argument to sin");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Cos, "cos", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    match &args[0] {
+        Value::Number(n) => Value::Number(n.cos()),
+        _ => {
+            set_global_error(interner, globals, "Expected number as argument to cos");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Sqrt, "sqrt", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    match &args[0] {
+        Value::Number(n) => Value::Number(n.sqrt()),
+        _ => {
+            set_global_error(interner, globals, "Expected number as argument to sqrt");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Pow, "pow", 2, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    match (&args[0], &args[1]) {
+        (Value::Number(base), Value::Number(exp)) => Value::Number(base.powf(*exp)),
+        _ => {
+            set_global_error(interner, globals, "Expected two numbers as arguments to pow");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Pi, "pi", 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    Value::Number(std::f64::consts::PI)
+});
+
 // Printf: format string with variable number of arguments
 // Usage: printf("Hello {0} you are {1} years old", name, age)
 // or: printf("Hello {name} you are {age} years old") - requires variables in scope
