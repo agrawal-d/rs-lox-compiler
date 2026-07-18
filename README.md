@@ -20,10 +20,10 @@ Rust implementation of https://craftinginterpreters.com.
 
 ```sh
 # Windows
-python generate_web.py --watch
 Start-Process python -ArgumentList "-m http.server" -WindowStyle Hidden
+python generate_web.py --watch
 
 # Linux
-python3 generate_web.py --watch
 nohup python3 -m http.server > /dev/null 2>&1 &
+python3 generate_web.py --watch
 ```
