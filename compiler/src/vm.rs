@@ -770,6 +770,22 @@ where
                     let receiver = self.stack[frame!(self).slot_offset - 1].clone();
                     self.stack.push(receiver);
                 }
+                Opcode::GetIndex => {
+                    let index = self.pop_unchecked();
+                    let arr = self.pop_unchecked();
+                    self.stack.push(get_array(&arr, &index).unwrap_or_else(|err| {
+                        self.runtime_error(&format!("Error getting array: {err}"));
+                    }));
+                }
+                Opcode::SetIndex => {
+                    let new_value = self.pop_unchecked();
+                    let index = self.pop_unchecked();
+                    let mut arr = self.pop_unchecked();
+                    set_array(&mut arr, &index, new_value.clone()).unwrap_or_else(|err| {
+                        self.runtime_error(&format!("Error setting array: {err}"));
+                    });
+                    self.stack.push(new_value);
+                }
                 Opcode::Add => {
                     let b = self.pop_unchecked();
                     let a = self.pop_unchecked();

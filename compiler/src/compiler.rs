@@ -66,7 +66,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, RightParen, None, None, Precedence::None);
     add_rule!(map, LeftBrace, None, None, Precedence::None);
     add_rule!(map, RightBrace, None, None, Precedence::None);
-    add_rule!(map, LeftBracket, Some(Compiler::array_literal), None, Precedence::None);
+    add_rule!(map, LeftBracket, Some(Compiler::array_literal), Some(Compiler::index_access), Precedence::Call);
     add_rule!(map, RightBracket, None, None, Precedence::None);
     add_rule!(map, Comma, None, None, Precedence::None);
     add_rule!(map, Dot, None, Some(Compiler::dot), Precedence::Call);
@@ -995,6 +995,18 @@ impl<'src> Compiler<'src> {
         self.parser
             .consume(TokenType::RightBracket, "Expect ']' after array literal elements.");
         self.emit_bytes(Opcode::ArrayLiteral as u8, element_count);
+    }
+
+    fn index_access(&mut self, can_assign: bool) {
+        self.expression();
+        self.parser.consume(TokenType::RightBracket, "Expect ']' after array index.");
+
+        if can_assign && self.parser.match_tt(TokenType::Equal) {
+            self.expression();
+            self.emit_byte(Opcode::SetIndex as u8);
+        } else {
+            self.emit_byte(Opcode::GetIndex as u8);
+        }
     }
 
     fn named_variable(&mut self, token: &Token, can_assign: bool) {

@@ -39,6 +39,8 @@ pub enum Opcode {
     GetProperty,
     SetProperty,
     GetReceiver,
+    GetIndex,
+    SetIndex,
 }
 
 pub fn variant_eq<T>(a: &T, b: &T) -> bool {
