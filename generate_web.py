@@ -16,7 +16,6 @@ def build_and_copy():
     result = subprocess.run(
         ["wasm-pack", "build", "--release", "--target", "web", "--no-typescript", "--no-pack"],
         cwd=wasm_dir,
-        shell=True
     )
     if result.returncode != 0:
         print("Error: wasm-pack build failed")
