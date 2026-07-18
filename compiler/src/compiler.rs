@@ -606,6 +606,36 @@ impl<'src> Compiler<'src> {
         if can_assign && self.parser.match_tt(TokenType::Equal) {
             self.expression();
             self.emit_bytes(Opcode::SetProperty as u8, name_constant);
+        } else if can_assign && self.parser.match_tt(TokenType::PlusEqual) {
+            // compound +=
+            self.emit_bytes(Opcode::GetProperty as u8, name_constant);
+            self.expression();
+            self.emit_byte(Opcode::Add as u8);
+            self.emit_bytes(Opcode::SetProperty as u8, name_constant);
+        } else if can_assign && self.parser.match_tt(TokenType::MinusEqual) {
+            // compound -=
+            self.emit_bytes(Opcode::GetProperty as u8, name_constant);
+            self.expression();
+            self.emit_byte(Opcode::Subtract as u8);
+            self.emit_bytes(Opcode::SetProperty as u8, name_constant);
+        } else if can_assign && self.parser.match_tt(TokenType::PlusPlus) {
+            // postfix ++ on property
+            self.emit_byte(Opcode::Dup as u8);
+            self.emit_bytes(Opcode::GetProperty as u8, name_constant);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Add as u8);
+            self.emit_bytes(Opcode::SetProperty as u8, name_constant);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Subtract as u8);
+        } else if can_assign && self.parser.match_tt(TokenType::MinusMinus) {
+            // postfix -- on property
+            self.emit_byte(Opcode::Dup as u8);
+            self.emit_bytes(Opcode::GetProperty as u8, name_constant);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Subtract as u8);
+            self.emit_bytes(Opcode::SetProperty as u8, name_constant);
+            self.emit_constant(Value::Number(1.0));
+            self.emit_byte(Opcode::Add as u8);
         } else {
             self.emit_bytes(Opcode::GetProperty as u8, name_constant);
         }
