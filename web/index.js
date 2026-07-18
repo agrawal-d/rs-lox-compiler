@@ -222,6 +222,10 @@ function loadSamples() {
             code: "sample_programs/alchemy.lox",
         },
         {
+            name: "LoxQuest RPG",
+            code: "sample_programs/lox_quest.lox",
+        },
+        {
             name: "Classes",
             code: "sample_programs/class_test.lox",
         },

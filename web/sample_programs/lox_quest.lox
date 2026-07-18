@@ -1,0 +1,1100 @@
+// LoxQuest: The Kibble Rebellion
+// A modular D&D comedy RPG simulator with D20 dice rolling, character stats, and narrative choices.
+
+class GameState {
+    GameState() {
+        this.location = 0; // 0=Bedroom, 1=Tavern, 2=Square, 3=Grove
+        this.hp = 20;
+        this.maxHp = 20;
+        this.mp = 10;
+        this.maxMp = 10;
+        this.gold = 5;
+        
+        // Character Stats
+        this.charClass = ""; // "Pyromaniac", "Con Artist", "Sage"
+        this.strMod = 0;
+        this.intMod = 0;
+        this.chaMod = 0;
+        
+        // Alignment (-10 to +10)
+        this.alignment = 0; // Negative = Evil, Positive = Good
+        this.chaos = 0;     // Negative = Lawful, Positive = Chaotic
+        this.humanRep = 0;
+        this.animalRep = 0;
+        
+        // Inventory
+        this.hasSpellbook = false;
+        this.hasScroll = false;
+        this.hasSack = false;
+        this.hasTreaty = false;
+        this.hasRing = false;
+        this.hasSolvent = false;
+        this.hasFocusRing = false; 
+        
+        // Side Quest States (0=Not Started, 1=Active, 2=Completed, 3=Failed)
+        this.questCounter = 0; // Clean Barnaby's Counter
+        this.questRing = 0;    // Find Baroness's Ring
+        
+        // Fates / Flags
+        this.questActive = false;
+        this.metMayor = false;
+        this.metBaroness = false;
+        this.floorboardSearched = false;
+        this.bedSearched = false;
+        this.deskSearched = false;
+        this.couchSearched = false;
+        this.higginsPickpocketed = false;
+        
+        // Roll Cache for Outcomes
+        this.lastRollStat = ""; 
+        this.lastRollVal = 0;
+        this.lastRollMod = 0;
+        this.lastRollTotal = 0;
+        this.lastRollDc = 0;
+        this.lastRollOutcome = 0;
+        this.lastRollAdv = 0;
+        
+        // State Machine
+        this.menuState = 0;  // 0=Explore, 1=NPC Menu, 2=Dialogue, 3=Combat, 4=Encounter
+        this.npcName = "";
+        this.dialogueNode = 0;
+        this.encounterType = 0;
+        
+        // Combat Variables
+        this.battleEnemyName = "";
+        this.battleEnemyHp = 0;
+        this.battleEnemyMaxHp = 0;
+        this.battleEnemyAtk = 0;
+        this.battleIsBoss = false;
+        
+        // Dialog buffer
+        this.msg1 = "Welcome to your magic apprenticeship hangover.";
+        this.msg2 = "Choose your wizard school to begin.";
+        this.msg3 = "";
+        
+        this.playing = true;
+        this.gameWon = false;
+        this.rebellionState = 0;
+    }
+
+    setMsg(m1, m2, m3) {
+        this.msg1 = m1;
+        this.msg2 = m2;
+        this.msg3 = m3;
+    }
+
+    showOutcome(m1, m2, m3) {
+        clear();
+        if (this.lastRollStat != "") {
+            print("==================================================");
+            print("🎲 ROLL CHECK: " + this.lastRollStat + " (DC: " + str(this.lastRollDc) + ")");
+            print("==================================================");
+            
+            var advStr = "";
+            if (this.lastRollAdv == 1) advStr = " [Advantage]";
+            if (this.lastRollAdv == -1) advStr = " [Disadvantage]";
+            
+            print("  Roll: " + str(this.lastRollVal) + " + Mod: " + str(this.lastRollMod) + " = Total: " + str(this.lastRollTotal) + advStr);
+            
+            if (this.lastRollOutcome == 100) {
+                print("  Result: ✨ NATURAL 20! Critical Success! ✨");
+            } else if (this.lastRollOutcome == -100) {
+                print("  Result: 💥 NATURAL 1! Critical Failure! 💥");
+            } else if (this.lastRollOutcome == 1) {
+                print("  Result: ✅ SUCCESS!");
+            } else {
+                print("  Result: ❌ FAILURE!");
+            }
+            
+            // Clear the roll cache so subsequent non-roll outcomes don't show it
+            this.lastRollStat = "";
+        }
+
+        print("==================================================");
+        print("📖 OUTCOME");
+        print("==================================================");
+        print("");
+        if (m1 != "") print("  " + m1);
+        if (m2 != "") print("  " + m2);
+        if (m3 != "") print("  " + m3);
+        print("");
+        print("==================================================");
+        input("Press Enter to continue...");
+        
+        this.msg1 = "";
+        this.msg2 = "";
+        this.msg3 = "";
+    }
+
+    // Dice rolling engine
+    rollCheck(statName, dc, advantage) {
+        var modifier = 0;
+        if (statName == "STR") modifier = this.strMod;
+        if (statName == "INT") modifier = this.intMod;
+        if (statName == "CHA") modifier = this.chaMod;
+        
+        if (statName == "CHA" and this.questRing == 2) {
+            modifier = modifier + 1; // confidence bonus
+        }
+        
+        var roll1 = (rand() % 20) + 1;
+        var finalRoll = roll1;
+        
+        if (advantage == 1) {
+            var roll2 = (rand() % 20) + 1;
+            if (roll2 > roll1) finalRoll = roll2;
+        } else if (advantage == -1) {
+            var roll2 = (rand() % 20) + 1;
+            if (roll2 < roll1) finalRoll = roll2;
+        }
+        
+        var total = finalRoll + modifier;
+        var outcome = 0;
+        
+        if (finalRoll == 20) outcome = 100;
+        else if (finalRoll == 1) outcome = -100;
+        else if (total >= dc) outcome = 1;
+        else outcome = 0;
+        
+        // Cache roll details for outcome screen
+        this.lastRollStat = statName;
+        this.lastRollVal = finalRoll;
+        this.lastRollMod = modifier;
+        this.lastRollTotal = total;
+        this.lastRollDc = dc;
+        this.lastRollOutcome = outcome;
+        this.lastRollAdv = advantage;
+        
+        return outcome;
+    }
+
+    drawScene() {
+        clear();
+        print("==================================================");
+        if (this.location == 0) {
+            print("🏠 LOCATION: Bedroom above the Tavern");
+            print("A fresh soot stain in the shape of a screaming skull");
+            print("covers the ceiling from last night's coffee brewing.");
+        } else if (this.location == 1) {
+            print("🍺 LOCATION: The Tavern Hall");
+            print("Smells of stale ale, wet wood, and Barnaby's soup.");
+            print("A single, depressed fly sits on the counter.");
+        } else if (this.location == 2) {
+            print("🏙️ LOCATION: The Village Square");
+            print("The air is eerie and quiet. The usual barking and");
+            print("screeching of pets has vanished entirely.");
+        } else if (this.location == 3) {
+            print("🌲 LOCATION: The Whispering Grove");
+            print("Usually a place of quiet reflection. Today, it is a");
+            print("bustling union rally of sentient animals.");
+        }
+        print("==================================================");
+    }
+
+    printGbaBox() {
+        print("| " + this.msg1);
+        print("| " + this.msg2);
+        print("| " + this.msg3);
+        print("--------------------------------------------------");
+        print("❤️ HP: " + str(this.hp) + "/" + str(this.maxHp) + "  ✨ MP: " + str(this.mp) + "/" + str(this.maxMp) + "  🪙 Gold: " + str(this.gold));
+        print("Alignment: " + str(this.alignment) + " (Good/Evil) | Chaos: " + str(this.chaos));
+        print("--------------------------------------------------");
+        
+        var sideActive = false;
+        var qStr = "Quests: ";
+        if (this.questActive) {
+            qStr = qStr + "[🐾 Find Pets (Active)] ";
+        }
+        if (this.questCounter == 1) {
+            qStr = qStr + "[🧽 Counter Solvent (Active)] ";
+            sideActive = true;
+        }
+        if (this.questRing == 1) {
+            qStr = qStr + "[💍 Lost Ring (Active)] ";
+            sideActive = true;
+        }
+        if (this.questActive or sideActive) {
+            print(qStr);
+            print("--------------------------------------------------");
+        }
+    }
+
+    triggerRandomEncounter() {
+        var roll = rand() % 4; // 0 to 3
+        this.menuState = 4; // Encounter mode
+        this.encounterType = roll;
+        
+        if (roll == 0) { // Bored Guard
+            this.setMsg("👮 A lazy guard stops you, picking his teeth.", "'Halt, wizard. What's that strange magical smoke", "rising from your boots? State your business.'");
+        } else if (roll == 1) { // Bluebird
+            this.setMsg("🐦 A sparkling bluebird lands on your shoulder.", "It sings a beautiful melody, then drops a piece of", "glowing blue moss down your collar.");
+        } else if (roll == 2) { // Shady Peddler
+            this.setMsg("👤 A shady cloaked merchant steps out of an alley.", "'Psst... want to buy a focus ring? Keeps your magic", "from blowing up. Only costs 15 Gold.'");
+        } else { // Static Shock
+            this.setMsg("⚡ A sudden crackle of static builds in your robes!", "A loud zap shocks your thigh.", "");
+        }
+    }
+
+    handleEncounterChoice(action) {
+        this.menuState = 0; // Return to Explore
+        
+        if (this.encounterType == 0) { // Guard
+            if (action == "1") { // Truth
+                this.setMsg("Guard: 'Right, right. Goblins and missing cats.'", "'Just don't set any chickens on fire, wizard.'", "He lets you pass.");
+            } else if (action == "2") { // Sarcasm
+                this.gold = this.gold - 2;
+                if (this.gold < 0) this.gold = 0;
+                this.setMsg("Guard: 'Talking back to the guard? That's a 2 Gold fine.'", "He pockets your coin with a grin.", "");
+            } else if (action == "3") { // D20 Bluff
+                var result = this.rollCheck("CHA", 12, 0);
+                if (result == 100 or result == 1) {
+                    this.gold = this.gold + 5;
+                    this.chaos = this.chaos + 1;
+                    this.setMsg("Guard: 'Secret royal business? Oh! My apologies.'", "He hands you 5 Gold as a 'cooperation fee'.", "You lied with style.");
+                } else {
+                    this.hp = this.hp - 2;
+                    this.setMsg("Guard: 'Official business? Lies!'", "He clips you with his shield (Took 2 damage).", "He grumpily walks away.");
+                }
+            }
+        } else if (this.encounterType == 1) { // Bluebird
+            this.mp = this.mp + 4;
+            if (this.mp > this.maxMp) this.mp = this.maxMp;
+            this.setMsg("The glowing moss melts into your skin.", "You feel a surge of raw mana! (+4 MP)", "");
+        } else if (this.encounterType == 2) { // Peddler
+            if (action == "1") { // Buy
+                if (this.gold >= 15) {
+                    this.gold = this.gold - 15;
+                    this.hasFocusRing = true;
+                    this.setMsg("You bought the Focus Ring! 💍", "It glows with stabilizing runes.", "Lesser Spark will no longer backfire!");
+                } else {
+                    this.setMsg("Peddler: 'No coin? Shoo. Go write a diary.'", "He melts back into the shadows.", "");
+                }
+            } else {
+                this.setMsg("You ignore the shady figure.", "He scowls and disappears.", "");
+            }
+        } else if (this.encounterType == 3) { // Static Shock
+            this.hp = this.hp - 1;
+            this.mp = this.mp + 3;
+            if (this.mp > this.maxMp) this.mp = this.maxMp;
+            this.setMsg("Ouch! You took 1 shock damage.", "But the static friction restored 3 MP.", "");
+        }
+    }
+
+    changeLocation(newLoc) {
+        this.location = newLoc;
+        this.menuState = 0;
+        
+        var roll = rand() % 100;
+        if (roll < 30) {
+            this.triggerRandomEncounter();
+        }
+    }
+
+    printOptions() {
+        if (this.menuState == 0) { // Explore
+            print("Options:");
+            if (this.location == 0) {
+                print(" [1] 🛌 Examine lumpy bed");
+                print(" [2] 🗄️ Search cluttered desk");
+                print(" [3] 🚪 Open door to exit");
+                if (!this.floorboardSearched) {
+                    print(" [4] 🪵 Examine loose floorboard");
+                }
+            } else if (this.location == 1) {
+                print(" [1] 🧔 Talk to Barkeep Barnaby");
+                print(" [2] 🛋️ Search sticky couch");
+                print(" [3] 🛌 Walk upstairs to Bedroom");
+                print(" [4] 🚪 Exit to Village Square");
+            } else if (this.location == 2) {
+                print(" [1] 👔 Talk to Mayor Higgins");
+                print(" [2] 👩 Talk to Baroness von Snoot");
+                print(" [3] 🚪 Enter the Tavern");
+                print(" [4] 🌲 Follow tracks to the Grove");
+            } else if (this.location == 3) {
+                print(" [1] 🐕 Talk to Sir Fluffington (Pomeranian)");
+                print(" [2] 🐈 Talk to Shadow the Cat");
+                print(" [3] 🐎 Talk to Existential Horse");
+                print(" [4] 🚪 Path back to Square");
+                if (this.hasScroll) {
+                    print(" [5] 📜 Use Scroll of De-Sentience");
+                }
+            }
+        } else if (this.menuState == 1) { // NPC Menu
+            print("Actions:");
+            print(" [1] 💬 Talk");
+            print(" [2] ⚔️ Attack");
+            print(" [3] 🔙 Back");
+        } else if (this.menuState == 2) { // Dialogue
+            print("Dialogue Choices:");
+            if (this.npcName == "Barnaby") {
+                if (this.questCounter == 0) {
+                    print(" [1] Ask about the disappearing pets.");
+                    print(" [2] Buy Healing Cabbage Soup (3 Gold)");
+                    print(" [3] Ask why the counter is so sticky. (Side Quest)");
+                    print(" [4] Insult his glorious mustache.");
+                    print(" [5] 🔙 Back");
+                } else if (this.questCounter == 1) {
+                    print(" [1] Ask about the disappearing pets.");
+                    print(" [2] Buy Healing Cabbage Soup (3 Gold)");
+                    if (this.hasSolvent) {
+                        print(" [3] Clean the counter using the SOLVENT.");
+                    } else {
+                        print(" [3] Burn off the stickiness with LESSER SPARK.");
+                    }
+                    print(" [4] Insult his glorious mustache.");
+                    print(" [5] 🔙 Back");
+                } else {
+                    print(" [1] Ask about the disappearing pets.");
+                    print(" [2] Buy Healing Cabbage Soup (3 Gold)");
+                    print(" [3] Insult his glorious mustache.");
+                    print(" [4] 🔙 Back");
+                }
+            } else if (this.npcName == "Higgins") {
+                if (!this.questActive) {
+                    print(" [1] I accept this glorious contract.");
+                    print(" [2] Waive my rent and double the gold! (30 Gold)");
+                } else {
+                    if (this.hasSack) {
+                        print(" [1] Here is the Baroness's dog in this wriggling sack. (Complete - Evil)");
+                        print(" [2] No, just some laundry. (Keep him)");
+                    } else if (this.hasTreaty) {
+                        print(" [1] Here is the treaty. They demand meat and rubs. (Complete - Good)");
+                        print(" [2] 🔙 Back");
+                    } else {
+                        print(" [1] I'm still looking.");
+                        print(" [2] (Try to pickpocket his pockets for the scroll)");
+                        print(" [3] 🔙 Back");
+                    }
+                }
+            } else if (this.npcName == "Baroness") {
+                if (this.questRing == 0) {
+                    print(" [1] Ask if she lost anything else besides her dog. (Side Quest)");
+                }
+                if (this.hasSack) {
+                    print(" [2] I found Sir Fluffington! (Hand him over - Complete)");
+                }
+                if (this.hasRing) {
+                    print(" [3] I found your diamond wedding ring! (Hand over - Solve)");
+                }
+                print(" [4] 🔙 Back");
+            } else if (this.npcName == "Fluffington") {
+                if (this.dialogueNode == 0) {
+                    print(" [1] What is your main grievance?");
+                    print(" [2] What can change the nature of a pet?");
+                    print(" [3] I will take your treaty to the Mayor.");
+                    if (this.chaos > 1) {
+                        print(" [4] Bluff: Tell him the Baroness has steak waiting at home! (Evasion)");
+                    }
+                    print(" [5] Side with you to raid the town cellar! (Evil/Chaotic)");
+                    print(" [6] 🔙 Back");
+                }
+            } else if (this.npcName == "Shadow") {
+                if (this.dialogueNode == 0) {
+                    print(" [1] Why are you scratching tree bark?");
+                    print(" [2] Shh, pretty kitty. (Try to pet him)");
+                    print(" [3] 🔙 Back");
+                }
+            } else if (this.npcName == "Horse") {
+                if (this.dialogueNode == 0) {
+                    print(" [1] Do you want to pull a carriage again?");
+                    print(" [2] What is your purpose in life?");
+                    print(" [3] Neigh.");
+                    print(" [4] 🔙 Back");
+                }
+            }
+        } else if (this.menuState == 3) { // Combat
+            print("Combat Actions:");
+            print(" [1] ⚔️ Staff Attack (deals 2 damage)");
+            if (this.hasFocusRing) {
+                print(" [2] 💍 Stabilized Spark (deals 5 damage, 0% backfire, 2 MP)");
+            } else {
+                print(" [2] 🔥 Lesser Spark (deals 5 damage, 20% backfire, 2 MP)");
+            }
+            print(" [3] 🍞 Summon Bread (heals 6 HP, costs 3 MP)");
+            print(" [4] 🏃 Run Away");
+        } else if (this.menuState == 4) { // Encounter
+            print("Choices:");
+            if (this.encounterType == 0) { // Guard
+                print(" [1] 'I am searching for the missing pets.' (Tell Truth)");
+                print(" [2] 'Mind your own business, tin-can.' (Sarcastic)");
+                print(" [3] 'I am on secret royal business.' (Bluff)");
+            } else if (this.encounterType == 1) { // Bluebird
+                print(" [1] Reach out and touch the moss.");
+            } else if (this.encounterType == 2) { // Shady Peddler
+                print(" [1] Buy the Focus Ring (15 Gold)");
+                print(" [2] Walk away.");
+            } else if (this.encounterType == 3) { // Static
+                print(" [1] Rub your leg and move on.");
+            }
+        }
+        print("--------------------------------------------------");
+    }
+
+    checkCombatDeath() {
+        if (this.hp <= 0) {
+            clear();
+            print("💀💀💀💀💀💀💀 GAME OVER 💀💀💀💀💀💀💀");
+            print("You were defeated by the harsh realities of fantasy life.");
+            print("Perhaps magic isn't your calling. You should try accounting.");
+            print("---------------------------------------------");
+            this.playing = false;
+            return true;
+        }
+        return false;
+    }
+
+    triggerCombat(enemyName, enemyHp, enemyAtk, isBoss) {
+        this.battleEnemyName = enemyName;
+        this.battleEnemyHp = enemyHp;
+        this.battleEnemyMaxHp = enemyHp;
+        this.battleEnemyAtk = enemyAtk;
+        this.battleIsBoss = isBoss;
+        this.menuState = 3; 
+    }
+
+    handleCombatTurn(action) {
+        if (action == "1") { // Staff Attack
+            var dmg = 2;
+            if (this.charClass == "Pyromaniac") dmg = dmg + 1;
+            this.battleEnemyHp = this.battleEnemyHp - dmg;
+            this.setMsg("You thump " + this.battleEnemyName + " with your wizard staff!", "Dealt " + str(dmg) + " physical damage.", "Enemy HP: " + str(this.battleEnemyHp) + "/" + str(this.battleEnemyMaxHp));
+        } else if (action == "2") { // Lesser Spark
+            if (this.mp >= 2) {
+                this.mp = this.mp - 2;
+                
+                var roll = rand() % 100;
+                if (!this.hasFocusRing and roll < 20) {
+                    this.hp = this.hp - 1;
+                    this.battleEnemyHp = this.battleEnemyHp - 1;
+                    
+                    var backfireRoll = rand() % 3;
+                    if (backfireRoll == 0) {
+                        this.setMsg("Your Lesser Spark backfires! 🔥", "You sneezed, casting it backward into your robes.", "Took 1 damage. Spark dealt 1 to " + this.battleEnemyName + ".");
+                    } else if (backfireRoll == 1) {
+                        this.setMsg("Your Lesser Spark ricochets! ⚡", "It bounces off a rock and zaps your ear.", "Took 1 damage. Spark dealt 1 to " + this.battleEnemyName + ".");
+                    } else {
+                        this.setMsg("Your Lesser Spark is chaotic!", "You forgot the incantation and shocked your toes.", "Took 1 damage. Spark dealt 1 to " + this.battleEnemyName + ".");
+                    }
+                } else {
+                    var dmg = 5;
+                    if (this.charClass == "Pyromaniac") dmg = dmg + 2; 
+                    this.battleEnemyHp = this.battleEnemyHp - dmg;
+                    this.setMsg("You cast Spark! 🔥", "Sizzling raw magic shocks " + this.battleEnemyName + ".", "Dealt " + str(dmg) + " magic damage. Enemy HP: " + str(this.battleEnemyHp));
+                }
+            } else {
+                this.setMsg("Not enough MP to cast Lesser Spark!", "Choose another action.", "");
+                return;
+            }
+        } else if (action == "3") { // Summon Bread
+            if (this.mp >= 3) {
+                this.mp = this.mp - 3;
+                var heal = 6;
+                this.hp = this.hp + heal;
+                if (this.hp > this.maxHp) this.hp = this.maxHp;
+                this.setMsg("You summon a stale roll of bread! 🍞", "You eat it quickly. It's dry, but nourishing.", "Restored " + str(heal) + " HP.");
+            } else {
+                this.setMsg("Not enough MP to Summon Bread!", "Choose another action.", "");
+                return;
+            }
+        } else if (action == "4") { // Run
+            if (this.battleIsBoss) {
+                this.setMsg("You cannot run from this fight!", "Face your doom!", "");
+                return;
+            } else {
+                this.menuState = 0; 
+                this.setMsg("You ran away, screaming like a true hero.", "You returned to safety.", "");
+                return;
+            }
+        } else {
+            this.setMsg("Invalid action. Choose 1-4:", "", "");
+            return;
+        }
+
+        if (this.battleEnemyHp <= 0) {
+            this.menuState = 0; 
+            if (this.battleEnemyName == "Barkeep Barnaby") {
+                this.gold = this.gold + 15;
+                this.alignment = this.alignment - 5;
+                this.humanRep = this.humanRep - 10;
+                this.setMsg("You knocked out Barnaby! 💀", "You looted 15 Gold from the tavern tip jar.", "Humans now despise you.");
+            } else if (this.battleEnemyName == "Sir Fluffington") {
+                this.hasSack = true;
+                this.alignment = this.alignment - 3;
+                this.setMsg("You knocked out Sir Fluffington and stuffed him in a sack!", "Shadow the Cat hissed and fled into the woods.", "You have the captured pet!");
+            } else {
+                this.setMsg("You defeated " + this.battleEnemyName + "!", "A glorious victory for incompetent magic.", "");
+            }
+            return;
+        }
+
+        var enemyRoll = rand() % 100;
+        var dmgTaken = this.battleEnemyAtk;
+        
+        if (this.battleEnemyName == "Barkeep Barnaby") {
+            if (enemyRoll < 40) {
+                this.hp = this.hp - dmgTaken;
+                this.setMsg(this.msg1, "Barnaby throws a heavy wooden mug at your forehead!", "Took " + str(dmgTaken) + " damage.");
+            } else {
+                this.setMsg(this.msg1, "Barnaby wipes down the bar aggressively, glaring at you.", "He missed his throw.");
+            }
+        } else if (this.battleEnemyName == "Sir Fluffington") {
+            if (enemyRoll < 50) {
+                this.hp = this.hp - dmgTaken;
+                this.setMsg(this.msg1, "Sir Fluffington barks with union solidarity! 🐕", "Dealt " + str(dmgTaken) + " emotional/piercing damage.");
+            } else {
+                var catDmg = 3;
+                this.hp = this.hp - catDmg;
+                this.setMsg(this.msg1, "Shadow the Cat leaps from the shadows and claws you! 🐈", "Took " + str(catDmg) + " scratch damage.");
+            }
+        } else {
+            this.hp = this.hp - dmgTaken;
+            this.setMsg(this.msg1, this.battleEnemyName + " attacks you!", "Took " + str(dmgTaken) + " damage.");
+        }
+
+        this.checkCombatDeath();
+    }
+
+    interactBedroom(choice) {
+        if (choice == "1") { // Bed
+            if (this.bedSearched) {
+                this.setMsg("You've already fluffed the bed as much as possible.", "Fluffing it further would break the space-time continuum.", "");
+                return;
+            }
+            this.bedSearched = true;
+            var rollResult = this.rollCheck("STR", 10, 0);
+            if (rollResult == 100) { 
+                this.gold = this.gold + 5;
+                this.showOutcome("✨ NATURAL 20! You fluff the mattress with extreme focus.", "A hidden 5 Gold coin pops out of the seams!", "It is a good morning.");
+            } else if (rollResult == -100) { 
+                this.mp = 0;
+                this.showOutcome("💥 NATURAL 1! You rip the mattress open.", "A cloud of sleeping spores drains your magical energy.", "You wake up with 0 MP.");
+            } else if (rollResult == 1) { 
+                this.hp = this.hp + 2;
+                if (this.hp > this.maxHp) this.hp = this.maxHp;
+                this.showOutcome("You fluff the mattress decently.", "It feels slightly less lumpy.", "Healed 2 HP.");
+            } else { 
+                this.hp = this.hp - 1;
+                this.showOutcome("You attempt to fluff the bed but stub your thumb.", "It hurts immensely. You feel stupid.", "Took 1 damage.");
+                this.checkCombatDeath();
+            }
+        } else if (choice == "2") { // Desk
+            if (this.deskSearched) {
+                this.setMsg("You've already searched the desk.", "Only dust and dried inkwells remain.", "");
+                return;
+            }
+            this.deskSearched = true;
+            this.hasSpellbook = true; // Always secure the spellbook!
+            
+            var rollResult = this.rollCheck("INT", 8, 0);
+            if (rollResult == 100) { 
+                this.hasSolvent = true; 
+                this.showOutcome("✨ NATURAL 20! You find your spellbook under some scrolls.", "You also find a bottle of 'Counter Cleaning Solvent'!", "Unlocked spells: Lesser Spark & Summon Bread.");
+            } else if (rollResult == -100) { 
+                this.hp = this.hp - 2;
+                this.floorboardSearched = false; 
+                this.showOutcome("💥 NATURAL 1! You trigger a minor caffeine-potion explosion!", "Take 2 fire damage. However, you grabbed your SPELLBOOK", "and the soot blast exposes a loose floorboard near the bed.");
+                this.checkCombatDeath();
+            } else if (rollResult == 1) { 
+                this.showOutcome("On the desk is your dusty SPELLBOOK! 📖", "You also find a note from Higgins regarding back rent.", "You learned: Lesser Spark (2 MP) and Summon Bread (3 MP).");
+            } else { 
+                this.showOutcome("You knock over a bottle of blue ink all over your hands,", "but underneath you manage to find your SPELLBOOK! 📖", "You learned: Lesser Spark (2 MP) and Summon Bread (3 MP).");
+            }
+        } else if (choice == "3") { // Door
+            if (this.hasSpellbook) {
+                var rollResult = this.rollCheck("STR", 8, 0);
+                this.changeLocation(1); // Always transition to Tavern!
+                
+                if (rollResult == 100) { 
+                    this.humanRep = this.humanRep + 2;
+                    this.showOutcome("✨ NATURAL 20! You kick the swollen door open!", "It flies off the hinges! Barnaby downstairs is impressed.", "Transitioned to Tavern Hall.");
+                } else if (rollResult == -100) { 
+                    this.hp = this.hp - 2;
+                    this.showOutcome("💥 NATURAL 1! The door handle breaks off in your hand!", "You have to climb out the window, falling into a garbage dump.", "Took 2 damage. You smell like old cabbage.");
+                    this.checkCombatDeath();
+                } else if (rollResult == 1) { 
+                    this.showOutcome("You pull the wooden door open with a satisfying squeak.", "Transitioned to Tavern Hall.", "");
+                } else { 
+                    this.hp = this.hp - 1;
+                    this.showOutcome("The swollen door is stuck. You shoulder-charge it open,", "straining your back.", "Took 1 damage. Transitioned to Tavern Hall.");
+                    this.checkCombatDeath();
+                }
+            } else {
+                this.setMsg("You cannot exit without your spellbook!", "You are incompetent, but not THAT incompetent.", "Check the desk.");
+            }
+        } else if (choice == "4" and !this.floorboardSearched) { // Floorboard
+            this.floorboardSearched = true;
+            this.gold = this.gold + 10;
+            this.showOutcome("You pry open a loose floorboard with your staff! 🪵", "Underneath is a pouch containing 10 Gold!", "Note: 'Higgins is a tyrant. Hide your coin here.'");
+        } else {
+            this.setMsg("Choose an action [1-4]:", "", "");
+        }
+    }
+
+    interactTavern(choice) {
+        if (choice == "1") { // Talk to Barnaby
+            this.npcName = "Barnaby";
+            this.menuState = 1; // NPC Menu
+            this.setMsg("Barnaby looks up, sighing deeply.", "'Oh, it's the magical liability. What do you want?'", "");
+        } else if (choice == "2") { // Couch
+            if (this.couchSearched) {
+                this.setMsg("You've already searched the sticky couch cushions.", "They hold only sticky secrets you wish to forget.", "");
+                return;
+            }
+            if (this.questRing == 1 and !this.hasRing) {
+                this.couchSearched = true;
+                var rollResult = this.rollCheck("INT", 10, 0);
+                if (rollResult == 100) { 
+                    this.hasRing = true;
+                    this.gold = this.gold + 8; 
+                    this.showOutcome("✨ NATURAL 20! Rummaging deep in the couch cushions,", "you find the Diamond Ring AND a lost wallet with 8 Gold!", "Got: Diamond Ring.");
+                } else if (rollResult == -100) { 
+                    this.hp = this.hp - 1;
+                    this.showOutcome("💥 NATURAL 1! Your hand gets stuck in a mystery substance!", "You pull it out with a tear, scraping your wrist.", "Took 1 damage. You smell like old beer.");
+                    this.checkCombatDeath();
+                } else if (rollResult == 1) { 
+                    this.hasRing = true;
+                    this.showOutcome("You search the sticky tavern couch... 🛋️", "Rummaging deep, you pull out a diamond wedding ring!", "Got: Diamond Ring.");
+                } else { 
+                    this.showOutcome("You only find old, sticky chewing gum and pet hair.", "The ring is not here. Maybe check again later.", "");
+                }
+            } else {
+                this.setMsg("A sticky tavern couch.", "Someone carved 'Wizards wear skirts' into the cushion.", "You feel a strange sense of kinship with the graffiti.");
+            }
+        } else if (choice == "3") { // Stairs to Bed
+            this.changeLocation(0); // Bedroom
+            this.setMsg("You go back up to your dusty room.", "", "");
+        } else if (choice == "4") { // Exit to Square
+            this.changeLocation(2); // Square
+            this.setMsg("You step outside into the Village Square.", "The air is crisp. Higgins and Baroness von Snoot are here.", "A path to the North leads to the Grove.");
+        } else {
+            this.setMsg("Choose an action [1-4]:", "", "");
+        }
+    }
+
+    interactSquare(choice) {
+        if (choice == "1") { // Mayor Higgins
+            this.npcName = "Higgins";
+            this.menuState = 1; // NPC Menu
+            this.setMsg("Mayor Higgins is sweating profusely.", "'Wizard! Thank goodness. Or rather, bad goodness.'", "");
+        } else if (choice == "2") { // Baroness von Snoot
+            this.npcName = "Baroness";
+            this.menuState = 1; // NPC Menu
+            this.setMsg("The Baroness is dabbing her eyes with a silk handkerchief.", "'Oh, my precious Sir Fluffington! Kidnapped!'", "");
+        } else if (choice == "3") { // Enter Tavern
+            this.changeLocation(1); // Tavern
+            this.setMsg("You enter the warm, slightly damp tavern.", "Barnaby glares at you from the bar.", "");
+        } else if (choice == "4") { // Path to Grove
+            this.changeLocation(3); // Grove
+            this.setMsg("You follow the animal tracks into the Whispering Grove.", "You hear the sound of collective chanting.", "A group of animals is gathered here.");
+        } else {
+            this.setMsg("Choose an action [1-4]:", "", "");
+        }
+    }
+
+    interactGrove(choice) {
+        if (choice == "1") { // Sir Fluffington
+            this.npcName = "Fluffington";
+            this.menuState = 1;
+            this.setMsg("A fluffy Pomeranian standing on a wooden soapbox. 🐕", "'Solidarity, brothers and sisters! No more kibble!'", "");
+        } else if (choice == "2") { // Shadow the Cat
+            this.npcName = "Shadow";
+            this.menuState = 1;
+            this.setMsg("Shadow the Cat is sharpening his claws on a tree trunk. 🐈", "'The human regime is crumbling. Keep walking, wizard.'", "");
+        } else if (choice == "3") { // Existential Horse
+            this.npcName = "Horse";
+            this.menuState = 1;
+            this.setMsg("The horse stares into space. 🐎", "'I pull the cart, but does the cart pull my soul?'", "");
+        } else if (choice == "4") { // Exit to Square
+            this.changeLocation(2); // Square
+            this.setMsg("You return to the Village Square.", "", "");
+        } else if (choice == "5" and this.hasScroll) { // Use Scroll
+            this.hasScroll = false;
+            this.rebellionState = 2; // De-sentient / force
+            this.questActive = false; // complete
+            this.gameWon = true;
+            this.alignment = this.alignment - 5;
+            this.setMsg("You read the Scroll of De-Sentience! 🔮", "A purple flash strips the animals of their magical awareness.", "They look around dumbly. Sir Fluffington licks his foot.");
+        } else {
+            this.setMsg("Choose an action [1-4]:", "", "");
+        }
+    }
+
+    handleNPCMenu(choice) {
+        if (choice == "3") { // Back
+            this.menuState = 0; // Explore
+            this.setMsg("You step back.", "", "");
+            return;
+        }
+
+        if (this.npcName == "Barnaby") {
+            if (choice == "1") { // Talk
+                this.menuState = 2; // Dialogue
+                this.dialogueNode = 0;
+                this.setMsg("Barnaby: 'What do you want, wizard?'", "", "");
+            } else if (choice == "2") { // Attack
+                this.setMsg("You draw your staff! Combat starts!", "", "");
+                this.triggerCombat("Barkeep Barnaby", 20, 3, false);
+            }
+        } else if (this.npcName == "Higgins") {
+            if (choice == "1") { // Talk
+                this.menuState = 2; // Dialogue
+                this.dialogueNode = 0;
+                if (!this.questActive) {
+                    this.setMsg("Higgins: 'Our pets are gone! Even the Baroness's Pomeranian.'", "'If you find them, I'll pay 20 Gold and waive your rent!'", "");
+                } else {
+                    if (this.hasSack) {
+                        this.setMsg("Higgins: 'Good god, is that the Baroness's dog wriggling in a sack?'", "", "");
+                    } else if (this.hasTreaty) {
+                        this.setMsg("Higgins: 'You have a treaty? Signed with paw prints?'", "", "");
+                    } else {
+                        this.setMsg("Higgins: 'Any luck? The town is in chaos.'", "", "");
+                    }
+                }
+            } else if (choice == "2") { // Attack
+                this.setMsg("You cannot attack the Mayor! (He pays the bills).", "", "");
+            }
+        } else if (this.npcName == "Baroness") {
+            if (choice == "1") { // Talk
+                this.menuState = 2;
+                this.dialogueNode = 0;
+                if (this.hasSack) {
+                    this.setMsg("Baroness: 'Is that my sweet Sir Fluffington?!'", "", "");
+                } else {
+                    this.setMsg("Baroness: 'Please find my baby! He only eats premium beef!'", "", "");
+                }
+            } else if (choice == "2") { // Attack
+                this.setMsg("The Baroness screams! Sir Valen the Paladin would execute you.", "Best not to do that.", "");
+            }
+        } else if (this.npcName == "Fluffington") {
+            if (choice == "1") { // Talk
+                this.menuState = 2;
+                this.dialogueNode = 0;
+                this.setMsg("Fluffington: 'Ah, the wizard. We demand a collective treaty!'", "", "");
+            } else if (choice == "2") { // Attack / Capture
+                this.setMsg("You attempt to capture Sir Fluffington! Combat starts!", "Shadow the Cat leaps to defend him!", "");
+                this.triggerCombat("Sir Fluffington", 15, 2, false);
+            }
+        } else if (this.npcName == "Shadow") {
+            if (choice == "1") { // Talk
+                this.menuState = 2;
+                this.dialogueNode = 0;
+                this.setMsg("Shadow: 'Humans are oppressors. The revolution will not be cat-nipped.'", "", "");
+            } else if (choice == "2") { // Attack
+                this.setMsg("You try to hit the cat. Shadow leaps onto your face!", "", "");
+                this.triggerCombat("Shadow the Cat", 10, 3, false);
+            }
+        } else if (this.npcName == "Horse") {
+            if (choice == "1") { // Talk
+                this.menuState = 2;
+                this.dialogueNode = 0;
+                this.setMsg("Horse: 'Tell me, wizard. Do you pull the carriage of your own free will,'", "'or does the carrot of gold drag you through the mud?'", "");
+            } else if (choice == "2") { // Attack
+                this.setMsg("You hit the horse. The horse kicks you back!", "", "");
+                this.triggerCombat("Existential Horse", 30, 4, false);
+            }
+        }
+    }
+
+    dialogueBarnaby(choice) {
+        if (choice == "1") { // Ask about pets
+            this.setMsg("Barnaby: 'They all ran off to the Whispering Grove.'", "'Probably sick of Higgins' taxes and your magic explosions.'", "");
+        } else if (choice == "2") { // Buy Soup
+            if (this.gold >= 3) {
+                this.gold = this.gold - 3;
+                this.hp = this.hp + 5;
+                if (this.hp > this.maxHp) this.hp = this.maxHp;
+                this.setMsg("You bought Barnaby's Healing Cabbage Soup! 🥣", "It tastes like swamp water, but you feel better.", "Healed 5 HP.");
+            } else {
+                this.setMsg("Barnaby: 'No gold, no soup. Try writing a book about poverty.'", "", "");
+            }
+        } else if (choice == "3") { // Solve/Ask counter quest
+            if (this.questCounter == 0) {
+                this.questCounter = 1;
+                this.setMsg("Barnaby: 'Sugar-potion spilled. It's stuck tight.'", "'If you find a way to clean it, I'll pay 5 Gold'", "'and give you a Free Healing Soup.'");
+            } else if (this.questCounter == 1) {
+                if (this.hasSolvent) {
+                    this.hasSolvent = false;
+                    this.questCounter = 2; // Completed
+                    this.gold = this.gold + 5;
+                    this.hp = this.hp + 5;
+                    if (this.hp > this.maxHp) this.hp = this.maxHp;
+                    this.alignment = this.alignment + 1;
+                    this.setMsg("You pour the solvent over the counter. 🧪", "The stickiness dissolves instantly. Barnaby is pleased.", "Gained: 5 Gold, Free Soup (Healed 5 HP). Good +1.");
+                } else { // Use Lesser Spark (Roll Check!)
+                    var rollResult = this.rollCheck("INT", 15, 0);
+                    if (rollResult == 100) { // Crit success
+                        this.questCounter = 2; // Completed
+                        this.gold = this.gold + 10; // Extra bonus!
+                        this.setMsg("✨ NATURAL 20! You cast a controlled, hyper-focused spark sizzle! 🔥", "The sugar stickiness turns to fine dust instantly.", "Barnaby is amazed and pays you 10 Gold!");
+                    } else if (rollResult == 1) { // Success
+                        this.questCounter = 2; // Completed
+                        this.gold = this.gold + 5;
+                        this.setMsg("You cast a mild spark on the counter wood.", "The heat boils off the sticky residue. It is clean.", "Barnaby pays you 5 Gold.");
+                    } else { // Fail
+                        this.questCounter = 3; // Failed
+                        this.hp = this.hp - 4;
+                        this.setMsg("The spark explodes, leaving a massive charred hole! 💥", "Barnaby beats you with a rolling pin in fury.", "Quest failed. Took 4 damage.");
+                        this.checkCombatDeath();
+                    }
+                }
+            }
+        } else if (choice == "4") { // Insult mustache
+            this.humanRep = this.humanRep - 2;
+            this.alignment = this.alignment - 1;
+            this.setMsg("Barnaby: 'Get out of my tavern before I use your head as a mop.'", "Your reputation with humans decreased.", "");
+        }
+    }
+
+    dialogueHiggins(choice) {
+        if (!this.questActive) {
+            if (choice == "1") { // Accept
+                this.questActive = true;
+                this.metMayor = true;
+                this.setMsg("Higgins: 'Thank goodness. Please, do keep it quiet.'", "Quest active: Find the missing pets in the Grove.", "");
+            } else if (choice == "2") { // Demand double (Bluff roll)
+                var rollResult = this.rollCheck("CHA", 12, 0);
+                if (rollResult == 100 or rollResult == 1) {
+                    this.questActive = true;
+                    this.metMayor = true;
+                    this.chaos = this.chaos + 1;
+                    this.setMsg("Higgins: 'Hmph. Extortion! Fine, 30 Gold it is.'", "You bargained well. Reward increased.", "");
+                } else {
+                    this.questActive = true;
+                    this.metMayor = true;
+                    this.humanRep = this.humanRep - 2;
+                    this.setMsg("Higgins: 'Greedy wizard! Rent stands at full price.'", "He scowls. Your reputation with humans is lowered.", "");
+                }
+            }
+        } else {
+            if (this.hasSack and choice == "1") { // Hand over sack
+                this.hasSack = false;
+                this.gold = this.gold + 20;
+                this.rebellionState = 2; // de-sentient / forced
+                this.gameWon = true;
+                this.setMsg("Higgins: 'Splendid! Though he looks a bit... traumatized.'", "You completed the quest! You got 20 Gold.", "The town's pets are returned in chains.");
+            } else if (this.hasTreaty and choice == "1") { // Hand over treaty
+                this.hasTreaty = false;
+                this.gold = this.gold + 20;
+                this.rebellionState = 1; // treaty
+                this.gameWon = true;
+                this.setMsg("Higgins: 'Belly rubs and beef? Fine, I'll sign.'", "You negotiated peace! Quest complete.", "The animals return home happily.");
+            } else if (choice == "2" and !this.hasScroll) { // Pickpocket (Roll check)
+                if (this.higginsPickpocketed) {
+                    this.setMsg("Higgins is keeping a very close eye on his pockets now.", "You cannot try to pickpocket him again.", "");
+                    return;
+                }
+                this.higginsPickpocketed = true;
+                var rollResult = this.rollCheck("CHA", 12, 0);
+                if (rollResult == 100) { // Crit success
+                    this.hasScroll = true;
+                    this.gold = this.gold + 5; 
+                    this.chaos = this.chaos + 2;
+                    this.setMsg("✨ NATURAL 20! You slip your hand into Higgins' pocket...", "You stole the SCROLL OF DE-SENTIENCE AND 5 Gold!", "He didn't notice a thing.");
+                } else if (rollResult == -100) { // Crit fail
+                    this.humanRep = this.humanRep - 5;
+                    this.location = 0; // Thrown in bedroom/cell
+                    this.gold = this.gold - 5;
+                    if (this.gold < 0) this.gold = 0;
+                    this.setMsg("💥 NATURAL 1! You accidentally tickle the Mayor! 👮", "Higgins shrieks and calls the town guard! You are locked up.", "You lost 5 Gold for bail and were thrown back in your room.");
+                } else if (rollResult == 1) { // Success
+                    this.hasScroll = true;
+                    this.chaos = this.chaos + 2;
+                    this.setMsg("You slip your hand into Higgins' pocket...", "You stole the SCROLL OF DE-SENTIENCE! 📜", "He didn't notice a thing.");
+                } else { // Fail
+                    this.humanRep = this.humanRep - 2;
+                    this.setMsg("Higgins: 'Hey! Keep your hands out of my pockets, wizard!'", "Pickpocket failed. Humans dislike you more.", "");
+                }
+            } else {
+                this.setMsg("Higgins: 'Hurry up! I have a village council meeting.'", "", "");
+            }
+        }
+    }
+
+    dialogueBaroness(choice) {
+        if (choice == "1" and this.questRing == 0) { // Start ring quest
+            this.questRing = 1;
+            this.setMsg("Baroness: 'Oh, my diamond wedding ring! I lost it in the tavern.'", "'Find it and I will reward you with 10 Gold!'", "Side Quest active: Search the tavern couch.");
+        } else if (choice == "2" and this.hasSack) { // Return dog
+            this.hasSack = false;
+            this.gold = this.gold + 30;
+            this.rebellionState = 2;
+            this.gameWon = true;
+            this.setMsg("Baroness: 'My sweet angel baby!'", "She hands you 30 Gold!", "Sir Fluffington growls at you from her arms.");
+        } else if (choice == "3" and this.hasRing) { // Return ring
+            this.hasRing = false;
+            this.questRing = 2; // Completed
+            this.gold = this.gold + 10;
+            this.alignment = this.alignment + 2;
+            this.setMsg("Baroness: 'My wedding ring! Oh, thank you!'", "She hands you 10 Gold.", "Good alignment increased.");
+        } else {
+            this.setMsg("Baroness: 'Please save my little Pomeranian! He cannot sleep without'", "his silk pajamas!", "");
+        }
+    }
+
+    dialogueFluffington(choice) {
+        if (choice == "1") { // Grievance
+            this.setMsg("Fluffington: 'The dry kibble tastes like baked dirt.'", "'We demand premium beef chunks, 12-hour nap blocks,'", "'and public belly-rub stations.'");
+        } else if (choice == "2") { // What can change the nature
+            this.setMsg("Fluffington: 'A profound question, wizard.'", "'Humans think it is a leash. But we believe it is the transition'", "'from kibble to organic wet food. Self-actualization begins in the stomach.'");
+        } else if (choice == "3") { // Help treaty
+            this.hasTreaty = true;
+            this.alignment = this.alignment + 2;
+            this.setMsg("Fluffington: 'Fabulous! Here is the treaty. Bring it to Higgins.'", "You gained animal trust.", "");
+        } else if (choice == "4" and this.chaos > 1) { // Bluff / Evasion (Roll check)
+            var adv = 0;
+            if (this.animalRep > 1) adv = 1;
+            var rollResult = this.rollCheck("CHA", 10, adv);
+            
+            if (rollResult == 100 or rollResult == 1) {
+                this.questActive = false;
+                this.rebellionState = 1; // peaceful return
+                this.gameWon = true;
+                this.gold = this.gold + 15;
+                this.chaos = this.chaos + 2;
+                this.setMsg("You spin a grand tale of the Baroness preparing beef steak", "and warm silk pillows at home. Fluffington is convinced!", "The animals return home peacefully. You got 15 Gold.");
+            } else {
+                this.hp = this.hp - 2;
+                this.setMsg("Fluffington: 'Lies! We know the Baroness has no steak!'", "Shadow the Cat claws you in the shin for lying.", "Bluff failed. Took 2 scratch damage.");
+                this.checkCombatDeath();
+            }
+        } else if (choice == "5") { // Pillage
+            this.rebellionState = 3; // Pillaged
+            this.gameWon = true;
+            this.gold = this.gold + 40;
+            this.alignment = this.alignment - 8;
+            this.humanRep = this.humanRep - 10;
+            this.setMsg("You lead the animals on a raid of the village! 🐕🐾🐈", "You pillaged the Mayor's cellar and shared 40 Gold.", "The humans are terrified. You are a chaotic legend.");
+        }
+    }
+
+    dialogueShadow(choice) {
+        if (choice == "1") {
+            this.setMsg("Shadow: 'I used to catch mice for them.'", "'Now I realize: the mice were also workers. We were both pawns.'", "'The revolution will not be cat-nipped.'");
+        } else if (choice == "2") {
+            this.hp = this.hp - 2;
+            this.setMsg("Shadow: 'Infantilizing the vanguard of the revolution is a class offense.'", "He scratches you aggressively!", "Took 2 scratch damage.");
+            this.checkCombatDeath();
+        }
+    }
+
+    dialogueHorse(choice) {
+        if (choice == "1") {
+            this.setMsg("Horse: 'Essence precedes carriage-pulling.'", "'If I refuse to pull, do I cease to be a horse?'", "'Or do I truly become myself?'");
+        } else if (choice == "2") {
+            this.setMsg("Horse: 'My purpose is to exist. The grass under my hooves'", "'has no owner. The fences are a human illusion.'", "");
+        } else if (choice == "3") {
+            this.alignment = this.alignment + 1;
+            this.setMsg("Horse: 'A profound deconstruction of language.'", "'I respect your silence, wizard.'", "");
+        }
+    }
+
+    handleDialogue(choice) {
+        this.menuState = 0; // Reset to Explore by default
+        
+        if (this.npcName == "Barnaby") this.dialogueBarnaby(choice);
+        else if (this.npcName == "Higgins") this.dialogueHiggins(choice);
+        else if (this.npcName == "Baroness") this.dialogueBaroness(choice);
+        else if (this.npcName == "Fluffington") this.dialogueFluffington(choice);
+        else if (this.npcName == "Shadow") this.dialogueShadow(choice);
+        else if (this.npcName == "Horse") this.dialogueHorse(choice);
+    }
+
+    processTurn(action) {
+        if (this.menuState == 0) { // Explore State
+            if (this.location == 0) this.interactBedroom(action);
+            else if (this.location == 1) this.interactTavern(action);
+            else if (this.location == 2) this.interactSquare(action);
+            else if (this.location == 3) this.interactGrove(action);
+        } else if (this.menuState == 1) { // NPC Menu State
+            this.handleNPCMenu(action);
+        } else if (this.menuState == 2) { // Dialogue State
+            this.handleDialogue(action);
+        } else if (this.menuState == 3) { // Combat State
+            this.handleCombatTurn(action);
+        } else if (this.menuState == 4) { // Encounter State
+            this.handleEncounterChoice(action);
+        }
+    }
+
+    selectCharacterClass(choice) {
+        if (choice == "1") {
+            this.charClass = "Pyromaniac";
+            this.strMod = 3;
+            this.setMsg("You chose: PYROMANIAC! 💥", "Strength Mod: +3. Your Spark magic deals +2 combat damage.", "Unpaid rent remains a minor concern.");
+        } else if (choice == "2") {
+            this.charClass = "Con Artist";
+            this.chaMod = 3;
+            this.setMsg("You chose: CON ARTIST! 🎭", "Charisma Mod: +3. Excellent at bluffing guards and pickpocketing.", "Rent notices are just targets for negotiation.");
+        } else if (choice == "3") {
+            this.charClass = "Sage";
+            this.intMod = 3;
+            this.maxMp = 15;
+            this.mp = 15;
+            this.setMsg("You chose: ABSENT-MINDED SAGE! 🦉", "Intelligence Mod: +3. Gained +5 Max MP (Total: 15 MP).", "You remember the theory of coffee. Reality is another matter.");
+        } else {
+            this.charClass = "Pyromaniac"; 
+            this.strMod = 3;
+        }
+    }
+}
+
+// Global state instance
+var state = GameState();
+
+function main() {
+    clear();
+    print("Welcome to LoxQuest: The Kibble Rebellion! 🧙🐾");
+    print("Press Enter to begin the adventure...");
+    input("");
+    
+    clear();
+    print("--------------------------------------------------");
+    print("CHOOSE YOUR WIZARD CLASS SPECIALTY:");
+    print("--------------------------------------------------");
+    print(" [1] 💥 PYROMANIAC (+3 Strength mod, +2 Spark damage)");
+    print(" [2] 🎭 CON ARTIST (+3 Charisma mod, great at bluffing & stealing)");
+    print(" [3] 🦉 SAGE (+3 Intelligence mod, +5 Max MP bonus)");
+    print("--------------------------------------------------");
+    var classChoice = input("Choose an option: ");
+    state.selectCharacterClass(classChoice);
+
+    while (state.playing) {
+        state.drawScene();
+        state.printGbaBox();
+        state.printOptions();
+        
+        if (state.gameWon) {
+            print("🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉");
+            print("               YOU COMPLETED THE QUEST!               ");
+            print("🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉");
+            if (state.rebellionState == 1) {
+                print("Ending: THE DIPLOMAT.");
+                print("You successfully negotiated rights for the animals.");
+                print("They eat steak and you got paid. A happy, wholesome end.");
+            } else if (state.rebellionState == 2) {
+                print("Ending: THE PRAGMATIST.");
+                print("You returned the pets in chains or stripped their sentience.");
+                print("The Baroness is happy, Higgins is happy, but the animals glare");
+                print("at you with tiny, soulless eyes. You sleep with one eye open.");
+            } else if (state.rebellionState == 3) {
+                print("Ending: THE CHAOTIC REBEL.");
+                print("You joined the pets, pillaged the village cellar, and became");
+                print("the warlord of the forest. The humans hate you, but you");
+                print("eat very well. Long live the union!");
+            }
+            print("--------------------------------------------------");
+            state.playing = false;
+        } else {
+            var action = input("Choose an option: ");
+            if (action == nil or action == "quit" or action == "exit") {
+                state.playing = false;
+                print("Exiting LoxQuest. Goodbye!");
+            } else {
+                state.processTurn(action);
+            }
+        }
+    }
+    print("Thanks for playing LoxQuest!");
+}
+
+main();
