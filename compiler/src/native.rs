@@ -77,26 +77,6 @@ callable_struct!(ReadString, "input", 1, interner: &mut Interner, globals: &mut 
     }
 });
 
-// Arg is what the user gave
-callable_struct!(ReadNumber, "readnumber", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
-    match &args[0] {
-        Value::Str(user_input) => {
-            let input = interner.lookup(user_input);
-            match input.parse::<f64>() {
-                Ok(n) => Value::Number(n),
-                Err(err) => {
-                    set_global_error(interner, globals, &format!("Failed to parse number: {}", err));
-                    Value::Nil
-                }
-            }
-        }
-        _ => {
-            set_global_error(interner, globals, "Expected string as argument to read");
-            Value::Nil
-        }
-    }
-});
-
 callable_struct!(TypeOf, "typeof", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     Value::Str(interner.intern(&format!("{}", args[0])))
 });

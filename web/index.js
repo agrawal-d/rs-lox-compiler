@@ -16,7 +16,7 @@ require(["vs/editor/editor.main"], function () {
         ],
         builtins: [
             'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
-            'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'readnumber'
+            'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input',
         ],
         tokenizer: {
             root: [
@@ -63,7 +63,7 @@ require(["vs/editor/editor.main"], function () {
                 position.lineNumber,
                 word.endColumn
             );
-            
+
             const suggestions = [
                 ...[
                     'and', 'class', 'else', 'false', 'function', 'for', 'if', 'nil', 'or',
@@ -76,7 +76,7 @@ require(["vs/editor/editor.main"], function () {
                 })),
                 ...[
                     'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
-                    'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'readnumber'
+                    'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input',
                 ].map(b => ({
                     label: b,
                     kind: monaco.languages.CompletionItemKind.Function,
@@ -156,14 +156,14 @@ runButton.addEventListener('click', async () => {
 });
 
 document.addEventListener("keydown", (event) => {
-  const isReloadShortcut =
-    (event.ctrlKey || event.metaKey) &&
-    event.key.toLowerCase() === "r";
+    const isReloadShortcut =
+        (event.ctrlKey || event.metaKey) &&
+        event.key.toLowerCase() === "r";
 
-  if (isReloadShortcut) {
-    event.preventDefault();
-    runFn();
-  }
+    if (isReloadShortcut) {
+        event.preventDefault();
+        runFn();
+    }
 });
 
 resetButton.addEventListener('click', () => {

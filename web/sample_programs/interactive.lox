@@ -2,7 +2,7 @@
 
 function makeStory() {
     var name = input("Enter a name: ");
-    var age = readnumber("Enter an age: ");
+    var age = int(input(("Enter an age: "));
 
     // Built in functions return nil on error, and set a global variable `errString` with the error message.
     if (age == nil) {

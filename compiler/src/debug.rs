@@ -37,7 +37,7 @@ pub fn disassemble_instruction(chunk: &Chunk, offset: usize, interner: &Interner
 
         Opcode::Loop => jump_instruction(chunk, instruction, -1, offset),
 
-        Opcode::GetLocal | Opcode::SetLocal | Opcode::Call => byte_instruction(chunk, instruction, offset),
+        Opcode::GetLocal | Opcode::SetLocal | Opcode::Call | Opcode::ArrayLiteral => byte_instruction(chunk, instruction, offset),
         Opcode::DefaultArg => default_arg_instruction(chunk, instruction, offset),
     };
 

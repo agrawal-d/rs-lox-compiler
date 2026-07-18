@@ -66,7 +66,7 @@ fn get_rules<'src>() -> HashMap<TokenType, ParseRule<'src>> {
     add_rule!(map, RightParen, None, None, Precedence::None);
     add_rule!(map, LeftBrace, None, None, Precedence::None);
     add_rule!(map, RightBrace, None, None, Precedence::None);
-    add_rule!(map, LeftBracket, None, None, Precedence::None);
+    add_rule!(map, LeftBracket, Some(Compiler::array_literal), None, Precedence::None);
     add_rule!(map, RightBracket, None, None, Precedence::None);
     add_rule!(map, Comma, None, None, Precedence::None);
     add_rule!(map, Dot, None, None, Precedence::None);
@@ -251,7 +251,6 @@ fn is_native_function(name: &str) -> bool {
             | "rand"
             | "printf"
             | "input"
-            | "readnumber"
             | "errString"
     )
 }
@@ -846,6 +845,26 @@ impl<'src> Compiler<'src> {
         let data = &data[1..data.len() - 1];
         let id = self.interner.intern(data);
         self.emit_constant(Value::Str(id));
+    }
+
+    fn array_literal(&mut self, _can_assign: bool) {
+        let mut element_count: u8 = 0;
+        if !self.parser.check_tt(TokenType::RightBracket) {
+            loop {
+                self.expression();
+                if element_count == 255 {
+                    self.parser
+                        .error_at_previous("Can't have more than 255 elements in an array literal.");
+                }
+                element_count += 1;
+                if !self.parser.match_tt(TokenType::Comma) {
+                    break;
+                }
+            }
+        }
+        self.parser
+            .consume(TokenType::RightBracket, "Expect ']' after array literal elements.");
+        self.emit_bytes(Opcode::ArrayLiteral as u8, element_count);
     }
 
     fn named_variable(&mut self, token: &Token, can_assign: bool) {

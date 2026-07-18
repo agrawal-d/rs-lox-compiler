@@ -165,7 +165,6 @@ where
         register_native!(vm, TypeOf);
         register_native!(vm, Print);
         register_native!(vm, Printf);
-        register_native!(vm, ReadNumber);
         register_native!(vm, ReadString);
         register_native!(vm, StrCast);
         register_native!(vm, IntCast);
@@ -356,7 +355,7 @@ where
                 let function = fun.clone();
 
                 // Special read input functions - take the prompt, and convert it to the user response
-                if function.name() == "input" || function.name() == "readnumber" {
+                if function.name() == "input" {
                     let len = self.stack.len();
                     let first_arg = &mut self.stack[len - arg_count_usize];
                     match first_arg {
@@ -541,6 +540,12 @@ where
                         }
                     }
                 }
+                Opcode::ArrayLiteral => {
+                    let count = self.read_byte() as usize;
+                    let start = self.stack.len() - count;
+                    let elements: Vec<Value> = self.stack.drain(start..).collect();
+                    self.stack.push(Value::Array(Rc::new(RefCell::new(elements))));
+                }
                 Opcode::Equal => {
                     let a = self.pop_unchecked();
                     let b = self.pop_unchecked();
@@ -596,7 +601,6 @@ where
         register_native!(vm, TypeOf);
         register_native!(vm, Print);
         register_native!(vm, Printf);
-        register_native!(vm, ReadNumber);
         register_native!(vm, ReadString);
         register_native!(vm, StrCast);
         register_native!(vm, IntCast);

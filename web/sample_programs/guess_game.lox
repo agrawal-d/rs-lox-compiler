@@ -19,11 +19,11 @@ function GuessGame() {
 // Take a valid guess from the user
 function ReadValidGuess(prompt) {
     var number;
-    number = readnumber(prompt);
+    number = int(input(prompt));
 
     while (number == nil or number > 10 or number < 1) {
         print("You made an invalid guess.");
-        number = readnumber("Not a valid guess. Please guess a number between 1 and 10");
+        number = int(input("Not a valid guess. Please guess a number between 1 and 10"));
     }
 
     return number;
