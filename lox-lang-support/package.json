@@ -4,22 +4,31 @@
   "description": "Adds language support for Lox implemented in https://github.com/agrawal-d/rs-lox-compiler",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.125.0"
+    "vscode": "^1.1.0"
   },
   "categories": [
     "Programming Languages"
   ],
   "contributes": {
-    "languages": [{
-      "id": "lox",
-      "aliases": ["Lox", "lox"],
-      "extensions": [".lox"],
-      "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "lox",
-      "scopeName": "source.lox",
-      "path": "./syntaxes/lox.tmLanguage.json"
-    }]
+    "languages": [
+      {
+        "id": "lox",
+        "aliases": [
+          "Lox",
+          "lox"
+        ],
+        "extensions": [
+          ".lox"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "lox",
+        "scopeName": "source.lox",
+        "path": "./syntaxes/lox.tmLanguage.json"
+      }
+    ]
   }
 }
