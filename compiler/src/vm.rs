@@ -32,6 +32,10 @@ struct CallFrame {
 
 pub const ERR_STRING: &str = "errString";
 
+thread_local! {
+    pub static RUNNING_FUNCTIONS: std::cell::RefCell<Option<*const Vec<crate::fun::Fun>>> = std::cell::RefCell::new(None);
+}
+
 pub struct Vm<'src, F, Fut, SF, SFut>
 where
     F: Fn(String) -> Fut,
@@ -206,6 +210,7 @@ where
         register_native!(vm, StrCast);
         register_native!(vm, BufCast);
         register_native!(vm, ChrCast);
+        register_native!(vm, HelpCast);
         register_native!(vm, IntCast);
         register_native!(vm, FloatCast);
         register_native!(vm, BoolCast);
@@ -526,6 +531,19 @@ where
     }
 
     async fn run(&mut self) -> Result<()> {
+        struct RunningFunctionsGuard;
+        impl Drop for RunningFunctionsGuard {
+            fn drop(&mut self) {
+                RUNNING_FUNCTIONS.with(|funcs| {
+                    *funcs.borrow_mut() = None;
+                });
+            }
+        }
+        RUNNING_FUNCTIONS.with(|funcs| {
+            *funcs.borrow_mut() = Some(&self.functions as *const Vec<crate::fun::Fun>);
+        });
+        let _guard = RunningFunctionsGuard;
+
         loop {
             #[cfg(feature = "tracing")]
             {
@@ -805,6 +823,7 @@ where
         register_native!(vm, StrCast);
         register_native!(vm, BufCast);
         register_native!(vm, ChrCast);
+        register_native!(vm, HelpCast);
         register_native!(vm, IntCast);
         register_native!(vm, FloatCast);
         register_native!(vm, BoolCast);

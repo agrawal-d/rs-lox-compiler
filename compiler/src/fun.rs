@@ -7,6 +7,7 @@ pub struct Fun {
     pub chunk: Chunk,
     pub name: Option<StrId>,
     pub native_imports: Vec<(String, String)>,
+    pub help: Option<String>,
 }
 
 impl Default for Fun {
@@ -23,6 +24,7 @@ impl Fun {
             chunk: Chunk::default(),
             name: None,
             native_imports: Vec::new(),
+            help: None,
         }
     }
 }

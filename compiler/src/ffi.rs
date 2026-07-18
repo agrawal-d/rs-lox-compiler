@@ -61,6 +61,7 @@ pub struct LoxFfiApi {
     pub make_array: extern "C" fn(length: i32, elements: *const LoxFfiValue) -> LoxFfiValue,
     pub make_buffer: extern "C" fn(size: i32, bytes: *const u8) -> LoxFfiValue,
     pub set_error: extern "C" fn(message: *const c_char),
+    pub define_function_with_help: extern "C" fn(name: *const c_char, arity: i32, func: LoxNativeFn, help: *const c_char),
 }
 
 trait FfiBorrow {}
@@ -214,6 +215,7 @@ pub struct FfiCallable {
     pub name: String,
     pub arity: usize,
     pub func: LoxNativeFn,
+    pub help: Option<String>,
 }
 
 impl Callable for FfiCallable {
@@ -253,28 +255,51 @@ impl Callable for FfiCallable {
     fn name(&self) -> &str {
         &self.name
     }
+
+    fn help(&self) -> Option<String> {
+        self.help.clone()
+    }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 struct FfiRegistry {
-    functions: Vec<(String, usize, LoxNativeFn)>,
+    functions: Vec<(String, usize, LoxNativeFn, Option<String>)>,
     globals: Vec<(String, LoxFfiValue)>,
     error: Option<String>,
 }
 
 thread_local! {
     pub static CURRENT_ERROR: RefCell<Option<String>> = RefCell::new(None);
+    #[cfg(not(target_arch = "wasm32"))]
     static CURRENT_REGISTRY: RefCell<Option<FfiRegistry>> = RefCell::new(None);
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_define_function(name: *const c_char, arity: i32, func: LoxNativeFn) {
     let name_str = unsafe { CStr::from_ptr(name) }.to_str().unwrap_or("").to_string();
     CURRENT_REGISTRY.with(|reg| {
         if let Some(ref mut r) = *reg.borrow_mut() {
-            r.functions.push((name_str, arity as usize, func));
+            r.functions.push((name_str, arity as usize, func, None));
         }
     });
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+extern "C" fn api_define_function_with_help(name: *const c_char, arity: i32, func: LoxNativeFn, help: *const c_char) {
+    let name_str = unsafe { CStr::from_ptr(name) }.to_str().unwrap_or("").to_string();
+    let help_str = if help.is_null() {
+        None
+    } else {
+        Some(unsafe { CStr::from_ptr(help) }.to_str().unwrap_or("").to_string())
+    };
+    CURRENT_REGISTRY.with(|reg| {
+        if let Some(ref mut r) = *reg.borrow_mut() {
+            r.functions.push((name_str, arity as usize, func, help_str));
+        }
+    });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_define_global(name: *const c_char, value: LoxFfiValue) {
     let name_str = unsafe { CStr::from_ptr(name) }.to_str().unwrap_or("").to_string();
     CURRENT_REGISTRY.with(|reg| {
@@ -284,6 +309,7 @@ extern "C" fn api_define_global(name: *const c_char, value: LoxFfiValue) {
     });
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_make_nil() -> LoxFfiValue {
     LoxFfiValue {
         typ: LoxValueType::Nil,
@@ -291,6 +317,7 @@ extern "C" fn api_make_nil() -> LoxFfiValue {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_make_bool(b: bool) -> LoxFfiValue {
     LoxFfiValue {
         typ: LoxValueType::Bool,
@@ -298,6 +325,7 @@ extern "C" fn api_make_bool(b: bool) -> LoxFfiValue {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_make_number(d: f64) -> LoxFfiValue {
     LoxFfiValue {
         typ: LoxValueType::Number,
@@ -305,6 +333,7 @@ extern "C" fn api_make_number(d: f64) -> LoxFfiValue {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_make_string(s: *const c_char) -> LoxFfiValue {
     LoxFfiValue {
         typ: LoxValueType::String,
@@ -312,6 +341,7 @@ extern "C" fn api_make_string(s: *const c_char) -> LoxFfiValue {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_make_array(length: i32, elements: *const LoxFfiValue) -> LoxFfiValue {
     let slice = unsafe { std::slice::from_raw_parts(elements, length as usize) };
     let mut vec = Vec::with_capacity(length as usize);
@@ -332,6 +362,7 @@ extern "C" fn api_make_array(length: i32, elements: *const LoxFfiValue) -> LoxFf
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_make_buffer(size: i32, bytes: *const u8) -> LoxFfiValue {
     let mut vec = vec![0u8; size as usize];
     if !bytes.is_null() && size > 0 {
@@ -354,6 +385,7 @@ extern "C" fn api_make_buffer(size: i32, bytes: *const u8) -> LoxFfiValue {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_set_error(message: *const c_char) {
     let msg_str = unsafe { CStr::from_ptr(message) }.to_str().unwrap_or("").to_string();
     CURRENT_REGISTRY.with(|reg| {
@@ -417,6 +449,7 @@ pub fn load_native_module(
         make_array: api_make_array,
         make_buffer: api_make_buffer,
         set_error: api_set_error,
+        define_function_with_help: api_define_function_with_help,
     }));
 
     unsafe {
@@ -430,13 +463,14 @@ pub fn load_native_module(
     }
 
     // Register functions
-    for (name, arity, func) in registry.functions {
+    for (name, arity, func, help) in registry.functions {
         let prefixed_name = format!("{}.{}", alias, name);
         let name_id = interner.intern(&prefixed_name);
         let callable = std::rc::Rc::new(FfiCallable {
             name: prefixed_name,
             arity,
             func,
+            help,
         });
         globals.insert(name_id, Value::NativeFunction(callable));
     }

@@ -16,6 +16,9 @@ pub trait Callable: Debug {
     fn arity(&self) -> usize;
     fn call(&self, interner: &mut Interner, globals: &mut Globals, args: &[Value]) -> Value;
     fn name(&self) -> &str;
+    fn help(&self) -> Option<String> {
+        None
+    }
 }
 
 pub fn set_global_error(interner: &mut Interner, globals: &mut Globals, message: &str) {
@@ -23,6 +26,28 @@ pub fn set_global_error(interner: &mut Interner, globals: &mut Globals, message:
 }
 
 macro_rules! callable_struct {
+    ($struct_name:ident, $lox_name:expr, $arity:expr, $help:expr, $interner:ident: &mut Interner, $globals:ident: &mut Globals, $args:ident: &[Value], $body:block) => {
+        #[derive(Debug, Default)]
+        pub struct $struct_name;
+
+        impl Callable for $struct_name {
+            fn arity(&self) -> usize {
+                $arity
+            }
+
+            fn call(&self, $interner: &mut Interner, $globals: &mut Globals, $args: &[Value]) -> Value {
+                $body
+            }
+
+            fn name(&self) -> &str {
+                $lox_name
+            }
+
+            fn help(&self) -> Option<String> {
+                Some($help.to_string())
+            }
+        }
+    };
     ($struct_name:ident, $lox_name:expr, $arity:expr, $interner:ident: &mut Interner, $globals:ident: &mut Globals, $args:ident: &[Value], $body:block) => {
         #[derive(Debug, Default)]
         pub struct $struct_name;
@@ -43,12 +68,22 @@ macro_rules! callable_struct {
     };
 }
 
-callable_struct!(Clock, "clock", 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Clock, "clock", 0, "clock()
+Returns the current system time in milliseconds since the UNIX epoch.
+Arguments: None.
+Returns: Number representing epoch milliseconds.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     let epoch = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
     Value::Number(epoch.as_millis() as f64)
 });
 
-callable_struct!(Sleep, "sleep", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Sleep, "sleep", 1, "sleep(ms)
+Suspends execution of the current script for the specified duration in milliseconds.
+Arguments:
+  ms: Number of milliseconds to sleep.
+Returns: Nil.
+Error Cases: Sets error if argument is not a number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     // The VM intercepts the "sleep" call and awaits the async sleep hook before
     // this Callable::call is ever reached. This body is therefore unreachable in
     // normal execution, but we keep it valid as a fallback.
@@ -60,14 +95,25 @@ callable_struct!(Sleep, "sleep", 1, interner: &mut Interner, globals: &mut Globa
     }
 });
 
-callable_struct!(Print, "print", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value],{
+callable_struct!(Print, "print", 1, "print(val)
+Prints the string representation of the value to stdout.
+Arguments:
+  val: Any value to print.
+Returns: Nil.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value],{
     print_value(&args[0], interner);
     xprintln!("");
     Value::Nil
 });
 
 // Arg is what the user gave
-callable_struct!(ReadString, "input", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(ReadString, "input", 1, "input(prompt)
+Prints prompt and reads a line of input from stdin.
+Arguments:
+  prompt: String to display before input.
+Returns: String containing the read line.
+Error Cases: Sets error if argument is not a string.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Str(s) => {
             args[0].clone()
@@ -79,11 +125,21 @@ callable_struct!(ReadString, "input", 1, interner: &mut Interner, globals: &mut 
     }
 });
 
-callable_struct!(TypeOf, "typeof", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(TypeOf, "typeof", 1, "typeof(value)
+Returns the type of the given value as a string.
+Arguments:
+  value: Any value to inspect.
+Returns: String (e.g. \"Number\", \"String\", \"Array\", \"Buffer\").",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     Value::Str(interner.intern(&format!("{}", args[0])))
 });
 
-callable_struct!(StrCast, "str", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(StrCast, "str", 1, "str(value)
+Converts the given value to a string. If the value is a Buffer, decodes it as a UTF-8 string.
+Arguments:
+  value: Any value to convert.
+Returns: String value.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Buffer(buf) => {
             let bytes = buf.borrow();
@@ -94,7 +150,17 @@ callable_struct!(StrCast, "str", 1, interner: &mut Interner, globals: &mut Globa
     }
 });
 
-callable_struct!(BufCast, "buf", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(BufCast, "buf", 1, "buf(arg)
+Creates an FFI-compatible Buffer (array of bytes).
+Arguments:
+  arg: Can be:
+       - Number: Allocates a new buffer of specified size filled with 0s.
+       - String: Encodes the string into its raw UTF-8 bytes.
+       - Array: Converts a numeric array into a buffer of bytes.
+       - Buffer: Clones the buffer.
+Returns: Buffer object.
+Error Cases: Sets error if argument is not supported.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     use std::rc::Rc;
     use std::cell::RefCell;
     match &args[0] {
@@ -128,7 +194,14 @@ callable_struct!(BufCast, "buf", 1, interner: &mut Interner, globals: &mut Globa
     }
 });
 
-callable_struct!(ChrCast, "chr", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(ChrCast, "chr", 1, "chr(arg)
+If arg is a string, gets the ASCII/byte value (0-255) of the first character.
+If arg is a number, converts the byte value to its equivalent ASCII character string.
+Arguments:
+  arg: String or Number (0-255).
+Returns: Number, String, or Nil.
+Error Cases: Sets error if argument is not a string/number or if number is out of bounds [0, 255].",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Str(id) | Value::Identifier(id) => {
             let s = interner.lookup(id);
@@ -139,14 +212,30 @@ callable_struct!(ChrCast, "chr", 1, interner: &mut Interner, globals: &mut Globa
                 Value::Number(first_byte as f64)
             }
         }
+        Value::Number(n) => {
+            let byte_val = *n as i64;
+            if byte_val < 0 || byte_val > 255 {
+                set_global_error(interner, globals, "Argument to chr must be a byte value between 0 and 255");
+                Value::Nil
+            } else {
+                let ch = byte_val as u8 as char;
+                Value::Str(interner.intern(&ch.to_string()))
+            }
+        }
         _ => {
-            set_global_error(interner, globals, "Expected string as argument to chr");
+            set_global_error(interner, globals, "Expected string or number as argument to chr");
             Value::Nil
         }
     }
 });
 
-callable_struct!(IntCast, "int", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(IntCast, "int", 1, "int(val)
+Truncates or parses the value to an integer.
+Arguments:
+  val: Number, Bool, or String to parse.
+Returns: Number representing the integer.
+Error Cases: Sets error if parsing fails or argument type is invalid.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.trunc()),
         Value::Bool(b) => Value::Number(*b as i32 as f64),
@@ -167,7 +256,13 @@ callable_struct!(IntCast, "int", 1, interner: &mut Interner, globals: &mut Globa
     }
 });
 
-callable_struct!(FloatCast, "float", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(FloatCast, "float", 1, "float(val)
+Parses the string value as a floating point number.
+Arguments:
+  val: String to parse.
+Returns: Number representing the float value.
+Error Cases: Sets error if parsing fails.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(*n),
         Value::Bool(b) => Value::Number(*b as i8 as f64),
@@ -188,7 +283,12 @@ callable_struct!(FloatCast, "float", 1, interner: &mut Interner, globals: &mut G
     }
 });
 
-callable_struct!(BoolCast, "bool", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(BoolCast, "bool", 1, "bool(val)
+Converts the value to a boolean.
+Arguments:
+  val: Any value to cast.
+Returns: Bool (false if Nil or false, true otherwise).",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Nil => Value::Bool(false),
         Value::Bool(b) => Value::Bool(*b),
@@ -199,7 +299,14 @@ callable_struct!(BoolCast, "bool", 1, interner: &mut Interner, globals: &mut Glo
     }
 });
 
-callable_struct!(StringAt, "stringat", 2, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(StringAt, "stringat", 2, "stringat(str, index)
+Returns the single-character string at the specified 0-based index.
+Arguments:
+  str: String to index.
+  index: Number representing the 0-based position.
+Returns: Single-character String, or Nil if index is out of bounds.
+Error Cases: Sets error if arguments are invalid.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match (&args[0], &args[1]) {
         (Value::Str(s), Value::Number(n)) => {
             let str = interner.lookup(s);
@@ -218,7 +325,13 @@ callable_struct!(StringAt, "stringat", 2, interner: &mut Interner, globals: &mut
     }
 });
 
-callable_struct!(Len, "len", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Len, "len", 1, "len(val)
+Returns the length/size of the given value.
+Arguments:
+  val: String, Array, or Buffer to inspect.
+Returns: Number representing the length.
+Error Cases: Sets error if argument type is not supported.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Str(s) => {
             let str = interner.lookup(s);
@@ -233,7 +346,13 @@ callable_struct!(Len, "len", 1, interner: &mut Interner, globals: &mut Globals, 
     }
 });
 
-callable_struct!(Ceil, "ceil", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Ceil, "ceil", 1, "ceil(x)
+Returns the smallest integer greater than or equal to x.
+Arguments:
+  x: Number to round up.
+Returns: Number representing the ceiling value.
+Error Cases: Sets error if argument is not a number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.ceil()),
         _ => {
@@ -243,7 +362,13 @@ callable_struct!(Ceil, "ceil", 1, interner: &mut Interner, globals: &mut Globals
     }
 });
 
-callable_struct!(Floor, "floor", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Floor, "floor", 1, "floor(x)
+Returns the largest integer less than or equal to x.
+Arguments:
+  x: Number to round down.
+Returns: Number representing the floor value.
+Error Cases: Sets error if argument is not a number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.floor()),
         _ => {
@@ -253,7 +378,13 @@ callable_struct!(Floor, "floor", 1, interner: &mut Interner, globals: &mut Globa
     }
 });
 
-callable_struct!(Abs, "abs", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Abs, "abs", 1, "abs(x)
+Returns the absolute value of x.
+Arguments:
+  x: Number to inspect.
+Returns: Number representing the absolute value.
+Error Cases: Sets error if argument is not a number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.abs()),
         _ => {
@@ -263,7 +394,13 @@ callable_struct!(Abs, "abs", 1, interner: &mut Interner, globals: &mut Globals, 
     }
 });
 
-callable_struct!(Sort, "sort", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Sort, "sort", 1, "sort(arr)
+Sorts the array of numbers in-place in ascending order.
+Arguments:
+  arr: Array of numbers to sort.
+Returns: Nil.
+Error Cases: Sets error if argument is not an array.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Array(arr) => {
             let mut arr = arr.borrow_mut();
@@ -283,7 +420,14 @@ callable_struct!(Sort, "sort", 1, interner: &mut Interner, globals: &mut Globals
     }
 });
 
-callable_struct!(IndexOf, "indexof", 2, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(IndexOf, "indexof", 2, "indexof(arr, val)
+Returns the first index of the value in the array, or the array length if not found.
+Arguments:
+  arr: Array to search.
+  val: Value to search for.
+Returns: Number representing the index, or the array length.
+Error Cases: Sets error if first argument is not an array.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match (&args[0], &args[1]) {
         (Value::Array(arr), value) => {
             let arr = arr.borrow();
@@ -301,12 +445,22 @@ callable_struct!(IndexOf, "indexof", 2, interner: &mut Interner, globals: &mut G
     }
 });
 
-callable_struct!(Rand, "rand", 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Rand, "rand", 0, "rand()
+Returns a pseudo-random floating point number in [0.0, 1.0).
+Arguments: None.
+Returns: Number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     let num: u32 = rand::random();
     Value::Number(num as f64)
 });
 
-callable_struct!(Sin, "sin", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Sin, "sin", 1, "sin(x)
+Calculates the sine of the angle in radians.
+Arguments:
+  x: Number representing the angle in radians.
+Returns: Number representing the sine value.
+Error Cases: Sets error if argument is not a number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.sin()),
         _ => {
@@ -316,7 +470,13 @@ callable_struct!(Sin, "sin", 1, interner: &mut Interner, globals: &mut Globals, 
     }
 });
 
-callable_struct!(Cos, "cos", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Cos, "cos", 1, "cos(x)
+Calculates the cosine of the angle in radians.
+Arguments:
+  x: Number representing the angle in radians.
+Returns: Number representing the cosine value.
+Error Cases: Sets error if argument is not a number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.cos()),
         _ => {
@@ -326,7 +486,13 @@ callable_struct!(Cos, "cos", 1, interner: &mut Interner, globals: &mut Globals, 
     }
 });
 
-callable_struct!(Sqrt, "sqrt", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Sqrt, "sqrt", 1, "sqrt(x)
+Calculates the square root of x.
+Arguments:
+  x: Non-negative Number.
+Returns: Number representing the square root.
+Error Cases: Sets error if argument is not a number.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match &args[0] {
         Value::Number(n) => Value::Number(n.sqrt()),
         _ => {
@@ -336,7 +502,14 @@ callable_struct!(Sqrt, "sqrt", 1, interner: &mut Interner, globals: &mut Globals
     }
 });
 
-callable_struct!(Pow, "pow", 2, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Pow, "pow", 2, "pow(base, exp)
+Calculates base raised to the exponent power.
+Arguments:
+  base: Number representing the base.
+  exp: Number representing the exponent.
+Returns: Number.
+Error Cases: Sets error if arguments are not numbers.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     match (&args[0], &args[1]) {
         (Value::Number(base), Value::Number(exp)) => Value::Number(base.powf(*exp)),
         _ => {
@@ -346,7 +519,11 @@ callable_struct!(Pow, "pow", 2, interner: &mut Interner, globals: &mut Globals, 
     }
 });
 
-callable_struct!(Pi, "pi", 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Pi, "pi", 0, "pi()
+Returns the mathematical constant pi.
+Arguments: None.
+Returns: Number representing pi (3.14159...).",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     Value::Number(std::f64::consts::PI)
 });
 
@@ -490,9 +667,100 @@ impl Callable for Printf {
     fn name(&self) -> &str {
         "printf"
     }
+
+    fn help(&self) -> Option<String> {
+        Some("printf(format, ...)
+Prints formatted text to stdout. Uses Python-style {} indexing and C-style escape characters.
+Arguments:
+  format: String containing format slots.
+  ...: Positional arguments corresponding to format slots.
+Returns: Nil.
+Error Cases: Sets error if first argument is not a string.".to_string())
+    }
 }
 
-callable_struct!(Clear, "clear", 0, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+callable_struct!(Clear, "clear", 0, "clear()
+Clears the terminal screen.
+Arguments: None.
+Returns: Nil.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     xclear!();
+    Value::Nil
+});
+
+callable_struct!(HelpCast, "help", 1, "help(fn_or_name)
+Prints documentation, signature, and usage instructions for the given function.
+Arguments:
+  fn_or_name: Function object or a string name of a function (e.g. \"clock\" or \"math.sin\").
+Returns: Nil.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    let mut resolved_callable: Option<(String, usize, Option<String>)> = None;
+
+    match &args[0] {
+        Value::NativeFunction(c) => {
+            resolved_callable = Some((c.name().to_string(), c.arity(), c.help()));
+        }
+        Value::Function(idx) => {
+            crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
+                if let Some(ptr) = *funcs.borrow() {
+                    let functions = unsafe { &*ptr };
+                    if *idx < functions.len() {
+                        let f = &functions[*idx];
+                        let name = f.name.map(|id| interner.lookup(&id).to_string()).unwrap_or_else(|| "anonymous".to_string());
+                        resolved_callable = Some((name, f.arity, f.help.clone()));
+                    }
+                }
+            });
+        }
+        Value::BoundMethod { instance: _, method_idx } => {
+            crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
+                if let Some(ptr) = *funcs.borrow() {
+                    let functions = unsafe { &*ptr };
+                    if *method_idx < functions.len() {
+                        let f = &functions[*method_idx];
+                        let name = f.name.map(|id| interner.lookup(&id).to_string()).unwrap_or_else(|| "anonymous".to_string());
+                        resolved_callable = Some((name, f.arity, f.help.clone()));
+                    }
+                }
+            });
+        }
+        Value::Str(id) | Value::Identifier(id) => {
+            let name_str = interner.lookup(id).to_string();
+            if let Some(val) = globals.get(id) {
+                match val {
+                    Value::NativeFunction(c) => {
+                        resolved_callable = Some((c.name().to_string(), c.arity(), c.help()));
+                    }
+                    Value::Function(idx) => {
+                        crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
+                            if let Some(ptr) = *funcs.borrow() {
+                                let functions = unsafe { &*ptr };
+                                if *idx < functions.len() {
+                                    let f = &functions[*idx];
+                                    resolved_callable = Some((name_str.clone(), f.arity, f.help.clone()));
+                                }
+                            }
+                        });
+                    }
+                    _ => {}
+                }
+            }
+        }
+        _ => {}
+    }
+
+    if let Some((name, arity, help_opt)) = resolved_callable {
+        xprintln!("Help for function {}:", name);
+        xprintln!("--------------------------------------------------");
+        xprintln!("Arity: {}", arity);
+        if let Some(help_str) = help_opt {
+            xprintln!("{}", help_str);
+        } else {
+            xprintln!("No documentation available.");
+        }
+        xprintln!("--------------------------------------------------");
+    } else {
+        xprintln!("No documentation or function found for the given argument.");
+    }
     Value::Nil
 });

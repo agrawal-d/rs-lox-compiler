@@ -1,0 +1,24 @@
+import "native-modules/build/math.dll" as math;
+
+print("=== Phase 1: Test Built-in Function Help ===");
+help(clock);
+help("buf");
+
+print("\n=== Phase 2: Test FFI Function Help ===");
+help(math.sin);
+help("math.sin");
+
+print("\n=== Phase 3: Test User-Defined Function Help ===");
+function calculate_area(width, height) {
+    "calculate_area(width, height)
+Calculates the area of a rectangle.
+Arguments:
+  width: Number representing the width.
+  height: Number representing the height.
+Returns: Number representing the area.";
+    
+    return width * height;
+}
+
+help(calculate_area);
+print("calculate_area(5, 10) = " + str(calculate_area(5, 10)));

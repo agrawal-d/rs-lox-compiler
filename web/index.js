@@ -15,9 +15,9 @@ require(["vs/editor/editor.main"], function () {
             'print', 'printf', 'return', 'super', 'this', 'true', 'var', 'while', 'import', 'as'
         ],
         builtins: [
-            'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
+            'clock', 'sleep', 'typeof', 'str', 'buf', 'chr', 'int', 'float', 'bool', 'stringat',
             'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'clear',
-            'sin', 'cos', 'sqrt', 'pow', 'pi',
+            'sin', 'cos', 'sqrt', 'pow', 'pi', 'printf', 'help',
         ],
         tokenizer: {
             root: [
@@ -76,9 +76,9 @@ require(["vs/editor/editor.main"], function () {
                     range: range
                 })),
                 ...[
-                    'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
+                    'clock', 'sleep', 'typeof', 'str', 'buf', 'chr', 'int', 'float', 'bool', 'stringat',
                     'len', 'ceil', 'floor', 'abs', 'sort', 'indexof', 'rand', 'input', 'clear',
-                    'sin', 'cos', 'sqrt', 'pow', 'pi',
+                    'sin', 'cos', 'sqrt', 'pow', 'pi', 'printf', 'help',
                 ].map(b => ({
                     label: b,
                     kind: monaco.languages.CompletionItemKind.Function,

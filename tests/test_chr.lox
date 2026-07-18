@@ -2,6 +2,9 @@ print("=== Testing chr() Built-in ===");
 print("chr('a') = " + str(chr("a")));       // 97
 print("chr('apple') = " + str(chr("apple"))); // 97
 print("chr('') = " + str(chr("")));         // nil/Nil
+print("chr(65) = " + str(chr(65)));         // 'A'
+print("chr(chr('A')) == 'A': " + str(chr(chr("A")) == "A")); // true
+print("chr(chr('a')) == 'a': " + str(chr(chr("a")) == "a")); // true
 
 // Test writing string characters to a buffer using chr
 var message = "Hello";

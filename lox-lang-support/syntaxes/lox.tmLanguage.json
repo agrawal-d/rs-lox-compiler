@@ -96,14 +96,14 @@
         },
         "keywords": {
             "name": "keyword.control.lox",
-            "match": "\\b(?:and|class|else|for|fun|if|import|as|or|print|return|super|this|var|while)\\b"
+            "match": "\\b(?:and|class|else|for|fun|function|if|import|as|or|print|return|super|this|var|while)\\b"
         },
         "constants": {
             "name": "constant.language.lox",
             "match": "\\b(?:true|false|nil)\\b"
         },
         "function-declarations": {
-            "match": "\\bfun\\s+([A-Za-z_][A-Za-z0-9_]*)",
+            "match": "\\b(?:fun|function)\\s+([A-Za-z_][A-Za-z0-9_]*)",
             "captures": {
                 "1": {
                     "name": "entity.name.function.lox"
@@ -141,7 +141,7 @@
             }
         },
         "method-declarations": {
-            "match": "\\b(?!and\\b|class\\b|else\\b|for\\b|fun\\b|if\\b|import\\b|as\\b|or\\b|return\\b|super\\b|this\\b|var\\b|while\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\([^)]*\\)\\s*\\{)",
+            "match": "\\b(?!and\\b|class\\b|else\\b|for\\b|fun\\b|function\\b|if\\b|import\\b|as\\b|or\\b|return\\b|super\\b|this\\b|var\\b|while\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\([^)]*\\)\\s*\\{)",
             "captures": {
                 "1": {
                     "name": "entity.name.function.lox"
@@ -149,7 +149,7 @@
             }
         },
         "function-calls": {
-            "match": "\\b(?!and\\b|class\\b|else\\b|for\\b|fun\\b|if\\b|import\\b|as\\b|or\\b|return\\b|super\\b|this\\b|var\\b|while\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+            "match": "\\b(?!and\\b|class\\b|else\\b|for\\b|fun\\b|function\\b|if\\b|import\\b|as\\b|or\\b|return\\b|super\\b|this\\b|var\\b|while\\b)([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
             "captures": {
                 "1": {
                     "name": "support.function.lox"

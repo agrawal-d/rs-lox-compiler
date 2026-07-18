@@ -547,6 +547,16 @@ impl<'src> Compiler<'src> {
         }
 
         fn_compiler.parser.consume(TokenType::LeftBrace, "Expect '{' before function body");
+        
+        // Parse python-style docstring if present
+        if fn_compiler.parser.check_tt(TokenType::String) {
+            fn_compiler.parser.advance();
+            let raw_doc = fn_compiler.parser.previous.source.clone();
+            let doc = &raw_doc[1..raw_doc.len() - 1];
+            fn_compiler.fun.help = Some(doc.to_string());
+            fn_compiler.parser.consume(TokenType::Semicolon, "Expect ';' after function docstring");
+        }
+
         fn_compiler.block();
         let fun = fn_compiler.end();
 

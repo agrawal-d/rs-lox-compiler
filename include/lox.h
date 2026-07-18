@@ -57,6 +57,7 @@ typedef struct {
     LoxFfiValue (*make_array)(int length, const LoxFfiValue* elements);
     LoxFfiValue (*make_buffer)(int size, const unsigned char* bytes);
     void (*set_error)(const char* message);
+    void (*define_function_with_help)(const char* name, int arity, LoxNativeFn fn, const char* help);
 } LoxFfiApi;
 
 // Static inline helpers for convenience and readability in modules

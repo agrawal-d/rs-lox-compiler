@@ -242,21 +242,21 @@ __declspec(dllexport)
 void lox_module_init(const LoxFfiApi* api) {
     g_api = api;
 
-    api->define_function("open", 2, io_open);
-    api->define_function("close", 1, io_close);
-    api->define_function("write", 2, io_write);
-    api->define_function("read", 2, io_read);
-    api->define_function("read_bytes", 2, io_read_bytes);
-    api->define_function("read_into", 3, io_read_into);
-    api->define_function("read_buffer", 2, io_read_buffer);
-    api->define_function("seek", 3, io_seek);
-    api->define_function("tell", 1, io_tell);
-    api->define_function("flush", 1, io_flush);
-    api->define_function("exists", 1, io_exists);
-    api->define_function("remove", 1, io_remove);
-    api->define_function("mkdir", 1, io_mkdir);
-    api->define_function("rmdir", 1, io_rmdir);
-    api->define_function("list_dir", 1, io_list_dir);
+    api->define_function_with_help("open", 2, io_open, "open(path, mode)\nOpens a file at the specified path with the given mode.\nArguments:\n  path: String representing file path.\n  mode: String representing mode (e.g. \"rb\", \"wb\", \"r+b\").\nReturns: Number handle if successful, Nil otherwise.");
+    api->define_function_with_help("close", 1, io_close, "close(handle)\nCloses the open file associated with the handle.\nArguments:\n  handle: Number representing the open file handle.\nReturns: Bool (true if successfully closed, false otherwise).");
+    api->define_function_with_help("write", 2, io_write, "write(handle, data)\nWrites data to the open file associated with the handle.\nArguments:\n  handle: Number representing the open file handle.\n  data: String, Array of bytes, or Buffer containing data to write.\nReturns: Number representing count of bytes written, Nil on error.");
+    api->define_function_with_help("read", 2, io_read, "read(handle, count)\nReads text from the open file associated with the handle.\nArguments:\n  handle: Number representing the open file handle.\n  count: Number representing maximum bytes to read.\nReturns: String containing the read text, Nil on error.");
+    api->define_function_with_help("read_bytes", 2, io_read_bytes, "read_bytes(handle, count)\nReads binary bytes from the open file associated with the handle.\nArguments:\n  handle: Number representing the open file handle.\n  count: Number representing maximum bytes to read.\nReturns: Array of Numbers representing bytes, Nil on error.");
+    api->define_function_with_help("read_into", 3, io_read_into, "read_into(handle, buffer, count)\nReads binary bytes directly into an existing Buffer (zero-copy).\nArguments:\n  handle: Number representing the open file handle.\n  buffer: Buffer object to read data into.\n  count: Number representing maximum bytes to read.\nReturns: Number representing count of bytes read, Nil on error.");
+    api->define_function_with_help("read_buffer", 2, io_read_buffer, "read_buffer(handle, count)\nReads binary bytes and returns a new Buffer containing the data.\nArguments:\n  handle: Number representing the open file handle.\n  count: Number representing maximum bytes to read.\nReturns: Buffer object, Nil on error.");
+    api->define_function_with_help("seek", 3, io_seek, "seek(handle, offset, whence)\nSeeks to a specific offset in the open file.\nArguments:\n  handle: Number representing the open file handle.\n  offset: Number representing offset in bytes.\n  whence: Number representing seek position (0: SEEK_SET, 1: SEEK_CUR, 2: SEEK_END).\nReturns: Number representing new file position, -1 on error.");
+    api->define_function_with_help("tell", 1, io_tell, "tell(handle)\nReturns the current position in the open file.\nArguments:\n  handle: Number representing the open file handle.\nReturns: Number representing file position, Nil on error.");
+    api->define_function_with_help("flush", 1, io_flush, "flush(handle)\nFlushes any buffered write data to the disk.\nArguments:\n  handle: Number representing the open file handle.\nReturns: Bool (true if successfully flushed, false otherwise).");
+    api->define_function_with_help("exists", 1, io_exists, "exists(path)\nChecks if a file or directory exists at the path.\nArguments:\n  path: String representing the path.\nReturns: Bool (true if it exists, false otherwise).");
+    api->define_function_with_help("remove", 1, io_remove, "remove(path)\nRemoves/deletes a file at the specified path.\nArguments:\n  path: String representing the file path.\nReturns: Bool (true if successfully deleted, false otherwise).");
+    api->define_function_with_help("mkdir", 1, io_mkdir, "mkdir(path)\nCreates a new directory at the specified path.\nArguments:\n  path: String representing directory path.\nReturns: Bool (true if successfully created, false otherwise).");
+    api->define_function_with_help("rmdir", 1, io_rmdir, "rmdir(path)\nRemoves/deletes a directory and all of its contents.\nArguments:\n  path: String representing directory path.\nReturns: Bool (true if successfully deleted, false otherwise).");
+    api->define_function_with_help("list_dir", 1, io_list_dir, "list_dir(path)\nLists all file and directory names inside the path.\nArguments:\n  path: String representing directory path.\nReturns: Array of Strings representing names, Nil on error.");
 }
 
 }
