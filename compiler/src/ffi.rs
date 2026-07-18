@@ -483,5 +483,9 @@ pub fn load_native_module(
         globals.insert(name_id, val);
     }
 
+    // Register alias itself as a placeholder to allow help(alias)
+    let alias_id = interner.intern(alias);
+    globals.insert(alias_id, Value::Str(interner.intern(&format!("module:{}", alias))));
+
     Ok(lib)
 }

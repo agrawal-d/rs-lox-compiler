@@ -688,79 +688,164 @@ interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     Value::Nil
 });
 
-callable_struct!(HelpCast, "help", 1, "help(fn_or_name)
-Prints documentation, signature, and usage instructions for the given function.
+callable_struct!(HelpCast, "help", 1, "help(fn_or_module)
+Prints documentation for a function or lists all functions in a namespace.
 Arguments:
-  fn_or_name: Function object or a string name of a function (e.g. \"clock\" or \"math.sin\").
+  fn_or_module: Function object, string name, or module alias (e.g. clock, \"math.sin\", or math).
 Returns: Nil.",
 interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
     let mut resolved_callable: Option<(String, usize, Option<String>)> = None;
+    let mut is_module = false;
+    let mut module_name = String::new();
 
+    // Check if the argument itself is a module placeholder string or name
     match &args[0] {
-        Value::NativeFunction(c) => {
-            resolved_callable = Some((c.name().to_string(), c.arity(), c.help()));
-        }
-        Value::Function(idx) => {
-            crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
-                if let Some(ptr) = *funcs.borrow() {
-                    let functions = unsafe { &*ptr };
-                    if *idx < functions.len() {
-                        let f = &functions[*idx];
-                        let name = f.name.map(|id| interner.lookup(&id).to_string()).unwrap_or_else(|| "anonymous".to_string());
-                        resolved_callable = Some((name, f.arity, f.help.clone()));
-                    }
-                }
-            });
-        }
-        Value::BoundMethod { instance: _, method_idx } => {
-            crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
-                if let Some(ptr) = *funcs.borrow() {
-                    let functions = unsafe { &*ptr };
-                    if *method_idx < functions.len() {
-                        let f = &functions[*method_idx];
-                        let name = f.name.map(|id| interner.lookup(&id).to_string()).unwrap_or_else(|| "anonymous".to_string());
-                        resolved_callable = Some((name, f.arity, f.help.clone()));
-                    }
-                }
-            });
-        }
         Value::Str(id) | Value::Identifier(id) => {
             let name_str = interner.lookup(id).to_string();
-            if let Some(val) = globals.get(id) {
-                match val {
-                    Value::NativeFunction(c) => {
-                        resolved_callable = Some((c.name().to_string(), c.arity(), c.help()));
+            if name_str.starts_with("module:") {
+                is_module = true;
+                module_name = name_str["module:".len()..].to_string();
+            } else if let Some(Value::Str(val_id)) = globals.get(id) {
+                let val_str = interner.lookup(val_id);
+                if val_str.starts_with("module:") {
+                    is_module = true;
+                    module_name = val_str["module:".len()..].to_string();
+                }
+            } else {
+                // If it is just a string, also check if there exists a global variable
+                // with that string name that maps to a module
+                let name_id = interner.intern(&name_str);
+                if let Some(Value::Str(val_id)) = globals.get(&name_id) {
+                    let val_str = interner.lookup(val_id);
+                    if val_str.starts_with("module:") {
+                        is_module = true;
+                        module_name = val_str["module:".len()..].to_string();
                     }
-                    Value::Function(idx) => {
-                        crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
-                            if let Some(ptr) = *funcs.borrow() {
-                                let functions = unsafe { &*ptr };
-                                if *idx < functions.len() {
-                                    let f = &functions[*idx];
-                                    resolved_callable = Some((name_str.clone(), f.arity, f.help.clone()));
-                                }
-                            }
-                        });
-                    }
-                    _ => {}
                 }
             }
         }
         _ => {}
     }
 
-    if let Some((name, arity, help_opt)) = resolved_callable {
-        xprintln!("Help for function {}:", name);
+    if is_module {
+        xprintln!("Help for module {}:", module_name);
         xprintln!("--------------------------------------------------");
-        xprintln!("Arity: {}", arity);
-        if let Some(help_str) = help_opt {
-            xprintln!("{}", help_str);
-        } else {
-            xprintln!("No documentation available.");
+        xprintln!("Available functions:");
+        
+        let prefix = format!("{}.", module_name);
+        let mut sorted_fns = Vec::new();
+
+        for (id, val) in globals.iter() {
+            let name = interner.lookup(id).to_string();
+            if name.starts_with(&prefix) {
+                match val {
+                    Value::NativeFunction(c) => {
+                        sorted_fns.push((name, c.arity(), c.help()));
+                    }
+                    Value::Function(idx) => {
+                        let mut help_val = None;
+                        let mut arity_val = 0;
+                        crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
+                            if let Some(ptr) = *funcs.borrow() {
+                                let functions = unsafe { &*ptr };
+                                if *idx < functions.len() {
+                                    let f = &functions[*idx];
+                                    arity_val = f.arity;
+                                    help_val = f.help.clone();
+                                }
+                            }
+                        });
+                        sorted_fns.push((name, arity_val, help_val));
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        sorted_fns.sort_by(|a, b| a.0.cmp(&b.0));
+
+        for (name, arity, help_opt) in sorted_fns {
+            xprintln!("  * {}", name);
+            xprintln!("      Arity: {}", arity);
+            if let Some(help_str) = help_opt {
+                let mut lines = help_str.lines();
+                if let Some(first_line) = lines.next() {
+                    xprintln!("      Usage: {}", first_line.trim());
+                }
+                if let Some(second_line) = lines.next() {
+                    xprintln!("      Description: {}", second_line.trim());
+                }
+            }
+            xprintln!("");
         }
         xprintln!("--------------------------------------------------");
     } else {
-        xprintln!("No documentation or function found for the given argument.");
+        match &args[0] {
+            Value::NativeFunction(c) => {
+                resolved_callable = Some((c.name().to_string(), c.arity(), c.help()));
+            }
+            Value::Function(idx) => {
+                crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
+                    if let Some(ptr) = *funcs.borrow() {
+                        let functions = unsafe { &*ptr };
+                        if *idx < functions.len() {
+                            let f = &functions[*idx];
+                            let name = f.name.map(|id| interner.lookup(&id).to_string()).unwrap_or_else(|| "anonymous".to_string());
+                            resolved_callable = Some((name, f.arity, f.help.clone()));
+                        }
+                    }
+                });
+            }
+            Value::BoundMethod { instance: _, method_idx } => {
+                crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
+                    if let Some(ptr) = *funcs.borrow() {
+                        let functions = unsafe { &*ptr };
+                        if *method_idx < functions.len() {
+                            let f = &functions[*method_idx];
+                            let name = f.name.map(|id| interner.lookup(&id).to_string()).unwrap_or_else(|| "anonymous".to_string());
+                            resolved_callable = Some((name, f.arity, f.help.clone()));
+                        }
+                    }
+                });
+            }
+            Value::Str(id) | Value::Identifier(id) => {
+                let name_str = interner.lookup(id).to_string();
+                if let Some(val) = globals.get(id) {
+                    match val {
+                        Value::NativeFunction(c) => {
+                            resolved_callable = Some((c.name().to_string(), c.arity(), c.help()));
+                        }
+                        Value::Function(idx) => {
+                            crate::vm::RUNNING_FUNCTIONS.with(|funcs| {
+                                if let Some(ptr) = *funcs.borrow() {
+                                    let functions = unsafe { &*ptr };
+                                    if *idx < functions.len() {
+                                        let f = &functions[*idx];
+                                        resolved_callable = Some((name_str.clone(), f.arity, f.help.clone()));
+                                    }
+                                }
+                            });
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+
+        if let Some((name, arity, help_opt)) = resolved_callable {
+            xprintln!("Help for function {}:", name);
+            xprintln!("--------------------------------------------------");
+            xprintln!("Arity: {}", arity);
+            if let Some(help_str) = help_opt {
+                xprintln!("{}", help_str);
+            } else {
+                xprintln!("No documentation available.");
+            }
+            xprintln!("--------------------------------------------------");
+        } else {
+            xprintln!("No documentation or function found for the given argument.");
+        }
     }
     Value::Nil
 });

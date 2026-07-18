@@ -22,3 +22,7 @@ Returns: Number representing the area.";
 
 help(calculate_area);
 print("calculate_area(5, 10) = " + str(calculate_area(5, 10)));
+
+print("\n=== Phase 4: Test FFI Module Help ===");
+help(math);
+help("math");
