@@ -145,8 +145,7 @@ callable_struct!(StringAt, "stringat", 2, interner: &mut Interner, globals: &mut
         (Value::Str(s), Value::Number(n)) => {
             let str = interner.lookup(s);
             let index = *n as usize;
-            if index < str.len() {
-                let c = str.chars().nth(index).unwrap();
+            if let Some(c) = str.chars().nth(index) {
                 Value::Str(interner.intern(&c.to_string()))
             } else {
                 set_global_error(interner, globals, "Index out of bounds");
@@ -164,7 +163,7 @@ callable_struct!(Len, "len", 1, interner: &mut Interner, globals: &mut Globals, 
     match &args[0] {
         Value::Str(s) => {
             let str = interner.lookup(s);
-            Value::Number(str.len() as f64)
+            Value::Number(str.chars().count() as f64)
         }
         Value::Array(arr) => Value::Number(arr.borrow().len() as f64),
         _ => {

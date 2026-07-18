@@ -159,11 +159,12 @@ impl Scanner {
             return false;
         }
 
-        if self.source.chars().nth(self.current) != Some(expected) {
+        let c = self.peek();
+        if c != expected {
             return false;
         }
 
-        self.current += 1;
+        self.current += c.len_utf8();
         true
     }
 
@@ -172,30 +173,26 @@ impl Scanner {
             return '\0';
         }
 
-        self.source
+        self.source[self.current..]
             .chars()
-            .nth(self.current)
-            .unwrap_or_else(|| panic!("Could not get {}th  character", self.current))
+            .next()
+            .unwrap_or('\0')
     }
 
     fn peek2(&self) -> char {
-        if self.current + 1 >= self.source.len() {
+        if self.is_at_end() {
             return '\0';
         }
 
-        self.source
-            .chars()
-            .nth(self.current + 1)
-            .unwrap_or_else(|| panic!("Could not get {}th  character", self.current + 1))
+        let mut chars = self.source[self.current..].chars();
+        chars.next(); // skip the current char
+        chars.next().unwrap_or('\0')
     }
 
     pub fn advance(&mut self) -> char {
-        self.current += 1;
-        return self
-            .source
-            .chars()
-            .nth(self.current - 1)
-            .unwrap_or_else(|| panic!("Could not get {}th  character", self.current - 1));
+        let c = self.peek();
+        self.current += c.len_utf8();
+        c
     }
 
     fn is_at_end(&self) -> bool {
