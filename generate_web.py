@@ -9,7 +9,8 @@ def build_and_copy():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     wasm_dir = os.path.join(script_dir, 'wasm')
     pkg_dir = os.path.join(wasm_dir, 'pkg')
-    docs_dir = os.path.join(script_dir, 'docs')
+    generated_dir = os.path.join(script_dir, 'docs','generated')
+    os.makedirs(generated_dir, exist_ok=True)
 
     print("Building WASM package...")
     result = subprocess.run(
@@ -28,7 +29,7 @@ def build_and_copy():
 
     for filename in os.listdir(pkg_dir):
         src_path = os.path.join(pkg_dir, filename)
-        dest_path = os.path.join(docs_dir, filename)
+        dest_path = os.path.join(generated_dir, filename)
         if os.path.isdir(src_path):
             if os.path.exists(dest_path):
                 shutil.rmtree(dest_path)

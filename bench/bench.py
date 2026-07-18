@@ -5,13 +5,20 @@ import argparse
 import subprocess
 import sys
 import time
+import os
+from pathlib import Path
+
+# Force current working directory to repository root (parent of bench/)
+# so `cargo run` and other commands execute with the repo as CWD.
+ROOT = Path(__file__).resolve().parent.parent
+os.chdir(ROOT)
 
 
 def run_bench(release: bool, iterations: int) -> None:
     cmd = ["cargo", "run", "-p", "native"]
     if release:
         cmd.append("--release")
-    cmd.extend(["--", "bench.lox"])
+    cmd.extend(["--", os.path.join("bench", "bench.lox")])
 
     print("Running benchmark with:")
     print("  " + " ".join(cmd))
@@ -48,9 +55,13 @@ def run_bench(release: bool, iterations: int) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Time bench.lox using the native interpreter.")
+    parser = argparse.ArgumentParser(
+        description="Time bench.lox using the native interpreter."
+    )
     parser.add_argument("--release", action="store_true", help="Run the release build.")
-    parser.add_argument("--iterations", type=int, default=3, help="How many times to run the benchmark.")
+    parser.add_argument(
+        "--iterations", type=int, default=3, help="How many times to run the benchmark."
+    )
     args = parser.parse_args()
 
     run_bench(args.release, args.iterations)

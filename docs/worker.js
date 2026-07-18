@@ -1,4 +1,4 @@
-import init, { run } from './wasm.js';
+import init, { run } from './generated/wasm.js';
 
 self.userInput = null;
 

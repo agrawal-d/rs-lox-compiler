@@ -1,0 +1,3 @@
+var name = "Bob";
+var age = 21;
+printf("My name is {name} and I am {age} years old.");

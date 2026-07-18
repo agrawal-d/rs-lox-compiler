@@ -12,7 +12,7 @@ require(["vs/editor/editor.main"], function () {
     monaco.languages.setMonarchTokensProvider('lox', {
         keywords: [
             'and', 'class', 'else', 'false', 'function', 'for', 'if', 'nil', 'or',
-            'print', 'return', 'super', 'this', 'true', 'var', 'while', 'import', 'as'
+            'print', 'printf', 'return', 'super', 'this', 'true', 'var', 'while', 'import', 'as'
         ],
         builtins: [
             'clock', 'sleep', 'typeof', 'str', 'int', 'float', 'bool', 'stringat',
