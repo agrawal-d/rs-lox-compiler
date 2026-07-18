@@ -1,0 +1,86 @@
+import "native-modules/build/io.dll" as io;
+
+print("=== Testing IO Module ===");
+
+// Test directory functions
+print("Creating temp directory 'tests_temp'...");
+if (io.exists("tests_temp")) {
+    print("tests_temp already exists, removing first...");
+    io.rmdir("tests_temp");
+}
+io.mkdir("tests_temp");
+print("tests_temp exists: " + str(io.exists("tests_temp")));
+
+// Test file creation and writing
+print("\nOpening file for writing...");
+var f = io.open("tests_temp/test.bin", "wb");
+if (f == nil) {
+    print("Failed to open file!");
+} else {
+    print("File opened with handle: " + str(f));
+    
+    // Write string
+    var w1 = io.write(f, "Hello ");
+    print("Wrote " + str(w1) + " bytes using string");
+    
+    // Write array of bytes (65=A, 66=B, 67=C, 68=D)
+    var w2 = io.write(f, [65, 66, 67, 68]);
+    print("Wrote " + str(w2) + " bytes using array");
+    
+    // Write buffer (contains "World")
+    var b_write = buf(" World!");
+    var w3 = io.write(f, b_write);
+    print("Wrote " + str(w3) + " bytes using buffer");
+    
+    io.close(f);
+}
+
+// Test file reading and seeking
+print("\nOpening file for reading...");
+var f_read = io.open("tests_temp/test.bin", "rb");
+if (f_read == nil) {
+    print("Failed to open file for reading!");
+} else {
+    print("File opened for reading with handle: " + str(f_read));
+    
+    // Read string
+    var s1 = io.read(f_read, 6);
+    print("Read string: '" + str(s1) + "'");
+    
+    // Read bytes as array
+    var a1 = io.read_bytes(f_read, 4);
+    print("Read bytes as array: " + str(a1));
+    
+    // Test seek and tell
+    var pos1 = io.tell(f_read);
+    print("Current tell position: " + str(pos1));
+    
+    var seek_res = io.seek(f_read, 0, 0); // SEEK_SET to beginning
+    print("Seeked to beginning, new pos: " + str(seek_res));
+    
+    // Read using in-place buffer (read_into)
+    var b_read = buf(20);
+    print("Created empty buffer of size: " + str(len(b_read)));
+    
+    var read_bytes_count = io.read_into(f_read, b_read, 15);
+    print("Read " + str(read_bytes_count) + " bytes into buffer");
+    print("Buffer content as string: '" + str(b_read) + "'");
+    
+    // Read buffer (returns new buffer)
+    io.seek(f_read, 6, 0); // Seek past "Hello "
+    var b_read2 = io.read_buffer(f_read, 4);
+    print("Read new buffer of size " + str(len(b_read2)) + ": '" + str(b_read2) + "'");
+    
+    io.close(f_read);
+}
+
+// Test list_dir
+print("\nListing 'tests_temp' contents:");
+var files = io.list_dir("tests_temp");
+print("Files in tests_temp: " + str(files));
+
+// Test cleanup
+print("\nCleaning up...");
+print("Removing file: " + str(io.remove("tests_temp/test.bin")));
+print("Removing directory: " + str(io.rmdir("tests_temp")));
+print("tests_temp still exists: " + str(io.exists("tests_temp")));

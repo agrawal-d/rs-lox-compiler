@@ -5,6 +5,7 @@ pub mod debug;
 pub mod fun;
 pub mod interner;
 pub mod native;
+pub mod ffi;
 pub mod scanner;
 pub mod value;
 pub mod vm;

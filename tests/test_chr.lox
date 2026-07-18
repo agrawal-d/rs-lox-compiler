@@ -1,0 +1,18 @@
+print("=== Testing chr() Built-in ===");
+print("chr('a') = " + str(chr("a")));       // 97
+print("chr('apple') = " + str(chr("apple"))); // 97
+print("chr('') = " + str(chr("")));         // nil/Nil
+
+// Test writing string characters to a buffer using chr
+var message = "Hello";
+var b = buf(5);
+var i = 0;
+while (i < len(message)) {
+    // StringAt returns the substring at index i (a single character string)
+    var char_str = stringat(message, i);
+    b[i] = chr(char_str);
+    i = i + 1;
+}
+
+print("\nConstructed buffer using chr():");
+print("str(b) = '" + str(b) + "'");

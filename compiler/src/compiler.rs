@@ -840,8 +840,16 @@ impl<'src> Compiler<'src> {
             let path_str = &path_str[1..path_str.len() - 1];
             let alias_str = alias_token.source.as_ref();
 
-            if let Err(e) = self.execute_import(path_str, alias_str) {
-                self.parser.error_at_current(&e);
+            let is_native = path_str.ends_with(".dll")
+                || path_str.ends_with(".so")
+                || path_str.ends_with(".dylib");
+
+            if is_native {
+                self.fun.native_imports.push((path_str.to_string(), alias_str.to_string()));
+            } else {
+                if let Err(e) = self.execute_import(path_str, alias_str) {
+                    self.parser.error_at_current(&e);
+                }
             }
         }
     }

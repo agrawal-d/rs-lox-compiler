@@ -5,3 +5,4 @@ code.txt
 *__pycache__
 /lox-lang-support/vsc-extension-quickstart.md
 *.vsix
+*.dll

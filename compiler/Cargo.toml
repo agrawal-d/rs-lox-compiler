@@ -22,3 +22,7 @@ rand = "0.8.5"
 [features]
 tracing = []
 print_code = []
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+libloading = "0.8"
+

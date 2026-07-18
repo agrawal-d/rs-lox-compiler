@@ -47,6 +47,10 @@ where
     global_error_id: StrId, // StrId of global error variable
     read_async: F,
     sleep_async: SF,
+    #[cfg(not(target_arch = "wasm32"))]
+    loaded_libs: Vec<libloading::Library>,
+    #[cfg(target_arch = "wasm32")]
+    loaded_libs: Vec<Box<dyn std::any::Any>>,
 }
 
 macro_rules! binop {
@@ -98,6 +102,15 @@ fn get_array(arr: &Value, index: &Value) -> anyhow::Result<Value, Error> {
                 bail!("Index out of bounds: {index}")
             }
         }
+        (Value::Buffer(buf), Value::Number(index)) => {
+            let index = *index as usize;
+            let bytes = buf.borrow();
+            if index < bytes.len() {
+                Ok(Value::Number(bytes[index] as f64))
+            } else {
+                bail!("Index out of bounds: {index}")
+            }
+        }
         (arr, index) => {
             bail!(format!("Tried to index value of type {arr} with index {index}"));
         }
@@ -111,6 +124,21 @@ fn set_array(arr: &mut Value, index: &Value, new_value: Value) -> anyhow::Result
             if index < array.borrow().len() {
                 array.borrow_mut()[index] = new_value;
                 Ok(())
+            } else {
+                bail!("Index out of bounds: {index}")
+            }
+        }
+        (Value::Buffer(buf), Value::Number(index)) => {
+            let index = *index as usize;
+            let mut bytes = buf.borrow_mut();
+            if index < bytes.len() {
+                match new_value {
+                    Value::Number(n) => {
+                        bytes[index] = n as u8;
+                        Ok(())
+                    }
+                    _ => bail!("Expected number as buffer element value"),
+                }
             } else {
                 bail!("Index out of bounds: {index}")
             }
@@ -149,6 +177,7 @@ where
             global_error_id,
             read_async,
             sleep_async,
+            loaded_libs: Vec::new(),
         };
 
         vm
@@ -165,6 +194,7 @@ where
             global_error_id,
             read_async,
             sleep_async,
+            loaded_libs: Vec::new(),
         };
 
         register_native!(vm, Clock);
@@ -174,6 +204,8 @@ where
         register_native!(vm, Printf);
         register_native!(vm, ReadString);
         register_native!(vm, StrCast);
+        register_native!(vm, BufCast);
+        register_native!(vm, ChrCast);
         register_native!(vm, IntCast);
         register_native!(vm, FloatCast);
         register_native!(vm, BoolCast);
@@ -195,12 +227,28 @@ where
         vm
     }
 
+    fn load_native_imports(&mut self, fun_idx: usize) {
+        let imports = self.functions[fun_idx].native_imports.clone();
+        for (path, alias) in imports {
+            match crate::ffi::load_native_module(&path, &alias, self.interner, &mut self.globals) {
+                std::result::Result::Ok(lib) => {
+                    self.loaded_libs.push(lib);
+                }
+                std::result::Result::Err(e) => {
+                    self.runtime_error(&format!("Failed to load native module '{}': {}", path, e));
+                }
+            }
+        }
+    }
+
     pub async fn run_repl_chunk(&mut self, fun: Fun) -> Result<()> {
         self.stack.clear();
         self.frames.clear();
 
         let fun_idx = self.functions.len();
         self.functions.push(fun);
+
+        self.load_native_imports(fun_idx);
 
         self.frames.push(CallFrame {
             fun_idx,
@@ -255,6 +303,7 @@ where
             Bool(b) => !b,
             Number(n) => (*n - 0.0).abs() < f64::EPSILON,
             Array(arr) => arr.borrow().is_empty(),
+            Buffer(buf) => buf.borrow().is_empty(),
             _ => false,
         }
     }
@@ -754,6 +803,8 @@ where
         register_native!(vm, Printf);
         register_native!(vm, ReadString);
         register_native!(vm, StrCast);
+        register_native!(vm, BufCast);
+        register_native!(vm, ChrCast);
         register_native!(vm, IntCast);
         register_native!(vm, FloatCast);
         register_native!(vm, BoolCast);
@@ -771,6 +822,9 @@ where
         register_native!(vm, Sqrt);
         register_native!(vm, Pow);
         register_native!(vm, Pi);
+
+        vm.load_native_imports(vm.functions.len() - 1);
+
         dbgln!("Interpreting  code");
         vm.run().await
     }

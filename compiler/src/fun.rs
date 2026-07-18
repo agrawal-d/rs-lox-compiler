@@ -6,6 +6,7 @@ pub struct Fun {
     pub min_arity: usize,
     pub chunk: Chunk,
     pub name: Option<StrId>,
+    pub native_imports: Vec<(String, String)>,
 }
 
 impl Default for Fun {
@@ -21,6 +22,7 @@ impl Fun {
             min_arity: 0,
             chunk: Chunk::default(),
             name: None,
+            native_imports: Vec::new(),
         }
     }
 }

@@ -25,6 +25,7 @@ pub enum Value {
     Str(StrId),
     Identifier(StrId),
     Array(Rc<RefCell<ValueArray>>),
+    Buffer(Rc<RefCell<Vec<u8>>>),
     Function(usize),
     NativeFunction(Rc<dyn Callable>),
     Nil,
@@ -68,6 +69,9 @@ pub fn value_as_string(value: &Value, interner: &Interner) -> String {
             s.push_str("]>");
             s
         }
+        Value::Buffer(buf) => {
+            format!("Buffer<{} bytes>", buf.borrow().len())
+        }
         Value::Function(idx) => {
             format!("<Function {idx}>")
         }
@@ -100,6 +104,7 @@ impl PartialEq<Value> for Value {
             (Str(a), Str(b)) => a == b,
             (Nil, Nil) => true,
             (Array(a), Array(b)) => Rc::ptr_eq(a, b),
+            (Buffer(a), Buffer(b)) => Rc::ptr_eq(a, b),
             (Class(a), Class(b)) => Rc::ptr_eq(a, b),
             (Instance(a), Instance(b)) => Rc::ptr_eq(a, b),
             (

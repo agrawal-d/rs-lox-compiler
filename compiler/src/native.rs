@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap;
 use std::fmt::Debug;
 use web_time::SystemTime;
 
-type Globals = FxHashMap<StrId, Value>;
+pub type Globals = FxHashMap<StrId, Value>;
 
 pub trait Callable: Debug {
     fn arity(&self) -> usize;
@@ -84,7 +84,66 @@ callable_struct!(TypeOf, "typeof", 1, interner: &mut Interner, globals: &mut Glo
 });
 
 callable_struct!(StrCast, "str", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
-    Value::Str(interner.intern(&value_as_string(&args[0], interner)))
+    match &args[0] {
+        Value::Buffer(buf) => {
+            let bytes = buf.borrow();
+            let s = String::from_utf8_lossy(&bytes).into_owned();
+            Value::Str(interner.intern(&s))
+        }
+        _ => Value::Str(interner.intern(&value_as_string(&args[0], interner)))
+    }
+});
+
+callable_struct!(BufCast, "buf", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    use std::rc::Rc;
+    use std::cell::RefCell;
+    match &args[0] {
+        Value::Number(n) => {
+            let size = *n as usize;
+            Value::Buffer(Rc::new(RefCell::new(vec![0; size])))
+        }
+        Value::Str(s) | Value::Identifier(s) => {
+            let str_val = interner.lookup(s);
+            Value::Buffer(Rc::new(RefCell::new(str_val.as_bytes().to_vec())))
+        }
+        Value::Array(arr) => {
+            let arr_borrow = arr.borrow();
+            let mut bytes = Vec::with_capacity(arr_borrow.len());
+            for item in arr_borrow.iter() {
+                match item {
+                    Value::Number(n) => bytes.push(*n as u8),
+                    _ => bytes.push(0),
+                }
+            }
+            Value::Buffer(Rc::new(RefCell::new(bytes)))
+        }
+        Value::Buffer(buf) => {
+            let bytes = buf.borrow().clone();
+            Value::Buffer(Rc::new(RefCell::new(bytes)))
+        }
+        _ => {
+            set_global_error(interner, globals, "Expected number, string, array, or buffer as argument to buf");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(ChrCast, "chr", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    match &args[0] {
+        Value::Str(id) | Value::Identifier(id) => {
+            let s = interner.lookup(id);
+            if s.is_empty() {
+                Value::Nil
+            } else {
+                let first_byte = s.as_bytes()[0];
+                Value::Number(first_byte as f64)
+            }
+        }
+        _ => {
+            set_global_error(interner, globals, "Expected string as argument to chr");
+            Value::Nil
+        }
+    }
 });
 
 callable_struct!(IntCast, "int", 1, interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
@@ -166,8 +225,9 @@ callable_struct!(Len, "len", 1, interner: &mut Interner, globals: &mut Globals, 
             Value::Number(str.chars().count() as f64)
         }
         Value::Array(arr) => Value::Number(arr.borrow().len() as f64),
+        Value::Buffer(buf) => Value::Number(buf.borrow().len() as f64),
         _ => {
-            set_global_error(interner, globals, "Expected string or array as argument to len");
+            set_global_error(interner, globals, "Expected string, array, or buffer as argument to len");
             Value::Nil
         }
     }

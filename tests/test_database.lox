@@ -1,0 +1,230 @@
+import "native-modules/build/io.dll" as io;
+
+class LoxDatabase {
+    LoxDatabase(db_path) {
+        this.path = db_path;
+        
+        // Parallel arrays to implement an in-memory key-offset index
+        var keys[1000];
+        var offsets[1000];
+        this.keys = keys;
+        this.offsets = offsets;
+        this.count = 0;
+        
+        // Open file in append-plus mode so we can read and write
+        if (io.exists(this.path)) {
+            this.file = io.open(this.path, "r+b");
+            this.rebuild_index();
+        } else {
+            this.file = io.open(this.path, "w+b");
+        }
+    }
+    
+    // Find index of key in our keys array
+    find_key(key) {
+        var i = 0;
+        var keys = this.keys;
+        while (i < this.count) {
+            if (keys[i] == key) {
+                return i;
+            }
+            i = i + 1;
+        }
+        return -1;
+    }
+    
+    rebuild_index() {
+        print("Rebuilding database index from file...");
+        io.seek(this.file, 0, 0); // SEEK_SET to 0
+        var offset = 0;
+        
+        var len_buf = buf(6); // 2 bytes key_len + 4 bytes val_len
+        var read_bytes = io.read_into(this.file, len_buf, 6);
+        
+        var keys = this.keys;
+        var offsets = this.offsets;
+        
+        while (read_bytes == 6) {
+            var key_len = len_buf[0] * 256 + len_buf[1];
+            var val_len = len_buf[2] * 16777216 + len_buf[3] * 65536 + len_buf[4] * 256 + len_buf[5];
+            
+            // Read key string
+            var key = io.read(this.file, key_len);
+            
+            // If val_len is 4294967295 (which is -1 in 32-bit unsigned), it's a tombstone
+            if (val_len == 4294967295) {
+                // Remove from in-memory index
+                var idx = this.find_key(key);
+                if (idx != -1) {
+                    keys[idx] = ""; // mark as deleted
+                }
+            } else {
+                // Seek past the value
+                io.seek(this.file, val_len, 1); // SEEK_CUR past value
+                
+                // Add/update index
+                var idx = this.find_key(key);
+                if (idx != -1) {
+                    offsets[idx] = offset;
+                    keys[idx] = key; // restore key in case it was marked deleted
+                } else {
+                    keys[this.count] = key;
+                    offsets[this.count] = offset;
+                    this.count = this.count + 1;
+                }
+            }
+            
+            offset = io.tell(this.file);
+            read_bytes = io.read_into(this.file, len_buf, 6);
+        }
+        print("Index rebuilt. Total active keys: " + str(this.count));
+    }
+    
+    set(key, value) {
+        // Seek to end of file
+        io.seek(this.file, 0, 2); // SEEK_END
+        var offset = io.tell(this.file);
+        
+        var key_bytes = buf(key);
+        var val_bytes = buf(value);
+        
+        var key_len = len(key_bytes);
+        var val_len = len(val_bytes);
+        
+        // Write header
+        var header = buf(6);
+        header[0] = floor(key_len / 256);
+        header[1] = key_len % 256;
+        header[2] = floor(val_len / 16777216) % 256;
+        header[3] = floor(val_len / 65536) % 256;
+        header[4] = floor(val_len / 256) % 256;
+        header[5] = val_len % 256;
+        
+        io.write(this.file, header);
+        io.write(this.file, key_bytes);
+        io.write(this.file, val_bytes);
+        io.flush(this.file);
+        
+        // Update index
+        var idx = this.find_key(key);
+        var keys = this.keys;
+        var offsets = this.offsets;
+        if (idx != -1) {
+            offsets[idx] = offset;
+            keys[idx] = key; // just in case it was marked deleted
+        } else {
+            keys[this.count] = key;
+            offsets[this.count] = offset;
+            this.count = this.count + 1;
+        }
+    }
+    
+    get(key) {
+        var idx = this.find_key(key);
+        var keys = this.keys;
+        if (idx == -1 or keys[idx] == "") {
+            return nil;
+        }
+        
+        var offsets = this.offsets;
+        var offset = offsets[idx];
+        io.seek(this.file, offset, 0); // SEEK_SET to record start
+        
+        var len_buf = buf(6);
+        io.read_into(this.file, len_buf, 6);
+        
+        var key_len = len_buf[0] * 256 + len_buf[1];
+        var val_len = len_buf[2] * 16777216 + len_buf[3] * 65536 + len_buf[4] * 256 + len_buf[5];
+        
+        // Skip key
+        io.seek(this.file, key_len, 1); // SEEK_CUR past key
+        
+        // Read value
+        var val = io.read(this.file, val_len);
+        return val;
+    }
+    
+    delete(key) {
+        var idx = this.find_key(key);
+        var keys = this.keys;
+        if (idx == -1 or keys[idx] == "") {
+            return false;
+        }
+        
+        // Seek to end of file to write tombstone
+        io.seek(this.file, 0, 2); // SEEK_END
+        
+        var key_bytes = buf(key);
+        var key_len = len(key_bytes);
+        
+        // Write header with val_len = -1 (4294967295)
+        var header = buf(6);
+        header[0] = floor(key_len / 256);
+        header[1] = key_len % 256;
+        header[2] = 255;
+        header[3] = 255;
+        header[4] = 255;
+        header[5] = 255;
+        
+        io.write(this.file, header);
+        io.write(this.file, key_bytes);
+        io.flush(this.file);
+        
+        // Mark as deleted in index
+        keys[idx] = "";
+        return true;
+    }
+    
+    close() {
+        io.close(this.file);
+    }
+}
+
+// Ensure temp directory exists
+if (!io.exists("tests_temp")) {
+    io.mkdir("tests_temp");
+}
+
+var db_path = "tests_temp/records.db";
+if (io.exists(db_path)) {
+    io.remove(db_path);
+}
+
+print("=== Phase 1: Initialize Database and Insert Records ===");
+var db = LoxDatabase(db_path);
+db.set("user_100", "Alice Smith");
+db.set("user_101", "Bob Jones");
+db.set("user_102", "Charlie Brown");
+print("Inserted 3 user records.");
+
+print("\n=== Phase 2: Retrieve Inserted Records ===");
+print("Get user_100: " + str(db.get("user_100")));
+print("Get user_101: " + str(db.get("user_101")));
+print("Get user_102: " + str(db.get("user_102")));
+
+print("\n=== Phase 3: Perform Update and Delete operations ===");
+print("Updating user_101 value to 'Robert Jones'...");
+db.set("user_101", "Robert Jones");
+print("Get user_101 updated: " + str(db.get("user_101")));
+
+print("Deleting user_102 record...");
+var del_res = db.delete("user_102");
+print("Deleted: " + str(del_res));
+print("Get user_102 (should be Nil/nil): " + str(db.get("user_102")));
+
+print("\n=== Phase 4: Close and Reopen Database to Test Persistence & Recovery ===");
+db.close();
+print("Database closed.");
+
+print("Reopening database...");
+var db2 = LoxDatabase(db_path);
+print("Get user_100 recovered: " + str(db2.get("user_100")));
+print("Get user_101 recovered: " + str(db2.get("user_101")));
+print("Get user_102 recovered (should still be Nil/nil): " + str(db2.get("user_102")));
+
+db2.close();
+
+// Cleanup database file
+io.remove(db_path);
+io.rmdir("tests_temp");
+print("\n=== All database tests completed successfully! ===");
