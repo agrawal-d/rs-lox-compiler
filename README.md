@@ -8,7 +8,6 @@ A programming language interpreter that runs in the browser (using WASM) or loca
 
 Rust implementation of https://craftinginterpreters.com.
 
-
 ## Build & Run from source
 
 1. Clone the repository and setup the Rust toolchain. Then, `cd` into the repository root.
@@ -16,3 +15,15 @@ Rust implementation of https://craftinginterpreters.com.
 1. Install wasm pack from https://wasm-bindgen.github.io/wasm-pack/ (`npm install -g wasm-pack`).
 1. Run `generate_web.py`
 1. Open `web/index.html` using a web server (like `python3 -m http.server`).
+
+## Live Mode
+
+```sh
+# Windows
+python generate_web.py --watch
+Start-Process python -ArgumentList "-m http.server" -WindowStyle Hidden
+
+# Linux
+python3 generate_web.py --watch
+nohup python3 -m http.server > /dev/null 2>&1 &
+```
