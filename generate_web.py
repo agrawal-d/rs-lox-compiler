@@ -9,7 +9,7 @@ def build_and_copy():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     wasm_dir = os.path.join(script_dir, 'wasm')
     pkg_dir = os.path.join(wasm_dir, 'pkg')
-    generated_dir = os.path.join(script_dir, 'docs','generated')
+    generated_dir = os.path.join(script_dir, 'web','generated')
     os.makedirs(generated_dir, exist_ok=True)
 
     print("Building WASM package...")
