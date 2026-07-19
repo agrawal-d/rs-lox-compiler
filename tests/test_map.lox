@@ -1,0 +1,33 @@
+print("=== Phase 1: Creating Map and Checking Type ===");
+var m = map();
+print("Type of map: " + typeof(m));
+print("Initial length: " + len(m));
+
+print("\n=== Phase 2: Setting and Getting Keys via Bracket Indexing ===");
+m["name"] = "Divyanshu";
+m[100] = "Numeric Key";
+m[true] = "Boolean Key";
+
+print("m[\"name\"]: " + m["name"]);
+print("m[100]: " + m[100]);
+print("m[true]: " + m[true]);
+print("Length after bracket sets: " + len(m));
+
+print("\n=== Phase 3: Property Syntax (Dot Access) ===");
+m.age = 25;
+print("m.age = " + m.age);
+print("m[\"age\"] = " + m["age"]);
+
+print("\n=== Phase 4: Keys, Values, and Has ===");
+print("has(m, \"name\"): " + str(has(m, "name")));
+print("has(m, \"nonexistent\"): " + str(has(m, "nonexistent")));
+print("keys(m) count: " + len(keys(m)));
+print("values(m) count: " + len(values(m)));
+
+print("\n=== Phase 5: Nested Map Creation and Access ===");
+var parent = map();
+parent["child"] = map();
+parent.child.greeting = "Hello from nested Map!";
+print("parent.child.greeting: " + parent.child.greeting);
+
+print("\n=== Map built-in tests completed successfully! ===");

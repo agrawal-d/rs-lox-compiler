@@ -16,13 +16,26 @@ typedef enum {
     VAL_NUMBER,
     VAL_STRING,
     VAL_ARRAY,
-    VAL_BUFFER
+    VAL_BUFFER,
+    VAL_MAP
 } LoxValueType;
 
 struct LoxFfiArray;
 struct LoxFfiBuffer;
+struct LoxFfiMap;
 
-typedef struct {
+typedef struct LoxFfiMapEntry {
+    struct LoxFfiValue key;
+    struct LoxFfiValue value;
+} LoxFfiMapEntry;
+
+typedef struct LoxFfiMap {
+    LoxFfiMapEntry* entries;
+    int length;
+    int capacity;
+} LoxFfiMap;
+
+typedef struct LoxFfiValue {
     LoxValueType type;
     union {
         bool boolean;
@@ -30,6 +43,7 @@ typedef struct {
         const char* string;
         struct LoxFfiArray* array;
         struct LoxFfiBuffer* buffer;
+        struct LoxFfiMap* map;
     } as;
 } LoxFfiValue;
 
@@ -58,6 +72,7 @@ typedef struct {
     LoxFfiValue (*make_buffer)(int size, const unsigned char* bytes);
     void (*set_error)(const char* message);
     void (*define_function_with_help)(const char* name, int arity, LoxNativeFn fn, const char* help);
+    LoxFfiValue (*make_map)(int length, const LoxFfiMapEntry* entries);
 } LoxFfiApi;
 
 // Static inline helpers for convenience and readability in modules

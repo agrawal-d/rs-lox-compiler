@@ -15,24 +15,16 @@ print("Index 2 (nil): " + str(parsed_array[2]));
 print("Index 3 (number): " + str(parsed_array[3]));
 print("Index 4 (string): " + str(parsed_array[4]));
 
-print("\n=== Phase 3: Test JSON Parsing of Objects ===");
+print("\n=== Phase 3: Test JSON Parsing of Objects into Map ===");
 var json_obj_str = "{\"name\":\"Bob\",\"age\":30,\"skills\":[\"Lox\",\"Rust\"]}";
 print("Parsing JSON Object: " + json_obj_str);
 var parsed_obj = json.parse(json_obj_str);
 
-// Iterate and print pairs
-var i = 0;
-while (i < len(parsed_obj)) {
-    var pair = parsed_obj[i];
-    var key = pair[0];
-    var val = pair[1];
-    if (key == "skills") {
-        print("  Key: " + key + " -> Array of length: " + str(len(val)) + " (e.g. " + val[0] + ", " + val[1] + ")");
-    } else {
-        print("  Key: " + key + " -> " + str(val));
-    }
-    i = i + 1;
-}
+print("Type of parsed object: " + typeof(parsed_obj));
+print("parsed_obj.name (dot syntax): " + parsed_obj.name);
+print("parsed_obj[\"age\"] (bracket syntax): " + str(parsed_obj["age"]));
+print("parsed_obj.skills[0]: " + parsed_obj.skills[0]);
+print("parsed_obj.skills[1]: " + parsed_obj.skills[1]);
 
 print("\n=== Phase 4: Test JSON Stringify of Primitives ===");
 print("Stringify nil: " + json.stringify(nil));
@@ -40,16 +32,14 @@ print("Stringify true: " + json.stringify(true));
 print("Stringify 987.6: " + json.stringify(987.6));
 print("Stringify 'hello': " + json.stringify("hello"));
 
-print("\n=== Phase 5: Test JSON Stringify of complex Lox structures ===");
+print("\n=== Phase 5: Test JSON Stringify of Lox Map structures ===");
 var lox_array = [1, 2, "three", false];
 print("Stringify Lox Array: " + json.stringify(lox_array));
 
-// Define a Lox object representation (array of pairs)
-var lox_obj = [
-    ["title", "Manager"],
-    ["salary", 85000],
-    ["remote", true]
-];
-print("Stringify Lox Object pairs: " + json.stringify(lox_obj));
+var lox_map = map();
+lox_map.title = "Manager";
+lox_map.salary = 85000;
+lox_map.remote = true;
+print("Stringify Lox Map: " + json.stringify(lox_map));
 
 print("\n=== JSON native module tests finished successfully! ===");

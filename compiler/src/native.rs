@@ -126,12 +126,24 @@ interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
 });
 
 callable_struct!(TypeOf, "typeof", 1, "typeof(value)
-Returns the type of the given value as a string.
+Returns a string representing the type of the given value.
 Arguments:
   value: Any value to inspect.
-Returns: String (e.g. \"Number\", \"String\", \"Array\", \"Buffer\").",
+Returns: String (e.g. \"Number\", \"String\", \"Array\", \"Buffer\", \"Map\").",
 interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
-    Value::Str(interner.intern(&format!("{}", args[0])))
+    match &args[0] {
+        Value::Map(_) => Value::Str(interner.intern("Map")),
+        Value::Buffer(_) => Value::Str(interner.intern("Buffer")),
+        Value::Array(_) => Value::Str(interner.intern("Array")),
+        Value::Str(_) | Value::Identifier(_) => Value::Str(interner.intern("String")),
+        Value::Number(_) => Value::Str(interner.intern("Number")),
+        Value::Bool(_) => Value::Str(interner.intern("Bool")),
+        Value::Nil => Value::Str(interner.intern("Nil")),
+        Value::Function(_) | Value::NativeFunction(_) => Value::Str(interner.intern("Function")),
+        Value::Class(_) => Value::Str(interner.intern("Class")),
+        Value::Instance(_) => Value::Str(interner.intern("Instance")),
+        Value::BoundMethod { .. } => Value::Str(interner.intern("BoundMethod")),
+    }
 });
 
 callable_struct!(StrCast, "str", 1, "str(value)
@@ -328,7 +340,7 @@ interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
 callable_struct!(Len, "len", 1, "len(val)
 Returns the length/size of the given value.
 Arguments:
-  val: String, Array, or Buffer to inspect.
+  val: String, Array, Buffer, or Map to inspect.
 Returns: Number representing the length.
 Error Cases: Sets error if argument type is not supported.",
 interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
@@ -339,8 +351,99 @@ interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
         }
         Value::Array(arr) => Value::Number(arr.borrow().len() as f64),
         Value::Buffer(buf) => Value::Number(buf.borrow().len() as f64),
+        Value::Map(map) => Value::Number(map.borrow().len() as f64),
         _ => {
-            set_global_error(interner, globals, "Expected string, array, or buffer as argument to len");
+            set_global_error(interner, globals, "Expected string, array, buffer, or map as argument to len");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(MapConstructor, "map", 0, "map(entries)
+Constructs a new unordered Map.
+Arguments:
+  entries: (Optional) Array of key-value pair arrays, e.g. [[\"k1\", \"v1\"], [\"k2\", \"v2\"]].
+Returns: New Map object.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    let map = rustc_hash::FxHashMap::default();
+    let map_rc = std::rc::Rc::new(std::cell::RefCell::new(map));
+    if !args.is_empty() {
+        if let Value::Array(arr) = &args[0] {
+            let borrow = arr.borrow();
+            for item in borrow.iter() {
+                if let Value::Array(pair) = item {
+                    let p_borrow = pair.borrow();
+                    if p_borrow.len() == 2 {
+                        map_rc.borrow_mut().insert(p_borrow[0].clone(), p_borrow[1].clone());
+                    }
+                }
+            }
+        }
+    }
+    Value::Map(map_rc)
+});
+
+callable_struct!(Keys, "keys", 1, "keys(map)
+Returns an Array of all keys in a Map.
+Arguments:
+  map: Map object.
+Returns: Array of keys.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    if args.is_empty() {
+        set_global_error(interner, globals, "keys requires 1 argument");
+        return Value::Nil;
+    }
+    match &args[0] {
+        Value::Map(map) => {
+            let keys_vec: Vec<Value> = map.borrow().keys().cloned().collect();
+            Value::Array(std::rc::Rc::new(std::cell::RefCell::new(keys_vec)))
+        }
+        _ => {
+            set_global_error(interner, globals, "Argument to keys must be a Map");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Values, "values", 1, "values(map)
+Returns an Array of all values in a Map.
+Arguments:
+  map: Map object.
+Returns: Array of values.",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    if args.is_empty() {
+        set_global_error(interner, globals, "values requires 1 argument");
+        return Value::Nil;
+    }
+    match &args[0] {
+        Value::Map(map) => {
+            let vals_vec: Vec<Value> = map.borrow().values().cloned().collect();
+            Value::Array(std::rc::Rc::new(std::cell::RefCell::new(vals_vec)))
+        }
+        _ => {
+            set_global_error(interner, globals, "Argument to values must be a Map");
+            Value::Nil
+        }
+    }
+});
+
+callable_struct!(Has, "has", 2, "has(map, key)
+Checks if a key exists in a Map.
+Arguments:
+  map: Map object.
+  key: Key value to check.
+Returns: Bool (true if present, false otherwise).",
+interner: &mut Interner, globals: &mut Globals, args: &[Value] ,{
+    if args.len() < 2 {
+        set_global_error(interner, globals, "has requires map and key arguments");
+        return Value::Nil;
+    }
+    match &args[0] {
+        Value::Map(map) => {
+            Value::Bool(map.borrow().contains_key(&args[1]))
+        }
+        _ => {
+            set_global_error(interner, globals, "First argument to has must be a Map");
             Value::Nil
         }
     }

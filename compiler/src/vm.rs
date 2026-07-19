@@ -115,6 +115,13 @@ fn get_array(arr: &Value, index: &Value) -> anyhow::Result<Value, Error> {
                 bail!("Index out of bounds: {index}")
             }
         }
+        (Value::Map(map), key) => {
+            if let Some(val) = map.borrow().get(key) {
+                Ok(val.clone())
+            } else {
+                Ok(Value::Nil)
+            }
+        }
         (arr, index) => {
             bail!(format!("Tried to index value of type {arr} with index {index}"));
         }
@@ -141,11 +148,15 @@ fn set_array(arr: &mut Value, index: &Value, new_value: Value) -> anyhow::Result
                         bytes[index] = n as u8;
                         Ok(())
                     }
-                    _ => bail!("Expected number as buffer element value"),
+                    _ => bail!("Buffer element must be a byte number"),
                 }
             } else {
                 bail!("Index out of bounds: {index}")
             }
+        }
+        (Value::Map(map), key) => {
+            map.borrow_mut().insert(key.clone(), new_value);
+            Ok(())
         }
         (arr, index) => {
             bail!(format!("Tried to index value of type {arr} with index {index}"));
@@ -228,6 +239,10 @@ where
         register_native!(vm, Sqrt);
         register_native!(vm, Pow);
         register_native!(vm, Pi);
+        register_native!(vm, MapConstructor);
+        register_native!(vm, Keys);
+        register_native!(vm, Values);
+        register_native!(vm, Has);
 
         vm
     }
@@ -747,8 +762,16 @@ where
                                 }
                             }
                         }
+                        Value::Map(map) => {
+                            let key = Value::Str(name);
+                            if let Some(value) = map.borrow().get(&key).cloned() {
+                                self.stack.push(value);
+                            } else {
+                                self.stack.push(Value::Nil);
+                            }
+                        }
                         _ => {
-                            self.runtime_error("Only instances have properties.");
+                            self.runtime_error("Only instances and maps have properties.");
                         }
                     }
                 }
@@ -761,8 +784,13 @@ where
                             instance.borrow().fields.borrow_mut().insert(name, value.clone());
                             self.stack.push(value);
                         }
+                        Value::Map(map) => {
+                            let key = Value::Str(name);
+                            map.borrow_mut().insert(key, value.clone());
+                            self.stack.push(value);
+                        }
                         _ => {
-                            self.runtime_error("Only instances have properties.");
+                            self.runtime_error("Only instances and maps have properties.");
                         }
                     }
                 }
@@ -857,6 +885,10 @@ where
         register_native!(vm, Sqrt);
         register_native!(vm, Pow);
         register_native!(vm, Pi);
+        register_native!(vm, MapConstructor);
+        register_native!(vm, Keys);
+        register_native!(vm, Values);
+        register_native!(vm, Has);
 
         vm.load_native_imports(vm.functions.len() - 1);
 

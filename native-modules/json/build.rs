@@ -45,6 +45,7 @@ pub union LoxFfiValueUnion {
     pub string: *const std::ffi::c_char,
     pub array: *mut LoxFfiArray,
     pub buffer: *mut LoxFfiBuffer,
+    pub map: *mut LoxFfiMap,
 }
 
 #[repr(C)]
@@ -70,6 +71,21 @@ pub struct LoxFfiBuffer {
     pub capacity: std::ffi::c_int,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct LoxFfiMapEntry {
+    pub key: LoxFfiValue,
+    pub value: LoxFfiValue,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct LoxFfiMap {
+    pub entries: *mut LoxFfiMapEntry,
+    pub length: std::ffi::c_int,
+    pub capacity: std::ffi::c_int,
+}
+
 pub type LoxNativeFn = extern \"C\" fn(arg_count: std::ffi::c_int, args: *const LoxFfiValue) -> LoxFfiValue;
 
 #[repr(C)]
@@ -84,6 +100,7 @@ pub struct LoxFfiApi {
     pub make_buffer: extern \"C\" fn(size: std::ffi::c_int, bytes: *const std::ffi::c_uchar) -> LoxFfiValue,
     pub set_error: extern \"C\" fn(message: *const std::ffi::c_char),
     pub define_function_with_help: extern \"C\" fn(name: *const std::ffi::c_char, arity: std::ffi::c_int, fn_: LoxNativeFn, help: *const std::ffi::c_char),
+    pub make_map: extern \"C\" fn(length: std::ffi::c_int, entries: *const LoxFfiMapEntry) -> LoxFfiValue,
 }
 ");
 

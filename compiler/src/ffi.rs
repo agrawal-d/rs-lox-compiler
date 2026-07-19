@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::ffi::{c_char, CStr, CString};
 use crate::interner::Interner;
-use crate::value::Value;
+use crate::value::{Value, LoxMap};
 use crate::native::{Callable, Globals, set_global_error};
 
 #[repr(C)]
@@ -13,6 +13,7 @@ pub enum LoxValueType {
     String,
     Array,
     Buffer,
+    Map,
 }
 
 #[repr(C)]
@@ -23,6 +24,7 @@ pub union LoxFfiValueUnion {
     pub string: *const c_char,
     pub array: *mut LoxFfiArray,
     pub buffer: *mut LoxFfiBuffer,
+    pub map: *mut LoxFfiMap,
 }
 
 #[repr(C)]
@@ -48,6 +50,21 @@ pub struct LoxFfiBuffer {
     pub capacity: i32,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct LoxFfiMapEntry {
+    pub key: LoxFfiValue,
+    pub value: LoxFfiValue,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct LoxFfiMap {
+    pub entries: *mut LoxFfiMapEntry,
+    pub length: i32,
+    pub capacity: i32,
+}
+
 pub type LoxNativeFn = extern "C" fn(arg_count: i32, args: *const LoxFfiValue) -> LoxFfiValue;
 
 #[repr(C)]
@@ -62,6 +79,7 @@ pub struct LoxFfiApi {
     pub make_buffer: extern "C" fn(size: i32, bytes: *const u8) -> LoxFfiValue,
     pub set_error: extern "C" fn(message: *const c_char),
     pub define_function_with_help: extern "C" fn(name: *const c_char, arity: i32, func: LoxNativeFn, help: *const c_char),
+    pub make_map: extern "C" fn(length: i32, entries: *const LoxFfiMapEntry) -> LoxFfiValue,
 }
 
 trait FfiBorrow {}
@@ -73,6 +91,8 @@ struct FfiCallContext<'a> {
     arrays: Vec<Box<LoxFfiArray>>,
     array_elements: Vec<Vec<LoxFfiValue>>,
     buffers: Vec<Box<LoxFfiBuffer>>,
+    maps: Vec<Box<LoxFfiMap>>,
+    map_entries: Vec<Vec<LoxFfiMapEntry>>,
     borrows: Vec<Box<dyn FfiBorrow + 'a>>,
 }
 
@@ -153,6 +173,38 @@ fn value_to_ffi<'a>(
                 as_val: LoxFfiValueUnion { buffer: buf_ptr },
             }
         }
+        Value::Map(m) => {
+            let m_borrow = m.borrow();
+            let map_ptr = &*m_borrow as *const LoxMap;
+            let length = m_borrow.len() as i32;
+
+            ctx.borrows.push(Box::new(m_borrow));
+
+            let map_ref = unsafe { &*map_ptr };
+            let mut ffi_entries = Vec::with_capacity(length as usize);
+            for (k, v) in map_ref.iter() {
+                ffi_entries.push(LoxFfiMapEntry {
+                    key: value_to_ffi(k, interner, ctx),
+                    value: value_to_ffi(v, interner, ctx),
+                });
+            }
+            let ptr = ffi_entries.as_mut_ptr();
+            let capacity = ffi_entries.capacity() as i32;
+            ctx.map_entries.push(ffi_entries);
+
+            let mut ffi_map = Box::new(LoxFfiMap {
+                entries: ptr,
+                length,
+                capacity,
+            });
+            let map_ptr = &mut *ffi_map as *mut LoxFfiMap;
+            ctx.maps.push(ffi_map);
+
+            LoxFfiValue {
+                typ: LoxValueType::Map,
+                as_val: LoxFfiValueUnion { map: map_ptr },
+            }
+        }
         _ => LoxFfiValue {
             typ: LoxValueType::Nil,
             as_val: LoxFfiValueUnion { number: 0.0 },
@@ -207,6 +259,24 @@ fn ffi_to_value(ffi: &LoxFfiValue, interner: &mut Interner) -> Value {
                 Value::Buffer(std::rc::Rc::new(std::cell::RefCell::new(bytes)))
             }
         }
+        LoxValueType::Map => {
+            let ptr = unsafe { ffi.as_val.map };
+            if ptr.is_null() {
+                Value::Map(std::rc::Rc::new(std::cell::RefCell::new(rustc_hash::FxHashMap::default())))
+            } else {
+                let ffi_map = unsafe { Box::from_raw(ptr) };
+                let mut map = rustc_hash::FxHashMap::default();
+                if !ffi_map.entries.is_null() && ffi_map.length > 0 {
+                    let vec = unsafe { Vec::from_raw_parts(ffi_map.entries, ffi_map.length as usize, ffi_map.capacity as usize) };
+                    for entry in &vec {
+                        let k = ffi_to_value(&entry.key, interner);
+                        let v = ffi_to_value(&entry.value, interner);
+                        map.insert(k, v);
+                    }
+                }
+                Value::Map(std::rc::Rc::new(std::cell::RefCell::new(map)))
+            }
+        }
     }
 }
 
@@ -229,6 +299,8 @@ impl Callable for FfiCallable {
             arrays: Vec::new(),
             array_elements: Vec::new(),
             buffers: Vec::new(),
+            maps: Vec::new(),
+            map_entries: Vec::new(),
             borrows: Vec::new(),
         };
 
@@ -386,6 +458,29 @@ extern "C" fn api_make_buffer(size: i32, bytes: *const u8) -> LoxFfiValue {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+extern "C" fn api_make_map(length: i32, entries: *const LoxFfiMapEntry) -> LoxFfiValue {
+    let mut vec = Vec::with_capacity(length as usize);
+    if !entries.is_null() && length > 0 {
+        let slice = unsafe { std::slice::from_raw_parts(entries, length as usize) };
+        vec.extend_from_slice(slice);
+    }
+    let ptr = vec.as_mut_ptr();
+    let capacity = vec.capacity() as i32;
+    std::mem::forget(vec);
+
+    let map = Box::new(LoxFfiMap {
+        entries: ptr,
+        length,
+        capacity,
+    });
+
+    LoxFfiValue {
+        typ: LoxValueType::Map,
+        as_val: LoxFfiValueUnion { map: Box::into_raw(map) },
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 extern "C" fn api_set_error(message: *const c_char) {
     let msg_str = unsafe { CStr::from_ptr(message) }.to_str().unwrap_or("").to_string();
     CURRENT_REGISTRY.with(|reg| {
@@ -450,6 +545,7 @@ pub fn load_native_module(
         make_buffer: api_make_buffer,
         set_error: api_set_error,
         define_function_with_help: api_define_function_with_help,
+        make_map: api_make_map,
     }));
 
     unsafe {

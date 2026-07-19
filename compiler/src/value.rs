@@ -26,6 +26,7 @@ pub enum Value {
     Identifier(StrId),
     Array(Rc<RefCell<ValueArray>>),
     Buffer(Rc<RefCell<Vec<u8>>>),
+    Map(Rc<RefCell<LoxMap>>),
     Function(usize),
     NativeFunction(Rc<dyn Callable>),
     Nil,
@@ -38,6 +39,7 @@ pub enum Value {
 }
 
 pub type ValueArray = Vec<Value>;
+pub type LoxMap = rustc_hash::FxHashMap<Value, Value>;
 
 pub fn print_value(value: &Value, interner: &Interner) {
     xprint!("{}", value_as_string(value, interner));
@@ -72,6 +74,26 @@ pub fn value_as_string(value: &Value, interner: &Interner) -> String {
         Value::Buffer(buf) => {
             format!("Buffer<{} bytes>", buf.borrow().len())
         }
+        Value::Map(map) => {
+            let borrow = map.borrow();
+            let mut s = format!("Map<{} entries {{", borrow.len());
+            for (i, (k, v)) in borrow.iter().enumerate() {
+                if i != 0 {
+                    s.push_str(", ");
+                }
+
+                if i >= 10 {
+                    s.push_str("...");
+                    break;
+                }
+
+                s.push_str(&value_as_string(k, interner));
+                s.push_str(": ");
+                s.push_str(&value_as_string(v, interner));
+            }
+            s.push_str("}}>");
+            s
+        }
         Value::Function(idx) => {
             format!("<Function {idx}>")
         }
@@ -105,6 +127,7 @@ impl PartialEq<Value> for Value {
             (Nil, Nil) => true,
             (Array(a), Array(b)) => Rc::ptr_eq(a, b),
             (Buffer(a), Buffer(b)) => Rc::ptr_eq(a, b),
+            (Map(a), Map(b)) => Rc::ptr_eq(a, b),
             (Class(a), Class(b)) => Rc::ptr_eq(a, b),
             (Instance(a), Instance(b)) => Rc::ptr_eq(a, b),
             (
@@ -118,6 +141,32 @@ impl PartialEq<Value> for Value {
                 },
             ) => Rc::ptr_eq(a_inst, b_inst) && a_idx == b_idx,
             _ => false,
+        }
+    }
+}
+
+impl Eq for Value {}
+
+impl std::hash::Hash for Value {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
+        match self {
+            Value::Bool(b) => b.hash(state),
+            Value::Number(n) => n.to_bits().hash(state),
+            Value::Str(s) => s.hash(state),
+            Value::Identifier(id) => id.hash(state),
+            Value::Array(a) => Rc::as_ptr(a).hash(state),
+            Value::Buffer(b) => Rc::as_ptr(b).hash(state),
+            Value::Map(m) => Rc::as_ptr(m).hash(state),
+            Value::Function(idx) => idx.hash(state),
+            Value::NativeFunction(f) => (f.as_ref() as *const dyn Callable as *const ()).hash(state),
+            Value::Nil => (),
+            Value::Class(c) => Rc::as_ptr(c).hash(state),
+            Value::Instance(i) => Rc::as_ptr(i).hash(state),
+            Value::BoundMethod { instance, method_idx } => {
+                Rc::as_ptr(instance).hash(state);
+                method_idx.hash(state);
+            }
         }
     }
 }
