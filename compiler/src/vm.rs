@@ -32,6 +32,15 @@ struct CallFrame {
 
 pub const ERR_STRING: &str = "errString";
 
+pub type BuiltinLoader = fn(name: &str, alias: &str, interner: &mut Interner, globals: &mut Globals) -> bool;
+pub static BUILTIN_LOADER: std::sync::RwLock<Option<BuiltinLoader>> = std::sync::RwLock::new(None);
+
+pub fn set_builtin_loader(loader: BuiltinLoader) {
+    if let std::result::Result::Ok(mut guard) = BUILTIN_LOADER.write() {
+        *guard = Some(loader);
+    }
+}
+
 thread_local! {
     pub static RUNNING_FUNCTIONS: std::cell::RefCell<Option<*const Vec<crate::fun::Fun>>> = std::cell::RefCell::new(None);
 }
@@ -247,9 +256,25 @@ where
         vm
     }
 
+
+
     fn load_native_imports(&mut self, fun_idx: usize) {
         let imports = self.functions[fun_idx].native_imports.clone();
         for (path, alias) in imports {
+            let loaded_as_builtin = if let std::result::Result::Ok(guard) = BUILTIN_LOADER.read() {
+                if let Some(loader) = *guard {
+                    loader(&path, &alias, self.interner, &mut self.globals)
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
+            if loaded_as_builtin {
+                continue;
+            }
+
             match crate::ffi::load_native_module(&path, &alias, self.interner, &mut self.globals) {
                 std::result::Result::Ok(lib) => {
                     self.loaded_libs.push(lib);

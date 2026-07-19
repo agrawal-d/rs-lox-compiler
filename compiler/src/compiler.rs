@@ -824,18 +824,32 @@ impl<'src> Compiler<'src> {
     }
 
     fn import_declaration(&mut self) {
-        self.parser.consume(TokenType::String, "Expect string literal for import path.");
-        #[allow(unused)]
-        let path_token = self.parser.previous.clone();
+        let path_str_unescaped: String;
+        let alias_str: String;
 
-        self.parser.consume(TokenType::As, "Expect 'as' after import path.");
-        self.parser.consume(TokenType::Identifier, "Expect namespace alias after 'as'.");
-        #[allow(unused)]
-        let alias_token = self.parser.previous.clone();
+        if self.parser.match_tt(TokenType::Identifier) {
+            let ident_token = self.parser.previous.clone();
+            let name = ident_token.source.as_ref().to_string();
+            path_str_unescaped = name.clone();
+            alias_str = name;
+        } else if self.parser.match_tt(TokenType::String) {
+            let path_token = self.parser.previous.clone();
+            let raw_path = &path_token.source[1..path_token.source.len() - 1];
+            path_str_unescaped = unescape_string(raw_path);
 
-        let alias_str = alias_token.source.as_ref();
-        unsafe { &mut *self.namespaces }.insert(alias_str.to_string());
+            if self.parser.match_tt(TokenType::As) {
+                self.parser.consume(TokenType::Identifier, "Expect namespace alias after 'as'.");
+                alias_str = self.parser.previous.source.as_ref().to_string();
+            } else {
+                let p = std::path::Path::new(&path_str_unescaped);
+                alias_str = p.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| path_str_unescaped.clone());
+            }
+        } else {
+            self.parser.error_at_current("Expect string literal or module identifier after 'import'.");
+            return;
+        }
 
+        unsafe { &mut *self.namespaces }.insert(alias_str.clone());
         self.parser.consume(TokenType::Semicolon, "Expect ';' after import declaration.");
 
         #[cfg(target_arch = "wasm32")]
@@ -846,19 +860,12 @@ impl<'src> Compiler<'src> {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let path_str = path_token.source.clone();
-            let raw_path = &path_str[1..path_str.len() - 1];
-            let path_str_unescaped = unescape_string(raw_path);
-            let alias_str = alias_token.source.as_ref();
+            let is_lox_script = path_str_unescaped.ends_with(".lox");
 
-            let is_native = path_str_unescaped.ends_with(".dll")
-                || path_str_unescaped.ends_with(".so")
-                || path_str_unescaped.ends_with(".dylib");
-
-            if is_native {
-                self.fun.native_imports.push((path_str_unescaped, alias_str.to_string()));
+            if !is_lox_script {
+                self.fun.native_imports.push((path_str_unescaped, alias_str));
             } else {
-                if let Err(e) = self.execute_import(&path_str_unescaped, alias_str) {
+                if let Err(e) = self.execute_import(&path_str_unescaped, &alias_str) {
                     self.parser.error_at_current(&e);
                 }
             }

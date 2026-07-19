@@ -1,0 +1,16 @@
+import math;
+
+print("=== Phase 1: Test Embedded Math Help ===");
+help(math);
+
+print("\n=== Phase 2: Test Trig & Power Functions ===");
+print("math.sin(0): " + str(math.sin(0)));
+print("math.cos(0): " + str(math.cos(0)));
+print("math.sqrt(16): " + str(math.sqrt(16)));
+print("math.pow(2, 10): " + str(math.pow(2, 10)));
+print("math.pi(): " + str(math.pi()));
+print("math.e(): " + str(math.e()));
+print("math.min(15, 42): " + str(math.min(15, 42)));
+print("math.max(15, 42): " + str(math.max(15, 42)));
+
+print("\n=== Embedded math module tests completed successfully! ===");

@@ -206,8 +206,11 @@ fn run_repl() {
     }
 }
 
+pub mod builtin;
+
 fn main() {
     init(print, println, clear);
+    compiler::vm::set_builtin_loader(builtin::load_builtin_module);
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() == 1 {

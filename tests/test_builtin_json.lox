@@ -1,0 +1,27 @@
+import json;
+
+print("=== Phase 1: Test Embedded JSON Help ===");
+help(json);
+
+print("\n=== Phase 2: Test JSON Parsing into Map ===");
+var json_str = "{\"name\": \"Divyanshu\", \"role\": \"Compiler Developer\", \"active\": true, \"scores\": [98, 99, 100]}";
+print("Parsing JSON string...");
+var data = json.parse(json_str);
+
+print("Type of parsed JSON: " + typeof(data));
+print("data.name: " + data.name);
+print("data.role: " + data.role);
+print("data.active: " + str(data.active));
+print("data.scores[0]: " + str(data.scores[0]));
+print("data.scores[2]: " + str(data.scores[2]));
+
+print("\n=== Phase 3: Test JSON Stringify ===");
+var m = map();
+m.title = "Builtin JSON Module";
+m.version = 2.0;
+m.tags = ["fast", "zero-copy", "embedded"];
+
+var stringified = json.stringify(m);
+print("Serialized JSON Map: " + stringified);
+
+print("\n=== Embedded json module tests completed successfully! ===");

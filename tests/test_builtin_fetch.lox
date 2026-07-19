@@ -1,0 +1,27 @@
+import fetch;
+
+print("=== Phase 1: Test Embedded Fetch Help ===");
+help(fetch);
+
+print("\n=== Phase 2: Test HTTP GET Request ===");
+var response = fetch.get("https://httpbin.org/get?msg=BuiltinFetch");
+print("GET Response length: " + str(len(response)));
+
+print("\n=== Phase 3: Test HTTP GET Buffer (Binary download) ===");
+var buf_resp = fetch.get_buf("https://httpbin.org/get?msg=BuiltinBufferFetch");
+print("Buffer response byte length: " + str(len(buf_resp)));
+print("Buffer type: " + typeof(buf_resp));
+
+print("\n=== Phase 4: Test HTTP POST Request ===");
+var post_resp = fetch.post("https://httpbin.org/post", "Hello from built-in fetch!");
+print("POST Response length: " + str(len(post_resp)));
+
+print("\n=== Phase 5: Test Custom HTTP Request with Header Map ===");
+var headers = map();
+headers["X-Custom-Header"] = "LoxNative";
+headers["Content-Type"] = "application/json";
+
+var custom_resp = fetch.request("https://httpbin.org/anything", "POST", headers, "{\"msg\": \"Custom request payload\"}");
+print("Custom Response length: " + str(len(custom_resp)));
+
+print("\n=== Embedded fetch module tests completed successfully! ===");

@@ -25,6 +25,7 @@ pub fn set_global_error(interner: &mut Interner, globals: &mut Globals, message:
     globals.insert(interner.intern(ERR_STRING), Value::Str(interner.intern(message)));
 }
 
+#[macro_export]
 macro_rules! callable_struct {
     ($struct_name:ident, $lox_name:expr, $arity:expr, $help:expr, $interner:ident: &mut Interner, $globals:ident: &mut Globals, $args:ident: &[Value], $body:block) => {
         #[derive(Debug, Default)]

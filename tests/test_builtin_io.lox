@@ -1,0 +1,29 @@
+import io;
+
+print("=== Phase 1: Test Embedded IO Help ===");
+help(io);
+
+print("\n=== Phase 2: Test File & Buffer IO ===");
+var file_name = "test_io_temp.txt";
+print("Writing file...");
+io.write_file(file_name, "Hello from built-in IO module!\n");
+
+print("io.exists: " + str(io.exists(file_name)));
+print("io.file_size: " + str(io.file_size(file_name)));
+
+print("Appending content...");
+io.append_file(file_name, "Appended line.\n");
+
+print("Reading text file:");
+print(io.read_file(file_name));
+
+print("Reading binary buffer:");
+var buf = io.read_file_buf(file_name);
+print("Buffer byte length: " + str(len(buf)));
+print("Buffer decoded as string: " + str(buf));
+
+print("Removing file...");
+io.remove_file(file_name);
+print("File exists after remove: " + str(io.exists(file_name)));
+
+print("\n=== Embedded io module tests completed successfully! ===");

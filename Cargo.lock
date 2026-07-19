@@ -645,7 +645,9 @@ version = "0.1.0"
 dependencies = [
  "compiler",
  "futures",
+ "reqwest",
  "rustc-hash",
+ "serde_json",
 ]
 
 [[package]]
