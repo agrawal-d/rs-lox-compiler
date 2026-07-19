@@ -1,0 +1,46 @@
+import kv;
+import io;
+
+print("=== Phase 1: Test KV Store Module Help ===");
+help(kv);
+
+var db_path = "app_store.json";
+
+print("\n=== Phase 2: Setting Key-Value Pairs ===");
+kv.set(db_path, "username", "divyanshu");
+kv.set(db_path, "score", 9950);
+kv.set(db_path, "premium", true);
+
+var settings = map();
+settings.theme = "dark";
+settings.fontSize = 14;
+kv.set(db_path, "settings", settings);
+
+print("kv.has('username'): " + str(kv.has(db_path, "username")));
+print("kv.get('username'): " + kv.get(db_path, "username"));
+print("kv.get('score'): " + str(kv.get(db_path, "score")));
+print("kv.get('premium'): " + str(kv.get(db_path, "premium")));
+
+var loaded_settings = kv.get(db_path, "settings");
+print("loaded_settings.theme: " + loaded_settings.theme);
+print("loaded_settings.fontSize: " + str(loaded_settings.fontSize));
+
+print("\n=== Phase 3: Inspecting Keys and All Entries ===");
+var keys_list = kv.keys(db_path);
+print("Total keys stored: " + str(len(keys_list)));
+
+var all_entries = kv.all(db_path);
+print("Type of kv.all(): " + typeof(all_entries));
+print("all_entries.username: " + all_entries.username);
+
+print("\n=== Phase 4: Deleting & Clearing ===");
+kv.delete(db_path, "score");
+print("kv.has('score') after delete: " + str(kv.has(db_path, "score")));
+
+kv.clear(db_path);
+print("Total keys after clear: " + str(len(kv.keys(db_path))));
+
+// Cleanup file
+io.remove_file(db_path);
+
+print("\n=== Persistent KV store module tests completed successfully! ===");

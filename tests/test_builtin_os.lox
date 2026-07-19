@@ -1,0 +1,22 @@
+import os;
+
+print("=== Phase 1: Test OS Module Help ===");
+help(os);
+
+print("\n=== Phase 2: OS Platform & Info ===");
+print("os.platform(): " + os.platform());
+print("os.arch(): " + os.arch());
+print("os.pid(): " + str(os.pid()));
+print("os.cwd(): " + os.cwd());
+
+print("\n=== Phase 3: Environment Variables ===");
+os.setenv("MY_TEST_VAR", "LoxCompilerOSValue");
+print("os.getenv('MY_TEST_VAR'): " + os.getenv("MY_TEST_VAR"));
+print("os.getenv('NONEXISTENT', 'default_val'): " + os.getenv("NONEXISTENT", "default_val"));
+
+print("\n=== Phase 4: Command Execution ===");
+var result = os.exec("cmd", ["/c", "echo Hello from OS Exec!"]);
+print("os.exec exit_code: " + str(result.exit_code));
+print("os.exec stdout: " + result.stdout);
+
+print("\n=== OS module tests completed successfully! ===");

@@ -1,0 +1,25 @@
+import time;
+
+print("=== Phase 1: Test Time Module Help ===");
+help(time);
+
+print("\n=== Phase 2: Timestamps and Formatting ===");
+var now_s = time.now();
+var now_ms = time.now_ms();
+print("time.now(): " + str(now_s));
+print("time.now_ms(): " + str(now_ms));
+
+var formatted_now = time.format();
+print("time.format() default: " + formatted_now);
+
+var formatted_custom = time.format(now_s, "%Y-%m-%d");
+print("time.format(now_s, '%Y-%m-%d'): " + formatted_custom);
+
+print("\n=== Phase 3: Sleeping and Measuring Elapsed Time ===");
+var start = time.now_ms();
+print("Sleeping for 100ms...");
+time.sleep(100);
+var elapsed = time.elapsed(start);
+print("Elapsed ms: " + str(elapsed));
+
+print("\n=== Time module tests completed successfully! ===");

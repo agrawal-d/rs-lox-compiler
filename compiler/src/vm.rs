@@ -511,9 +511,9 @@ where
                 let valid_arity = if is_input {
                     arg_count_usize <= 1
                 } else if is_printf {
-                    arg_count_usize >= 1 // printf needs at least format string
+                    arg_count_usize >= 1
                 } else {
-                    arg_count_usize == fun.arity()
+                    arg_count_usize >= fun.arity()
                 };
 
                 if !valid_arity {

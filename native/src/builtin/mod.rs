@@ -2,13 +2,16 @@ pub mod math;
 pub mod io;
 pub mod fetch;
 pub mod json;
+pub mod os;
+pub mod time;
+pub mod kv;
 
 use compiler::interner::Interner;
 use compiler::native::Globals;
 
 use compiler::value::Value;
 
-/// Attempts to load an embedded built-in module by name ("math", "io", "fetch", "json").
+/// Attempts to load an embedded built-in module by name ("math", "io", "fetch", "json", "os", "time", "kv").
 /// Registers all module functions under the requested alias into globals.
 /// Returns true if the module was found and loaded, false otherwise.
 pub fn load_builtin_module(
@@ -32,6 +35,18 @@ pub fn load_builtin_module(
         }
         "json" => {
             json::register(interner, globals, alias);
+            true
+        }
+        "os" => {
+            os::register(interner, globals, alias);
+            true
+        }
+        "time" => {
+            time::register(interner, globals, alias);
+            true
+        }
+        "kv" => {
+            kv::register(interner, globals, alias);
             true
         }
         _ => false,
